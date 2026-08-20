@@ -1,0 +1,34 @@
+{
+  "mcpTools": {
+    "daily_telephone_v3": {
+      "id": "daily_telephone_v3",
+      "name": "全国常用电话查询(V3)",
+      "description": "查询全国生活常用电话号码，包含党政机关、各类企业、电商外卖、特种服务、维权投诉等机构联系电话。",
+      "category": "information",
+      "riskLevel": "read",
+      "enabled": true,
+      "sort": 60,
+      "parameters": {
+        "word": {
+          "type": "string",
+          "description": "机构名称或机构电话（如：京东商城、95518等）",
+          "required": true
+        }
+      },
+      "endpoint": {
+        "url": "https://apis.tianapi.com/dailytel/index?key=YOUR_API_KEY",
+        "method": "GET",
+        "headers": {
+          "Content-Type": "application/json"
+        }
+      },
+      "customTemplate": {
+        "enabled": true,
+        "htmlTemplate": "<div class=\"phone-container\">\n  <h2>📞 全国常用电话查询(V3)</h2>\n  \n  {{#if (eq code 200)}}\n    {{#if items}}\n    <div class=\"phone-list\">\n      {{#each items}}\n      <div class=\"phone-item\">\n        <div class=\"phone-header\">\n          <h3 class=\"phone-name\">{{name}}</h3>\n          <span class=\"phone-category\">{{cate}}</span>\n        </div>\n        <div class=\"phone-content\">\n          <div class=\"phone-number\">\n            <span class=\"phone-label\">联系电话：</span>\n            <a href=\"tel:{{tel}}\" class=\"phone-link\">{{tel}}</a>\n            <button class=\"copy-btn\" onclick=\"navigator.clipboard.writeText('{{tel}}').then(() => alert('电话号码已复制到剪贴板'))\">复制</button>\n          </div>\n        </div>\n      </div>\n      {{/each}}\n    </div>\n    {{else}}\n    <div class=\"no-results\">\n      <p>🔍 未找到相关电话信息</p>\n      <p class=\"suggestion\">建议尝试更换关键词或使用更准确的机构名称</p>\n    </div>\n    {{/if}}\n  {{else}}\n    <div class=\"error-message\">\n      <h3>❌ 查询失败</h3>\n      <p>错误代码：{{code}}</p>\n      <p>错误信息：{{msg}}</p>\n    </div>\n  {{/if}}\n  \n  <div class=\"phone-footer\">\n    <span class=\"api-source\">✨ 天行数据 API</span>\n    <span class=\"update-time\">{{new Date().toLocaleString()}}</span>\n  </div>\n</div>\n\n<style>\n.phone-container {\n  background: var(--bg-lighter);\n  border-radius: 12px;\n  padding: 24px;\n  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);\n  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;\n  margin: 16px 0;\n}\n\n.phone-container h2 {\n  margin-top: 0;\n  color: var(--text-primary);\n  border-bottom: 2px solid var(--primary-color);\n  padding-bottom: 12px;\n}\n\n.phone-list {\n  display: flex;\n  flex-direction: column;\n  gap: 20px;\n}\n\n.phone-item {\n  padding: 20px;\n  border-radius: 8px;\n  background: var(--bg-medium);\n  border: 1px solid var(--border-color);\n  transition: all 0.3s ease;\n}\n\n.phone-item:hover {\n  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);\n  transform: translateY(-2px);\n}\n\n.phone-header {\n  display: flex;\n  justify-content: space-between;\n  align-items: center;\n  margin-bottom: 16px;\n}\n\n.phone-name {\n  margin: 0;\n  font-size: 1.3em;\n  font-weight: 600;\n  color: var(--text-primary);\n}\n\n.phone-category {\n  background: var(--primary-color);\n  color: white;\n  padding: 4px 12px;\n  border-radius: 20px;\n  font-size: 0.85em;\n  font-weight: 500;\n}\n\n.phone-content {\n  display: flex;\n  flex-direction: column;\n  gap: 12px;\n}\n\n.phone-number {\n  display: flex;\n  align-items: center;\n  gap: 12px;\n  padding: 12px;\n  background: var(--bg-darker);\n  border-radius: 6px;\n  border: 1px solid var(--border-color);\n}\n\n.phone-label {\n  font-weight: 500;\n  color: var(--text-secondary);\n  min-width: 80px;\n}\n\n.phone-link {\n  font-size: 1.2em;\n  font-weight: 600;\n  color: var(--primary-color);\n  text-decoration: none;\n  font-family: 'Courier New', monospace;\n  letter-spacing: 1px;\n}\n\n.phone-link:hover {\n  text-decoration: underline;\n}\n\n.copy-btn {\n  background: var(--primary-color);\n  color: white;\n  border: none;\n  padding: 6px 12px;\n  border-radius: 4px;\n  cursor: pointer;\n  font-size: 0.85em;\n  transition: background 0.3s ease;\n}\n\n.copy-btn:hover {\n  background: #005a9e;\n}\n\n.no-results {\n  text-align: center;\n  padding: 40px 20px;\n  color: var(--text-secondary);\n}\n\n.no-results p {\n  margin: 8px 0;\n}\n\n.suggestion {\n  font-size: 0.9em;\n  font-style: italic;\n}\n\n.error-message {\n  background: #fee;\n  border: 1px solid #fcc;\n  border-radius: 8px;\n  padding: 20px;\n  color: #c33;\n}\n\n.error-message h3 {\n  margin-top: 0;\n  color: #a22;\n}\n\n.phone-footer {\n  margin-top: 24px;\n  padding-top: 16px;\n  border-top: 1px solid var(--border-color);\n  display: flex;\n  justify-content: space-between;\n  font-size: 0.8em;\n  color: var(--text-secondary);\n}\n\n/* 响应式设计 */\n@media (max-width: 768px) {\n  .phone-header {\n    flex-direction: column;\n    align-items: flex-start;\n    gap: 8px;\n  }\n  \n  .phone-number {\n    flex-direction: column;\n    align-items: flex-start;\n    gap: 8px;\n  }\n  \n  .phone-link {\n    font-size: 1.1em;\n  }\n  \n  .copy-btn {\n    align-self: flex-start;\n  }\n}\n</style>"
+      }
+    }
+  },
+  "mcpToolStates": {},
+  "exportTime": "2025-09-09T18:30:00.000Z",
+  "version": "1.0"
+}

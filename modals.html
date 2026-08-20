@@ -1,0 +1,2107 @@
+<!-- Settings Modal -->
+<div id="settings-modal" class="modal-overlay">
+    <div class="modal-content" style="max-width:1200px;">
+        <div class="modal-header">
+            <h2>设置</h2>
+            <button class="modal-close-btn" title="关闭">&times;</button>
+        </div>
+        <div class="modal-tabs">
+            <button class="tab-btn active" data-tab="general-settings">通用</button>
+            <button class="tab-btn" data-tab="appearance-settings">外观</button>
+            <button class="tab-btn" data-tab="api-settings">API</button>
+            <button class="tab-btn" data-tab="param-settings">参数</button>
+            <button class="tab-btn" data-tab="regex-settings">正则表达式</button>
+            <button class="tab-btn" data-tab="database-settings">数据库维护</button>
+            <button class="tab-btn" data-tab="data-settings">数据管理</button>
+            <button class="tab-btn" data-tab="conversation-management">会话管理</button>
+            <button class="tab-btn" data-tab="quick-prompts-settings">快捷提示</button>
+            <button class="tab-btn" data-tab="mcp-management">MCP管理</button>
+        </div>
+        <div class="modal-body">
+            <div id="general-settings" class="tab-content active">
+                <div class="form-group-grid-2">
+                    <div class="form-group">
+                        <label for="user-avatar-input">用户头像</label>
+                        <div style="display:flex;align-items:center;gap:1em;">
+                            <img id="user-avatar-preview" src="" alt="头像预览"
+                                style="width:64px;height:64px;border-radius:50%;object-fit:cover;border:1.5px solid var(--border-color);background:#eee;">
+                            <div>
+                                <input type="file" id="user-avatar-input"
+                                    accept="image/png,image/jpeg,image/webp,image/svg+xml">
+                                <button id="user-avatar-remove-btn" type="button" class="action-button">移除头像
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>显示设置</label>
+                        <div class="form-group-checkbox">
+                            <input type="checkbox" id="auto-collapse-checkbox">
+                            <label for="auto-collapse-checkbox">自动收起长消息</label>
+                        </div>
+                        <div class="form-group-checkbox">
+                            <input type="checkbox" id="setting-auto-render-table">
+                            <label for="setting-auto-render-table">自动将JSON渲染为表格</label>
+                        </div>
+                        <div class="form-group-checkbox">
+                            <input type="checkbox" id="setting-auto-expand-code">
+                            <label for="setting-auto-expand-code">生成时自动展开侧边栏代码</label>
+                            <small style="color: var(--text-secondary); margin-left: 1rem;">用户交互侧边栏后自动停止跟随</small>
+                        </div>
+                        <div class="form-group-checkbox">
+                            <input type="checkbox" id="debug-mode-checkbox">
+                            <label for="debug-mode-checkbox">调试模式</label>
+                            <small style="color: var(--text-secondary); margin-left: 1rem;">在网络面板显示完整响应数据</small>
+                        </div>
+                        <div class="form-group-checkbox">
+                            <input type="checkbox" id="setting-disable-xss-protection">
+                            <label for="setting-disable-xss-protection" style="color: var(--danger-color);">关闭XSS防护
+                                (允许执行JS)</label>
+                            <small style="color: var(--text-secondary); margin-left: 1rem;">警告：勾选此项会使应用易受XSS攻击！</small>
+                        </div>
+                        <div style="display: none;">
+                            <div class="form-group-checkbox">
+                                <input type="checkbox" id="setting-highlight-quote-text">
+                                <label for="setting-highlight-quote-text">高亮引号文本</label>
+                            </div>
+                            <div class="form-group-checkbox">
+                                <input type="checkbox" id="setting-highlight-italic-text">
+                                <label for="setting-highlight-italic-text">高亮斜体文本（*包裹）</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="font-size-selector">字体大小</label>
+                        <select id="font-size-selector">
+                            <option value="14">小</option>
+                            <option value="16" selected>中</option>
+                            <option value="18">大</option>
+                            <option value="20">特大</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="recent-message-count-input">首次加载消息数</label>
+                        <div style="display: flex; gap: 1rem; align-items: center;">
+                            <input type="number" id="recent-message-count-input" min="1" max="100" value="5"
+                                style="width: 80px;">
+                            <small style="color: var(--text-secondary);">设置进入会话时只显示最近N条消息，点击"加载全部"才展开全部</small>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>发送快捷键</label>
+                        <div class="radio-group" style="display: flex; gap: 1rem; margin-top: 0.5rem;">
+                            <div>
+                                <input type="radio" id="send-key-enter" name="send-key" value="enter" checked>
+                                <label for="send-key-enter">Enter</label>
+                            </div>
+                            <div>
+                                <input type="radio" id="send-key-ctrl-enter" name="send-key" value="ctrl-enter">
+                                <label for="send-key-ctrl-enter">Ctrl+Enter</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>默认渲染模式</label>
+                        <div class="form-group-grid-2" style="align-items: end;">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label for="user-render-mode-selector"
+                                    style="font-size: 0.9em; color: var(--text-secondary);">用户消息</label>
+                                <select id="user-render-mode-selector">
+                                    <option value="md">Markdown</option>
+                                    <option value="raw">原文</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label for="ai-render-mode-selector"
+                                    style="font-size: 0.9em; color: var(--text-secondary);">AI消息</label>
+                                <select id="ai-render-mode-selector">
+                                    <option value="md">Markdown</option>
+                                    <option value="raw">原文</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>用户气泡颜色</label>
+                        <div style="display: flex; align-items: center; gap: 0.75rem; margin-top: 0.25rem;">
+                            <input type="color" id="user-bubble-color-picker" value="#2A5A9E" style="width: 44px; height: 36px; padding: 2px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); cursor: pointer; background: var(--bg-deep);">
+                            <span id="user-bubble-color-preview-text" style="font-family: var(--font-mono); font-size: 0.85rem; color: var(--text-secondary);">默认颜色</span>
+                            <button id="user-bubble-color-reset-btn" type="button" class="action-button" style="padding: 4px 10px; font-size: 0.85rem;">恢复默认</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="user-bubble-max-width-slider">气泡最大宽度：<span id="user-bubble-max-width-value" style="color: var(--accent-blue); font-weight: 600;">100%</span></label>
+                        <div style="display: flex; align-items: center; gap: 0.75rem; margin-top: 0.25rem;">
+                            <input type="range" id="user-bubble-max-width-slider" min="30" max="100" step="5" value="100" style="flex: 1; cursor: pointer;">
+                            <button id="user-bubble-width-reset-btn" type="button" class="action-button" style="padding: 4px 10px; font-size: 0.85rem;">恢复默认</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group-grid-2">
+                    <div class="form-group">
+                        <button id="check-ls-space-btn" type="button" style="padding: 10px 5px;">检测 localStorage 剩余空间
+                        </button>
+                        <span id="ls-space-result" style="margin-left:1em;color:var(--text-secondary);"></span>
+                    </div>
+                    <div class="form-group">
+                        <button id="check-idb-space-btn" type="button" style="padding: 10px 5px;">检测 IndexedDB 已用空间
+                        </button>
+                        <span id="idb-space-result" style="margin-left:1em;color:var(--text-secondary);"></span>
+                    </div>
+                </div>
+                <div class="form-group" style="margin-top: 1rem;">
+                    <button id="clear-all-avatars-btn" type="button" class="action-button danger"
+                        style="padding: 10px 5px;">清空所有头像</button>
+                    <span class="settings-hint"
+                        style="margin-left:1em;color:var(--text-secondary);">此操作不可逆，将删除数据库中所有头像。</span>
+                </div>
+                <div id="avatar-crop-modal" class="modal-overlay" style="display:none;z-index:2000;">
+                    <div class="modal-content" style="max-width:400px;max-height:90vh;">
+                        <div class="modal-header">
+                            <h2>裁剪头像</h2>
+                            <button class="modal-close-btn cancel-button" id="avatar-crop-cancel-btn" title="关闭">
+                                &times;
+                            </button>
+                        </div>
+                        <div class="modal-body" style="text-align:center;">
+                            <img id="avatar-crop-image" src=""
+                                style="max-width:100%;max-height:300px;display:block;margin:0 auto;">
+                        </div>
+                        <div class="modal-actions" style="text-align:center;gap:1em;">
+                            <button id="avatar-crop-confirm-btn" type="button">确认裁剪</button>
+                            <button id="avatar-crop-cancel-btn2" type="button">取消</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="appearance-settings" class="tab-content">
+                <p class="settings-hint">在这里调整消息内容的显示颜色和样式。更改会实时生效并自动保存。</p>
+                <div class="form-group-grid-2">
+
+                    <div class="form-group">
+                        <label>引用文本</label>
+                        <div class="color-picker-group">
+                            <div class="color-input-wrapper">
+                                <input type="color" data-variable="--quote-text-color">
+                                <div class="color-swatch"></div>
+                            </div>
+                            <div class="form-group-checkbox" style="margin-left: auto;">
+                                <input type="checkbox" id="quote-bold-toggle" data-variable="--quote-text-font-weight">
+                                <label for="quote-bold-toggle">粗体</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>下划线文本</label>
+                        <div class="color-picker-group">
+                            <div class="color-input-wrapper">
+                                <input type="color" data-variable="--underline-color">
+                                <div class="color-swatch"></div>
+                            </div>
+                            <div class="form-group-checkbox" style="margin-left: auto;">
+                                <input type="checkbox" id="underline-bold-toggle"
+                                    data-variable="--underline-text-font-weight">
+                                <label for="underline-bold-toggle">粗体</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>斜体文本</label>
+                        <div class="color-picker-group">
+                            <div class="color-input-wrapper">
+                                <input type="color" data-variable="--italic-text-color">
+                                <div class="color-swatch"></div>
+                            </div>
+                            <div class="form-group-checkbox" style="margin-left: auto;">
+                                <input type="checkbox" id="italic-bold-toggle"
+                                    data-variable="--italic-text-font-weight">
+                                <label for="italic-bold-toggle">粗体</label>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+                <div class="modal-actions" style="margin-top: 20px;">
+                    <button id="reset-appearance-btn" class="cancel-button">恢复默认</button>
+                </div>
+            </div>
+            <div id="api-settings" class="tab-content">
+                <button id="add-new-api-btn" style="margin-bottom: 1rem;">添加新 API</button>
+
+                <div id="api-endpoint-list"></div>
+                <div class="modal-section">
+                    <!-- This hidden form block is restored to fix the JS error -->
+                    <div style="display: none;">
+                        <h3 id="api-form-title">添加/编辑 API 端点</h3>
+                        <div id="api-preset-buttons"></div>
+                        <input type="hidden" id="api-id-input">
+                        <div class="form-group">
+                            <label for="api-name-input">名称 (自定义)</label>
+                            <input type="text" id="api-name-input" placeholder="例如：我的本地 Llama3">
+                        </div>
+                        <div class="form-group">
+                            <label for="api-type-selector">API 类型</label>
+                            <select id="api-type-selector">
+                                <option value="openai-compatible">OpenAI 兼容</option>
+                                <option value="sse">Spring Boot (SSE)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="api-url-input">URL</label>
+                            <input type="text" id="api-url-input" placeholder="例如：http://localhost:11434/v1">
+                        </div>
+                        <div class="form-group api-openai-field">
+                            <label for="api-model-input">模型名称</label>
+                            <div class="input-with-button">
+                                <input type="text" id="api-model-input" placeholder="例如：llama3 或 deepseek-reasoner">
+                                <button type="button" id="fetch-models-btn" class="btn-in-input">获取模型</button>
+                            </div>
+                        </div>
+                        <div class="form-group api-openai-field">
+                            <label for="api-key-input">API Key (可选)</label>
+                            <input type="password" id="api-key-input">
+                        </div>
+                        <div class="modal-actions">
+                            <button id="api-cancel-btn" class="cancel-button" style="display: none;">取消编辑</button>
+                            <button id="api-save-btn">保存</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="param-settings" class="tab-content">
+                <p class="settings-hint">这些参数作为所有 API 端点的默认值，在 API 编辑中可单独覆盖。</p>
+                <div class="form-group-slider">
+                    <label class="param-label" for="param-temperature" data-tooltip="控制输出的随机性。值越高越有创意（可能胡说），值越低越确定（更保守）。推荐值：0.3-0.7（日常对话），0-0.2（代码/逻辑任务）">Temperature: <span id="temperature-value">0.5</span><i class="param-tooltip-icon">?</i></label>
+                    <input type="range" id="param-temperature" min="0" max="2" step="0.1" value="0.5">
+                </div>
+                <div class="form-group-slider">
+                    <label class="param-label" for="param-top-p" data-tooltip="核采样。只从累积概率达到 P 的最高概率词中选择。与 Temperature 配合使用，一般不需要同时调两个。推荐值：0.9-0.95">Top P: <span id="top-p-value">0.95</span><i class="param-tooltip-icon">?</i></label>
+                    <input type="range" id="param-top-p" min="0" max="1" step="0.05" value="0.95">
+                </div>
+                <div class="form-group-slider">
+                    <div class="param-enable-toggle">
+                        <input type="checkbox" id="param-enable-top-k"> <label for="param-enable-top-k" style="margin:0;">启用 Top K</label>
+                    </div>
+                    <label class="param-label" for="param-top-k" data-tooltip="限制每次只从概率最高的 K 个词中选择。⚠️ 仅本地推理引擎（Ollama/llama.cpp/vLLM）支持，OpenAI/DeepSeek 等商业 API 不支持此参数">Top K: <span id="top-k-value">40</span><i class="param-tooltip-icon">?</i></label>
+                    <input type="range" id="param-top-k" min="1" max="100" step="1" value="40">
+                </div>
+                <div class="form-group-slider">
+                    <div class="param-enable-toggle">
+                        <input type="checkbox" id="param-enable-min-p"> <label for="param-enable-min-p" style="margin:0;">启用 Min P</label>
+                    </div>
+                    <label class="param-label" for="param-min-p" data-tooltip="动态过滤低概率词。相比 Top K 更智能，按模型置信度自动调整阈值。⚠️ 仅本地推理引擎支持，商业 API 不支持">Min P: <span id="min-p-value">0.05</span><i class="param-tooltip-icon">?</i></label>
+                    <input type="range" id="param-min-p" min="0" max="1" step="0.01" value="0.05">
+                </div>
+                <div class="form-group">
+                    <label class="param-label" for="param-max-tokens" data-tooltip="限制 AI 回复的最大长度（token 数）。-1 表示不限制，由模型自行决定">Max Tokens (-1为不限制)<i class="param-tooltip-icon">?</i></label>
+                    <input type="number" id="param-max-tokens" placeholder="例如: 4096" value="-1">
+                </div>
+                <div class="form-group-toggle">
+                    <label class="param-label" for="stream-mode-toggle" data-tooltip="开启后 AI 会逐字返回内容（打字机效果）。关闭后等 AI 完整思考完毕再一次性显示">流式输出<i class="param-tooltip-icon">?</i></label>
+                    <div style="display: flex; align-items: center;">
+                        <label class="theme-switch">
+                            <input type="checkbox" id="stream-mode-toggle" checked>
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div id="regex-settings" class="tab-content">
+                <p class="settings-hint">按规则顺序，对符合作用域的消息进行查找和替换。</p>
+                <div id="regex-rule-list"></div>
+                <div class="modal-section">
+                    <div class="regex-form-container">
+                        <h3 id="regex-form-title">添加/编辑规则</h3>
+                        <input type="hidden" id="regex-id-input">
+                        <div class="form-group">
+                            <label for="regex-name-input">规则名称</label>
+                            <input type="text" id="regex-name-input" placeholder="例如：去除思考过程">
+                        </div>
+                        <div class="form-group">
+                            <label for="regex-find-input">查找内容 (正则表达式)</label>
+                            <textarea id="regex-find-input" rows="3"
+                                placeholder="例如：<(think|thinking)\b[^>]*>[\s\S]*?</\1>"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="regex-replace-input">替换内容</label>
+                            <textarea id="regex-replace-input" rows="2" placeholder="例如：(留空表示删除)"></textarea>
+                        </div>
+
+                        <hr class="form-divider">
+
+                        <div class="form-group">
+                            <label for="regex-test-input">测试文本</label>
+                            <textarea id="regex-test-input" rows="4" placeholder="在此输入待测试的文本..."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>校验结果</label>
+                            <pre id="regex-test-result" class="regex-test-result-area"></pre>
+                        </div>
+
+                        <hr class="form-divider">
+                        <div class="form-group">
+                            <label>作用域</label>
+                            <div class="form-group-checkbox-grid">
+                                <div class="form-group-checkbox">
+                                    <input type="checkbox" id="regex-scope-req-user" value="request-user">
+                                    <label for="regex-scope-req-user">请求时-用户</label>
+                                </div>
+                                <div class="form-group-checkbox">
+                                    <input type="checkbox" id="regex-scope-req-assistant" value="request-assistant">
+                                    <label for="regex-scope-req-assistant">请求时-AI</label>
+                                </div>
+                                <div class="form-group-checkbox">
+                                    <input type="checkbox" id="regex-scope-display-user" value="display-user">
+                                    <label for="regex-scope-display-user">展示时-用户</label>
+                                </div>
+                                <div class="form-group-checkbox">
+                                    <input type="checkbox" id="regex-scope-display-assistant" value="display-assistant">
+                                    <label for="regex-scope-display-assistant">展示时-AI</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group-grid-2">
+                            <div class="form-group">
+                                <label for="regex-stage-select">执行阶段</label>
+                                <select id="regex-stage-select">
+                                    <option value="post-markdown">渲染后 (安全，作用域为"请求时"按排序号进行过滤)</option>
+                                    <option value="pre-markdown">渲染前 (高风险)</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="regex-sort-input">排序 (小号优先)</label>
+                                <input type="number" id="regex-sort-input" value="0" placeholder="例如: 0">
+                            </div>
+                        </div>
+                        <div class="form-group-grid-2">
+                            <div class="form-group">
+                                <label for="regex-min-floor-input">最小生效楼层 (数量限制)</label>
+                                <input type="number" id="regex-min-floor-input" min="0" placeholder="例: 10 (影响最新的10条)">
+                            </div>
+                            <div class="form-group">
+                                <label for="regex-max-floor-input">最大生效楼层 (起始点)</label>
+                                <input type="number" id="regex-max-floor-input" min="0" placeholder="例: 5 (从倒数第6条开始)">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <p id="regex-floor-summary" class="settings-hint"
+                                style="margin-top: -10px; min-height: 1.2em;"></p>
+                        </div>
+                        <div class="form-group-toggle">
+                            <label for="regex-enabled-toggle">是否启用</label>
+                            <label class="theme-switch">
+                                <input type="checkbox" id="regex-enabled-toggle" checked>
+                                <span class="slider round"></span>
+                            </label>
+                        </div>
+                        <div class="modal-actions">
+                            <button id="regex-cancel-btn" class="cancel-button" style="display: none;">取消编辑</button>
+                            <button id="regex-save-btn">保存规则</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="database-settings" class="tab-content">
+                <div class="modal-section">
+                    <h3>全局接口设置</h3>
+                    <div class="form-group">
+                        <label for="global-db-table-url">获取表信息接口地址</label>
+                        <div class="input-with-button">
+                            <input type="text" id="global-db-table-url"
+                                placeholder="默认为当前API地址 + /getTableInfoWithPage">
+                            <button type="button" id="reset-global-db-url-btn" class="btn-in-input">恢复默认</button>
+                        </div>
+                        <small style="color: var(--text-secondary); margin-top: 4px; display: block;">
+                            用于获取数据库表结构的通用API接口地址。所有数据库连接都将使用此接口。
+                        </small>
+                    </div>
+                    <button id="save-global-db-settings-btn"
+                        style="margin-top: 10px; background: var(--accent-blue); color: white; border: none; border-radius: var(--radius-sm); padding: 0.5rem 1rem; cursor: pointer; font-weight: bold;">保存全局设置</button>
+                </div>
+
+                <div class="modal-section" style="margin-top: 1.5rem;">
+                    <h3>数据库连接列表</h3>
+                    <p class="settings-hint">添加和管理您的数据库连接信息。</p>
+                    <button id="add-new-db-btn" style="margin-top: 1rem;">添加新数据库连接</button>
+
+                    <div id="database-connection-list"></div>
+                </div>
+                <div id="db-connection-form-section" class="modal-section">
+                    <h3 id="db-form-title">添加/编辑数据库连接</h3>
+                    <input type="hidden" id="db-id-input">
+                    <div class="form-group">
+                        <label for="db-name-input">连接名称</label>
+                        <input type="text" id="db-name-input" placeholder="例如：生产环境数据库">
+                    </div>
+                    <div class="form-group">
+                        <label for="db-type-selector">数据库类型</label>
+                        <select id="db-type-selector">
+                            <option value="mysql">MySQL</option>
+                            <option value="postgresql">PostgreSQL</option>
+                            <option value="mongodb">MongoDB</option>
+                            <option value="sqlserver">SQL Server</option>
+                            <option value="oracle">Oracle</option>
+                            <option value="sqlite">SQLite</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="db-host-input">主机地址</label>
+                        <input type="text" id="db-host-input" placeholder="例如：localhost 或 192.168.1.100">
+                    </div>
+                    <div class="form-group">
+                        <label for="db-port-input">端口</label>
+                        <input type="number" id="db-port-input" placeholder="例如：3306">
+                    </div>
+                    <div class="form-group">
+                        <label for="db-database-input">数据库名称</label>
+                        <input type="text" id="db-database-input" placeholder="例如：my_database">
+                    </div>
+                    <div class="form-group">
+                        <label for="db-username-input">用户名</label>
+                        <input type="text" id="db-username-input" placeholder="例如：root">
+                    </div>
+                    <div class="form-group">
+                        <label for="db-password-input">密码</label>
+                        <div class="input-with-button">
+                            <input type="password" id="db-password-input" placeholder="输入密码">
+                            <button type="button" id="db-toggle-password-btn" class="btn-in-input">显示</button>
+                        </div>
+                    </div>
+                    <!-- <div class="form-group-toggle">
+                        <label for="db-enabled-toggle">是否启用</label>
+                        <label class="theme-switch">
+                            <input type="checkbox" id="db-enabled-toggle" checked>
+                            <span class="slider round"></span>
+                        </label>
+                    </div> -->
+                    <div class="modal-actions">
+                        <button id="db-cancel-btn" class="cancel-button" style="display: none;">取消编辑</button>
+                        <button id="db-test-btn">测试连接</button>
+                        <button id="db-save-btn">保存连接</button>
+                    </div>
+                </div>
+            </div>
+            <div id="data-settings" class="tab-content">
+                <div class="modal-section">
+                    <div>
+                        <h4>导出配置</h4>
+                        <p class="settings-hint">导出所有API、角色和正则配置到一个JSON文件中。</p>
+                    </div>
+                    <div class="modal-actions">
+                        <button id="export-config-btn">导出配置</button>
+                    </div>
+                </div>
+                <div class="modal-section">
+                    <h4>导入配置</h4>
+                    <p class="settings-hint">将导出的JSON文件内容粘贴到下方以导入配置。同名项目将被智能重命名。</p>
+                    <textarea id="import-config-textarea" rows="8" placeholder="请在此处粘贴配置..."
+                        style="border: 1px solid color-mix(in srgb, var(--accent-blue) 15%, transparent);"></textarea>
+                    <div class="modal-actions">
+                        <input type="file" id="import-config-file-input" accept=".json" style="display: none;">
+                        <button id="upload-config-btn">上传文件</button>
+                        <button id="import-config-btn">确认导入</button>
+                    </div>
+                </div>
+            </div>
+            <div id="conversation-management" class="tab-content">
+                <div class="modal-section">
+                    <h4>导出会话</h4>
+                    <p class="settings-hint">将所有本地会话记录导出到一个JSON文件中。</p>
+                    <div class="modal-actions">
+                        <button id="export-all-conversations-btn">全部导出</button>
+                    </div>
+                </div>
+                <div class="modal-section">
+                    <h4>导入会话记录</h4>
+                    <style>
+                        .import-preview-container {
+                            display: flex;
+                            height: 450px;
+                            border: 1px solid var(--border-color);
+                            border-radius: var(--radius-md);
+                        }
+
+                        .import-list-panel {
+                            width: 40%;
+                            border-right: 1px solid var(--border-color);
+                            display: flex;
+                            flex-direction: column;
+                            overflow: hidden;
+                        }
+
+                        .import-list-header {
+                            padding: 8px;
+                            border-bottom: 1px solid var(--border-color);
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                            flex-shrink: 0;
+                        }
+
+                        .import-conversation-list {
+                            overflow-y: auto;
+                            flex-grow: 1;
+                        }
+
+                        .import-conversation-list-item {
+                            padding: 8px 12px;
+                            display: grid;
+                            /* 乌鸦：改用grid布局，更稳定 */
+                            grid-template-columns: auto 1fr;
+                            /* 复选框自动宽度，标题占满剩余空间 */
+                            align-items: center;
+                            gap: 8px;
+                            cursor: pointer;
+                            border-bottom: 1px solid var(--border-color-light);
+                            transition: background-color 0.2s;
+                        }
+
+                        .import-conversation-list-item:hover {
+                            background-color: var(--bg-hover);
+                        }
+
+                        .import-conversation-list-item.selected {
+                            background-color: var(--accent-blue-faded);
+                        }
+
+                        .import-item-checkbox {
+                            flex-shrink: 0;
+                            /* 乌鸦：关键修复！禁止复选框收缩，确保其不会挤压旁边元素的空间 */
+                        }
+
+                        .import-conversation-list-item input[type="checkbox"] {
+                            flex-shrink: 0;
+                        }
+
+                        .import-conversation-list-item-title {
+                            white-space: nowrap;
+                            overflow: hidden;
+                            text-overflow: ellipsis;
+                            flex: 1;
+                            /* 乌鸦：最终修复！使用flex:1来代替flex-grow:1，以正确处理flex-basis */
+                            min-width: 0;
+                            /* 乌鸦：关键修复！防止flex item被压缩到0宽度 */
+                        }
+
+                        .import-preview-panel {
+                            width: 60%;
+                            overflow-y: auto;
+                            padding: 12px;
+                        }
+
+                        .import-conversation-preview {
+                            font-size: 0.9em;
+                        }
+                    </style>
+                    <div class="modal-actions" style="padding-bottom: 1rem;">
+                        <input type="file" id="import-conversation-file-input" accept=".json" style="display: none;">
+                        <button id="upload-conversation-btn">选择文件</button>
+                        <button id="import-selected-conversations-btn" style="display: none;">导入选中</button>
+                    </div>
+                    <div id="import-preview-container" class="import-preview-container" style="display: none;">
+                        <div class="import-list-panel">
+                            <div class="import-list-header">
+                                <label style="display: flex; align-items: center; gap: 5px;"><input type="checkbox"
+                                        id="import-select-all-checkbox"> 全选</label>
+                                <span id="import-conversation-count"
+                                    style="font-size: 0.9em; color: var(--text-secondary);"></span>
+                            </div>
+                            <div id="import-conversation-list" class="import-conversation-list">
+                                <!-- Conversation items will be injected here by JS -->
+                            </div>
+                        </div>
+                        <div class="import-preview-panel">
+                            <div id="import-conversation-preview" class="import-conversation-preview">
+                                <p class="settings-hint">点击左侧列表中的标题以预览内容</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="quick-prompts-settings" class="tab-content">
+                <p class="settings-hint">在这里管理您常用的提示语。可以拖动列表项进行排序。</p>
+                <div class="form-group">
+                    <input type="search" id="quick-prompt-search-input" placeholder="搜索提示..." style="width: 100%;">
+                </div>
+                <div class="modal-actions" style="justify-content: flex-start; padding-left: 0; padding-bottom: 1rem;">
+                    <button id="add-new-prompt-btn">添加新提示</button>
+                </div>
+                <div id="quick-prompt-list-container" style="max-height: 40vh; overflow-y: auto; padding-right: 10px;">
+                    <ul id="quick-prompt-list" class="settings-list"></ul>
+                </div>
+                <div id="quick-prompt-form-container" class="modal-section" style="display: none; margin-top: 1.5rem;">
+                    <h3 id="quick-prompt-form-title">添加提示</h3>
+                    <input type="hidden" id="quick-prompt-id-input">
+                    <div class="form-group">
+                        <label for="quick-prompt-title-input">标题</label>
+                        <input type="text" id="quick-prompt-title-input" placeholder="例如：代码优化">
+                    </div>
+                    <div class="form-group">
+                        <label for="quick-prompt-text-input">提示语内容</label>
+                        <textarea id="quick-prompt-text-input" rows="5" placeholder="请输入完整的提示语..."></textarea>
+                    </div>
+                    <div class="form-group-grid-2">
+                        <div class="form-group">
+                            <label for="quick-prompt-insert-mode">插入位置</label>
+                            <select id="quick-prompt-insert-mode">
+                                <option value="cursor">当前光标位置</option>
+                                <option value="line_start">当前行开头</option>
+                                <option value="line_end">当前行结尾</option>
+                                <option value="new_line">下一行</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="quick-prompt-cursor-position">插入后光标</label>
+                            <select id="quick-prompt-cursor-position">
+                                <option value="start">内容开头</option>
+                                <option value="middle">内容中间</option>
+                                <option value="end">内容结尾</option>
+                                <option value="custom">自定义</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="quick-prompt-custom-offset-container" class="form-group" style="display: none;">
+                        <label for="quick-prompt-custom-offset-input">自定义光标偏移（光标定位在第几个字后面）</label>
+                        <input type="number" id="quick-prompt-custom-offset-input" min="0" value="0" placeholder="例如：1 表示在第1个字后">
+                    </div>
+                    <div class="modal-actions">
+                        <button id="quick-prompt-cancel-btn" class="cancel-button">取消</button>
+                        <button id="quick-prompt-save-btn">保存</button>
+                    </div>
+                </div>
+            </div>
+            <div id="mcp-management" class="tab-content">
+                <p class="settings-hint">在这里管理您的MCP工具和并发控制设置。</p>
+
+                <!-- 乌鸦：新增MCP并发控制设置部分 -->
+                <div class="modal-section">
+                    <h3>并发控制设置</h3>
+                    <div class="form-group-grid-2">
+                        <div class="form-group">
+                            <label for="mcp-max-concurrent-per-session">单个会话最大并发数</label>
+                            <input type="number" id="mcp-max-concurrent-per-session" min="1" max="20" value="5">
+                            <small style="color: var(--text-secondary); margin-top: 4px; display: block;">
+                                单个会话中同时进行的MCP工具调用最大数量
+                            </small>
+                        </div>
+                        <div class="form-group">
+                            <label for="mcp-max-global-concurrent">全局最大并发数</label>
+                            <input type="number" id="mcp-max-global-concurrent" min="1" max="50" value="8">
+                            <small style="color: var(--text-secondary); margin-top: 4px; display: block;">
+                                整个应用中同时进行的MCP工具调用最大数量
+                            </small>
+                        </div>
+                    </div>
+                    <div class="form-group-grid-2">
+                        <div class="form-group">
+                            <label for="mcp-timeout">超时时间 (秒)</label>
+                            <input type="number" id="mcp-timeout" min="5" max="300" step="1" value="30">
+                            <small style="color: var(--text-secondary); margin-top: 4px; display: block;">
+                                MCP工具调用的超时时间，单位为秒
+                            </small>
+                        </div>
+                        <div class="form-group">
+                            <label for="mcp-max-tool-call-rounds">最大调用轮次</label>
+                            <input type="number" id="mcp-max-tool-call-rounds" min="1" max="20" step="1" value="10">
+                            <small style="color: var(--text-secondary); margin-top: 4px; display: block;">
+                                AI可连续调用工具的最大轮次（1-20），每轮可并发多个工具
+                            </small>
+                        </div>
+                    </div>
+                    <div class="form-group-grid-2">
+                        <div class="form-group">
+                            <label for="mcp-auto-confirm">自动确认工具调用</label>
+                            <label class="theme-switch">
+                                <input type="checkbox" id="mcp-auto-confirm">
+                                <span class="slider round"></span>
+                            </label>
+                            <small style="color: var(--text-secondary); margin-top: 4px; display: block;">
+                                启用后将自动确认所有MCP工具调用，无需用户手动确认
+                            </small>
+                        </div>
+                    </div>
+                    <div class="modal-actions">
+                        <button id="mcp-settings-save-btn" class="primary-button">保存并发设置</button>
+                    </div>
+                </div>
+
+                <div class="modal-section" style="margin-top: 1.5rem;">
+                    <h3>MCP工具管理</h3>
+                    <p class="settings-hint">在这里管理您的MCP工具。支持增删改查和拖拽排序。</p>
+                    <div class="modal-actions"
+                        style="justify-content: space-between; padding-left: 0; padding-bottom: 1rem;">
+                        <button id="add-new-mcp-tool-btn"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>添加新工具</button>
+                        <div>
+                            <button id="import-mcp-tools-btn" class="cancel-button"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>导入工具</button>
+                            <button id="export-mcp-tools-btn" class="cancel-button"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>导出工具</button>
+                        </div>
+                    </div>
+                    <div id="mcp-tools-list-container" style="max-height: 50vh; overflow-y: auto; padding-right: 10px;">
+                        <ul id="mcp-tools-list" class="settings-list"></ul>
+                    </div>
+                </div>
+                <div id="mcp-tool-form-container" class="modal-section" style="display: none; margin-top: 1.5rem;">
+                    <h3 id="mcp-tool-form-title">添加工具</h3>
+                    <input type="hidden" id="mcp-tool-id-input">
+                    <div class="form-group-grid-2">
+                        <div class="form-group">
+                            <label for="mcp-tool-name-input">工具名称</label>
+                            <input type="text" id="mcp-tool-name-input" placeholder="例如：天气查询">
+                        </div>
+                        <div class="form-group">
+                            <label for="mcp-tool-enabled-toggle">是否启用</label>
+                            <label class="theme-switch">
+                                <input type="checkbox" id="mcp-tool-enabled-toggle" checked>
+                                <span class="slider round"></span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="mcp-tool-description-input">工具描述</label>
+                        <textarea id="mcp-tool-description-input" rows="3" placeholder="请输入工具的功能描述..."></textarea>
+                    </div>
+                    <div class="form-group-grid-2">
+                        <div class="form-group">
+                            <label for="mcp-tool-endpoint-input">API端点</label>
+                            <input type="text" id="mcp-tool-endpoint-input"
+                                placeholder="例如：https://api.example.com/weather">
+                        </div>
+                        <div class="form-group">
+                            <label for="mcp-tool-method-select">请求方法</label>
+                            <select id="mcp-tool-method-select">
+                                <option value="GET">GET</option>
+                                <option value="POST">POST</option>
+                                <option value="PUT">PUT</option>
+                                <option value="DELETE">DELETE</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="mcp-tool-risk-select">风险等级</label>
+                        <select id="mcp-tool-risk-select">
+                            <option value="read">只读 (Read)</option>
+                            <option value="write">写入 (Write)</option>
+                            <option value="delete">删除 (Delete)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>参数配置</label>
+                        <div id="mcp-tool-parameters-container">
+                            <!-- 参数配置区域将由JavaScript动态生成 -->
+                        </div>
+                        <button type="button" id="add-mcp-parameter-btn" class="cancel-button">+ 添加参数</button>
+                    </div>
+                    <!-- 乌鸦：新增自定义模板配置 -->
+                    <div class="form-group">
+                        <label for="mcp-tool-template-enabled">启用自定义模板</label>
+                        <label class="theme-switch">
+                            <input type="checkbox" id="mcp-tool-template-enabled">
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                    <div id="mcp-template-config" class="template-config-section" style="display: none;">
+                        <div class="form-group">
+                            <label for="mcp-tool-html-template">HTML模板 (可嵌入CSS/JS)</label>
+                            <textarea id="mcp-tool-html-template" rows="10" placeholder="使用 {{key}} 作为占位符，例如：
+<div class='custom-card'>
+  <h3>{{name}}</h3>
+  <p>{{description}}</p>
+</div>
+<style>.custom-card { background: #f5f5f5; padding: 10px; }</style>
+<script>console.log('自定义脚本');</script>"></textarea>
+                            <small style="color: var(--text-secondary); margin-top: 4px; display: block;">
+                                支持占位符替换，使用 {{key}} 格式。您可以在模板中直接嵌入 &lt;style&gt; 和 &lt;script&gt; 标签
+                            </small>
+                        </div>
+                        <!-- 乌鸦：CSS样式输入框已移除，用户可在HTML模板中直接嵌入样式 -->
+                        <!-- 乌鸦：预览功能待开发，暂时隐藏 -->
+                        <div class="form-group" style="display: none;">
+                            <button type="button" id="preview-template-btn" class="cancel-button" disabled>👁️ 预览效果
+                                (开发中)</button>
+                        </div>
+                    </div>
+                    <div class="modal-actions">
+                        <button id="mcp-tool-cancel-btn" class="cancel-button">取消</button>
+                        <button id="mcp-tool-save-btn">保存</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Persona Modal -->
+<div id="persona-modal" class="modal-overlay">
+    <div class="modal-content" style="max-width:600px;">
+        <div class="modal-header">
+            <h2>管理角色<span class="drag-sort-hint">当前列表支持拖拽排序</span></h2>
+            <button class="modal-close-btn" title="关闭">&times;</button>
+        </div>
+        <div class="modal-body">
+            <button id="add-new-persona-btn" style="margin-bottom: 1rem;">添加新角色</button>
+
+            <div id="persona-list"></div>
+            <div class="modal-section"><!-- This hidden form block is restored to fix the JS error -->
+                <div style="display: none;">
+                    <h3 id="persona-form-title">添加/编辑 角色</h3>
+                    <input type="hidden" id="persona-id-input">
+                    <div class="form-group">
+                        <label for="persona-name-input">角色名称</label>
+                        <input type="text" id="persona-name-input" placeholder="例如：程序员助手">
+                    </div>
+                    <div class="form-group">
+                        <label for="persona-prompt-input">角色提示词</label>
+                        <textarea id="persona-prompt-input" rows="6" placeholder="请输入角色提示词..."></textarea>
+                    </div>
+                    <div class="modal-actions">
+                        <button id="persona-cancel-btn" class="cancel-button" style="display: none;">取消编辑</button>
+                        <button id="persona-save-btn">保存</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- File Viewer Modal -->
+<div id="file-viewer-modal" class="modal-overlay" style="align-items:center; justify-content:center; z-index:2001;">
+    <div class="modal-content"
+        style="max-width:90vw; max-height:90vh; display:flex; flex-direction:column; background:var(--bg-deep); border-radius:16px; box-shadow:0 4px 24px rgba(0,0,0,0.18); overflow:hidden;">
+        <div class="modal-header"
+            style="display:flex; justify-content:space-between; align-items:center; padding:12px 16px; border-bottom:1px solid var(--border-color);">
+            <h2 id="file-viewer-title" style="margin:0; color:var(--text-primary); font-size:1.2rem; font-weight:600;">
+            </h2>
+            <button class="modal-close-btn" title="关闭"
+                style="background:none; border:none; color:var(--text-secondary); font-size:1.8rem; cursor:pointer; padding:4px 8px; border-radius:4px; transition:all 0.2s;">&times;</button>
+        </div>
+        <div id="file-viewer-content"
+            style="flex:1; display:flex; align-items:center; justify-content:center; padding:20px; overflow:auto; min-height:0;">
+        </div>
+    </div>
+</div>
+
+<!-- HTML Preview Modal -->
+<div id="html-preview-modal" class="modal-overlay">
+    <div class="modal-content" style="max-width: 90vw; max-height: 90vh;">
+        <div class="modal-header">
+            <h2>HTML 预览</h2>
+            <div>
+                <button id="html-preview-refresh-btn" title="刷新预览" class="icon-btn html-preview-action-btn"
+                    style="margin-right:10px;background:none;border:none;padding:4px;">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"
+                        style="display:block;">
+                        <path d="M4 10a6 6 0 1 1 2.1 4.5" stroke="currentColor" stroke-width="1.5" fill="none"
+                            stroke-linecap="round" stroke-linejoin="round" />
+                        <polyline points="4 14 4 16 6 16" stroke="currentColor" stroke-width="1.5" fill="none"
+                            stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                </button>
+                <button id="html-preview-open-btn" title="在新标签页中打开" class="icon-btn html-preview-action-btn"
+                    style="margin-right:10px;background:none;border:none;padding:4px;">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"
+                        style="display:block;">
+                        <rect x="3.5" y="7.5" width="9" height="9" rx="2" stroke="currentColor" stroke-width="1.5"
+                            fill="none" />
+                        <path d="M9 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2" stroke="currentColor"
+                            stroke-width="1.5" fill="none" stroke-linecap="round" />
+                        <polyline points="13 7 17 3 17 7" stroke="currentColor" stroke-width="1.5" fill="none"
+                            stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                </button>
+                <button class="modal-close-btn" title="关闭">&times;</button>
+            </div>
+        </div>
+        <div class="modal-body" style="padding:0; overflow:hidden;">
+            <iframe id="html-preview-frame" style="width:100%; height: 75vh; border:none;"></iframe>
+        </div>
+    </div>
+</div>
+
+<!-- Worldbook Modal -->
+<div id="worldbook-modal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header worldbook-modal-header">
+            <div class="worldbook-header-left">
+                <h2>管理备忘录 <span class="drag-sort-hint">当前列表支持拖拽排序</span></h2>
+            </div>
+            <div class="worldbook-header-right">
+                <div class="form-group-toggle worldbook-merge-toggle-wrap" title="开启后将所有启用的备忘录条目合并为单条System消息发送">
+                    <label for="worldbook-merge-toggle">合并发送条目</label>
+                    <label class="theme-switch small">
+                        <input type="checkbox" id="worldbook-merge-toggle">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                <button class="modal-close-btn" title="关闭">&times;</button>
+            </div>
+        </div>
+        <!-- 移动端视图导航栏（仅在移动端屏幕下展示） -->
+        <div class="worldbook-mobile-nav" id="worldbook-mobile-nav">
+            <button type="button" class="wb-mobile-nav-btn active" data-wb-view="list">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+                条目列表
+            </button>
+            <button type="button" class="wb-mobile-nav-btn" data-wb-view="form">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                <span id="wb-mobile-form-tab-text">添加条目</span>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="worldbook-split-container">
+                <div class="worldbook-tags-panel">
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+                        <h4>标签筛选</h4>
+                        <button id="worldbook-clear-filter-btn" class="btn-secondary"
+                            style="font-size: 12px; padding: 4px 8px; white-space: nowrap;"
+                            title="清除所有标签筛选">清除筛选</button>
+                    </div>
+                    <div class="tag-search">
+                        <input id="worldbook-tag-search-input" type="text" placeholder="搜索标签...">
+                    </div>
+
+                    <div class="tag-list" id="worldbook-tag-list">
+                        <!-- 乌鸦：动态生成标签 -->
+                    </div>
+
+                    <div class="tag-filter-mode">
+                        <span class="mode-label">选择模式</span>
+                        <div class="segmented-control">
+                            <label>
+                                <input type="radio" name="tag-logic" value="single" checked>
+                                <span>单选</span>
+                            </label>
+                            <label>
+                                <input type="radio" name="tag-logic" value="multi">
+                                <span>多选</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="worldbook-list-panel">
+                    <div class="worldbook-list-header">
+                        <div class="worldbook-list-tabs">
+                            <button class="tab-btn active" data-tab="all">全部</button>
+                            <button class="tab-btn" data-tab="selected">已选中 <span id="selected-count"
+                                    class="tab-count">(0)</span></button>
+                        </div>
+                    </div>
+                    <div class="worldbook-list-content" id="worldbook-list"></div>
+                </div>
+                <div class="worldbook-form-panel">
+                    <div class="modal-section">
+                        <div class="worldbook-form-header">
+                            <h3 id="worldbook-form-title">添加新条目</h3>
+                            <div class="worldbook-form-header-actions">
+                                <button id="worldbook-cancel-btn" class="cancel-button" style="display: none;">取消编辑</button>
+                                <button id="worldbook-save-btn" class="btn-primary">保存条目</button>
+                            </div>
+                        </div>
+                        <input type="hidden" id="worldbook-id-input">
+                        <div class="worldbook-form-body">
+                            <div class="form-group wb-name-group">
+                                <label for="worldbook-name-input">名称</label>
+                                <input type="text" id="worldbook-name-input" placeholder="例如：某个代码类/某个论文/某个内部资料">
+                            </div>
+                            <div class="form-group form-group-content" id="worldbook-content-group">
+                                <div class="form-label-row">
+                                    <label for="worldbook-content-input">文本内容</label>
+                                    <div class="form-label-right-tools">
+                                        <div id="worldbook-char-counter" class="char-counter">0 字</div>
+                                        <button type="button" id="worldbook-content-expand-btn" class="wb-expand-btn" title="放大编辑 (ESC退出)">
+                                            <svg class="icon-expand" xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+                                            <svg class="icon-compress" style="display:none;" xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"></polyline><polyline points="20 10 14 10 14 4"></polyline><line x1="14" y1="10" x2="21" y2="3"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+                                        </button>
+                                    </div>
+                                </div>
+                                <textarea id="worldbook-content-input" rows="6" placeholder="输入备忘录条目的具体内容..."></textarea>
+                            </div>
+                            <div class="worldbook-params-row">
+                                <div class="form-group param-tags-group">
+                                    <label for="worldbook-tags-input">标签 (逗号/回车)</label>
+                                    <input id="worldbook-tags-input" type="text" placeholder="如：代码, 参考, Python" class="tag-input">
+                                </div>
+                                <div class="form-group param-depth-group">
+                                    <label for="worldbook-depth-input">挂载深度</label>
+                                    <input type="number" id="worldbook-depth-input" min="1" max="100" value="10">
+                                </div>
+                                <div class="form-group param-role-group">
+                                    <label for="worldbook-role-selector">发送角色</label>
+                                    <select id="worldbook-role-selector">
+                                        <option value="system">System</option>
+                                        <option value="user">User</option>
+                                    </select>
+                                </div>
+                                <div class="form-group-toggle param-toggle-group" title="在所有会话中都生效">
+                                    <label for="worldbook-enabled-toggle">全局</label>
+                                    <label class="theme-switch small">
+                                        <input type="checkbox" id="worldbook-enabled-toggle" checked>
+                                        <span class="slider round"></span>
+                                    </label>
+                                </div>
+                                <div class="form-group-toggle param-toggle-group" id="worldbook-session-toggle-container" title="仅在当前会话中生效">
+                                    <label for="worldbook-session-toggle-input">局部</label>
+                                    <label class="theme-switch small">
+                                        <input type="checkbox" id="worldbook-session-toggle-input" disabled>
+                                        <span class="slider round"></span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div id="worldbook-tags-display" class="tags-display">
+                                <!-- 乌鸦：动态显示已添加的标签 -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Conversation Avatar Modals -->
+<div id="conversation-avatar-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-content" style="max-width:500px;">
+        <div class="modal-header">
+            <h2>会话头像管理</h2>
+            <button class="modal-close-btn" title="关闭">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>当前头像</label>
+                <div style="display:flex;align-items:center;gap:1em;margin:1em 0;">
+                    <img id="conv-avatar-preview" src="" alt="头像预览"
+                        style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:2px solid var(--border-color);background:#eee;">
+                    <div>
+                        <p id="conv-avatar-status" style="margin:0 0 0.5em 0;color:var(--text-secondary);">未设置头像</p>
+                        <button id="conv-avatar-remove-btn" type="button" class="action-button">移除头像
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="conv-avatar-input">选择新头像</label>
+                <input type="file" id="conv-avatar-input" accept="image/png,image/jpeg,image/webp,image/svg+xml">
+                <p class="settings-hint">支持PNG/JPG/JPEG/WEBP/SVG格式，最大1MB</p>
+            </div>
+        </div>
+        <div class="modal-actions">
+        </div>
+    </div>
+</div>
+<div id="conv-avatar-crop-modal" class="modal-overlay" style="display:none;z-index:2000;">
+    <div class="modal-content" style="max-width:600px;max-height:90vh;">
+        <div class="modal-header">
+            <h2>裁剪会话头像</h2>
+            <button class="modal-close-btn cancel-button" id="conv-avatar-crop-cancel-btn" title="关闭">&times;</button>
+        </div>
+        <div class="modal-body" style="text-align:center;">
+            <img id="conv-avatar-crop-image" src=""
+                style="max-width:100%;max-height:300px;display:block;margin:0 auto;">
+        </div>
+        <div class="modal-actions" style="text-align:center;gap:1em;">
+            <button id="conv-avatar-crop-confirm-btn" type="button">确认裁剪</button>
+            <button id="conv-avatar-crop-cancel-btn2" type="button">取消</button>
+        </div>
+    </div>
+</div>
+
+<!-- Hide & Summary Modal (Refactored to Conversation Memory & Smart Summary) -->
+<div id="hide-summary-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-content" style="max-width: 520px;">
+        <div class="modal-header">
+            <h2>会话记忆与智能总结</h2>
+            <button class="modal-close-btn" title="关闭">&times;</button>
+        </div>
+        <div class="modal-body">
+            <!-- 当前分支 Token 状态概览 -->
+            <div id="hide-summary-token-overview" class="hide-summary-token-overview">
+                <span>实际发送: <strong id="hide-summary-actual-tokens">0</strong> Tokens</span>
+                <span>已隐藏: <strong id="hide-summary-hidden-tokens">0</strong> Tokens</span>
+                <span>总预估: <strong id="hide-summary-total-tokens">0</strong> Tokens</span>
+            </div>
+
+            <!-- 当前已隐藏楼层明细展示 -->
+            <div class="hide-summary-floors-banner">
+                <span class="floors-banner-label">当前已隐藏楼层：</span>
+                <strong id="hide-summary-hidden-floors-text" class="floors-banner-value">无隐藏楼层</strong>
+            </div>
+
+            <!-- 记忆总结总开关 -->
+            <div class="form-group-toggle" style="margin-bottom: 12px;">
+                <label for="hide-summary-enable" style="font-weight: 600;">启用记忆总结注入</label>
+                <label class="theme-switch">
+                    <input type="checkbox" id="hide-summary-enable">
+                    <span class="slider round"></span>
+                </label>
+            </div>
+
+            <!-- 自动总结设置面板 -->
+            <div class="summary-auto-card">
+                <div class="form-group-toggle" style="margin-bottom: 8px;">
+                    <label for="auto-summary-enable" style="font-weight: 600; font-size: 13px;">开启自动总结 (后台静默执行)</label>
+                    <label class="theme-switch">
+                        <input type="checkbox" id="auto-summary-enable">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                
+                <div id="auto-summary-options" class="auto-summary-options">
+                    <div class="auto-summary-trigger-group">
+                        <label class="auto-summary-radio">
+                            <input type="radio" name="auto-summary-type" id="auto-summary-type-floors" value="floors" checked>
+                            <span>每隔</span>
+                            <input type="number" id="auto-summary-floor-interval" min="2" max="100" value="10" class="auto-summary-num-input">
+                            <span>楼自动总结一次</span>
+                        </label>
+                        <label class="auto-summary-radio">
+                            <input type="radio" name="auto-summary-type" id="auto-summary-type-tokens" value="tokens">
+                            <span>可见消息达</span>
+                            <input type="number" id="auto-summary-token-threshold" min="500" max="100000" step="500" value="4000" class="auto-summary-num-input auto-summary-token-input">
+                            <span>Token 自动总结</span>
+                        </label>
+                    </div>
+                    <div class="form-group" style="margin-top: 8px; margin-bottom: 0;">
+                        <label class="form-group-checkbox" style="font-size: 12px; color: var(--text-primary); margin-bottom: 0;">
+                            <input type="checkbox" id="auto-summary-drop-floors" checked>
+                            总结完成后自动隐藏被总结的历史楼层 (释放上下文)
+                        </label>
+                    </div>
+                    <div class="form-group" style="margin-top: 6px; margin-bottom: 0; display: flex; align-items: center; gap: 4px; flex-wrap: nowrap;">
+                        <label class="form-group-checkbox" style="font-size: 12px; color: var(--text-primary); margin-bottom: 0; white-space: nowrap;">
+                            <input type="checkbox" id="auto-summary-keep-recent" checked>
+                            归档时保留最后
+                        </label>
+                        <input type="number" id="auto-summary-keep-recent-count" min="1" max="20" value="2" class="auto-summary-num-input">
+                        <span style="font-size: 12px; color: var(--text-secondary); white-space: nowrap;">楼不隐藏 (供AI参考格式与近期语境)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 总结提示词 -->
+            <div class="form-group" style="margin-top: 10px;">
+                <label for="hide-summary-prompt" style="font-weight: 600; font-size: 13px;">总结提示词 (不限字数)</label>
+                <textarea id="hide-summary-prompt" rows="3" placeholder="请输入总结提示词..."></textarea>
+                <div id="hide-summary-prompt-char-counter" class="char-counter">0 字</div>
+            </div>
+
+            <!-- 附加选项 -->
+            <div style="display: flex; gap: 16px; margin-bottom: 10px;">
+                <label class="form-group-checkbox" style="font-size: 13px;">
+                    <input type="checkbox" id="hide-summary-with-role">
+                    携带角色人设
+                </label>
+                <label class="form-group-checkbox" style="font-size: 13px;">
+                    <input type="checkbox" id="hide-summary-with-worldbook">
+                    携带备忘录内容
+                </label>
+            </div>
+
+            <!-- 手动总结按钮 -->
+            <div class="form-group" style="margin-bottom: 10px;">
+                <button id="hide-summary-start-btn" style="width: 100%;">针对当前可见消息立即总结</button>
+            </div>
+
+            <!-- 总结结果展示与编辑 -->
+            <div class="form-group">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                    <label for="hide-summary-result" style="font-weight: 600; font-size: 13px; margin: 0;">当前记忆总结内容</label>
+                    <button id="hide-summary-history-btn" type="button" class="summary-history-btn" title="查看历史总结版本与回滚">
+                        📜 历史版本 (<span id="hide-summary-history-count">0</span>)
+                    </button>
+                </div>
+                <textarea id="hide-summary-result" rows="4" placeholder="总结结果将在此显示，也可手动编辑..."></textarea>
+                <div id="hide-summary-result-char-counter" class="char-counter">0 字</div>
+            </div>
+
+            <div class="form-group" style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+                <button id="hide-summary-save-btn" style="flex: 1;">保存总结记忆</button>
+                <button id="hide-summary-clear-btn" class="cancel-button" style="flex: 1;">清空总结</button>
+            </div>
+
+            <hr style="border: 0.3px solid var(--border-color, #ccc); margin: 12px 0 10px 0;">
+
+            <!-- 发送消息数量限制 -->
+            <div class="form-group" style="margin-bottom: 0;">
+                <label for="message-limit-slider" style="font-weight: 600; font-size: 13px;">发送消息数量限制</label>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <input type="range" id="message-limit-slider" min="0" max="50" value="0" style="flex: 1;">
+                    <span id="message-limit-value" style="min-width: 40px; font-weight: bold;">全部</span>
+                </div>
+                <p style="margin-top: 4px; color: var(--text-secondary); font-size: 0.85em;">
+                    仅截取发送最近 N 条未隐藏可见消息（系统记忆始终发送）
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Summary History Modal (历史总结版本管理弹窗) -->
+<div id="summary-history-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-content" style="max-width: 520px; max-height: 80vh; display: flex; flex-direction: column;">
+        <div class="modal-header">
+            <h2>📜 历史总结版本管理</h2>
+            <button class="modal-close-btn" id="summary-history-close-btn" title="关闭">&times;</button>
+        </div>
+        <div class="modal-body" style="flex: 1; overflow-y: auto; padding: 10px 16px;">
+            <div id="summary-history-list" class="summary-history-list">
+                <div class="summary-history-empty">暂无历史总结版本</div>
+            </div>
+        </div>
+        <div class="modal-actions" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; margin-top: 0; border-top: 1px solid var(--border-color, #e1e4e8);">
+            <button id="summary-history-clear-all-btn" class="cancel-button" title="清空当前会话的所有历史总结版本">清空所有历史版本</button>
+            <button id="summary-history-close-btn2" class="modal-close-btn" style="padding: 6px 16px;">关闭</button>
+        </div>
+    </div>
+</div>
+
+<!-- Summary Rollback Confirm Modal (回滚确认弹窗) -->
+<div id="summary-rollback-confirm-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-content" style="max-width: 460px;">
+        <div class="modal-header">
+            <h2>🔄 回滚历史总结确认</h2>
+            <button class="modal-close-btn" id="summary-rollback-close-btn" title="关闭">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p id="summary-rollback-target-info" style="font-size: 13px; margin-bottom: 8px; color: var(--text-primary); font-weight: 500;">
+                目标版本：-
+            </p>
+            <div class="summary-rollback-floors-box">
+                <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">该版本保存时的隐藏楼层状态：</div>
+                <div id="summary-rollback-floors-info" class="summary-rollback-floors-info">
+                    第 1 ~ 8 楼 (共 8 个楼层)
+                </div>
+            </div>
+            <p style="font-size: 13px; margin-top: 10px; color: var(--text-primary);">
+                请选择您的回滚策略：
+            </p>
+        </div>
+        <div class="modal-actions" style="display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 1rem;">
+            <button id="summary-rollback-cancel-btn" class="cancel-button">取消</button>
+            <div style="display: flex; gap: 8px;">
+                <button id="summary-rollback-text-only-btn" class="secondary-button" title="仅将总结内容恢复为该版本，保留当前分支现有的楼层隐藏">仅恢复总结文本</button>
+                <button id="summary-rollback-full-btn" class="primary-button" title="将总结内容与当时的楼层隐藏状态一并恢复">同步恢复楼层隐藏与总结</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Simulate Send & Prompt Preview Modal (模拟发送与提示词预览弹窗) -->
+<div id="simulate-send-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-content simulate-send-modal-content" style="max-width: 860px; width: 92vw; height: 85vh; display: flex; flex-direction: column;">
+        <div class="modal-header" style="flex-shrink: 0;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <h2>✈️ 模拟发送与提示词预览</h2>
+                <span class="simulate-send-tag">真实发送流水线透视</span>
+            </div>
+            <button class="modal-close-btn" id="simulate-send-close-btn" title="关闭">&times;</button>
+        </div>
+        
+        <!-- 概览仪表盘 -->
+        <div class="simulate-send-stats-bar" style="flex-shrink: 0;">
+            <div class="simulate-stat-item">
+                <span class="stat-label">实际发送预估:</span>
+                <strong id="sim-total-tokens" class="stat-highlight">0</strong> Tokens
+            </div>
+            <div class="simulate-stat-item">
+                <span class="stat-label">总消息数:</span>
+                <strong id="sim-total-messages">0</strong> 条
+                <small id="sim-messages-breakdown" class="stat-sub">(System: 0 | User: 0 | AI: 0)</small>
+            </div>
+            <div class="simulate-stat-item">
+                <span class="stat-label">生效模型:</span>
+                <span id="sim-target-model" class="stat-model-name">-</span>
+            </div>
+            <div id="sim-limit-notice" class="sim-limit-notice" style="display: none;">
+                ⚠️ 已限制发送最近 <strong id="sim-limit-count">0</strong> 条可见消息
+            </div>
+        </div>
+
+        <!-- 视图切换选项卡与卡片操作 -->
+        <div class="simulate-send-tabs" style="flex-shrink: 0; display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; gap: 4px;">
+                <button class="simulate-tab-btn active" data-tab="cards">📑 结构流卡片</button>
+                <button class="simulate-tab-btn" data-tab="text">📝 平铺纯文本</button>
+                <button class="simulate-tab-btn" data-tab="json">💻 请求 JSON</button>
+            </div>
+            <div id="sim-cards-actions" class="sim-cards-actions" style="display: flex; gap: 6px; padding-right: 4px;">
+                <button id="sim-expand-all-btn" class="sim-quick-toggle-btn" title="全部展开卡片">展开全部</button>
+                <button id="sim-collapse-all-btn" class="sim-quick-toggle-btn" title="全部折叠卡片">折叠全部</button>
+            </div>
+        </div>
+
+        <div class="modal-body simulate-send-modal-body" style="flex: 1; overflow-y: auto; padding: 12px 16px;">
+            <!-- 视图 1：结构流卡片 -->
+            <div id="sim-tab-cards" class="simulate-tab-content active">
+                <div id="sim-cards-container" class="sim-cards-container"></div>
+            </div>
+
+            <!-- 视图 2：平铺纯文本 -->
+            <div id="sim-tab-text" class="simulate-tab-content" style="display:none;">
+                <pre id="sim-flat-text-content" class="sim-flat-text-content"></pre>
+            </div>
+
+            <!-- 视图 3：请求 JSON -->
+            <div id="sim-tab-json" class="simulate-tab-content" style="display:none;">
+                <pre id="sim-json-content" class="sim-json-content"></pre>
+            </div>
+        </div>
+
+        <div class="modal-actions" style="flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; margin-top: 0; border-top: 1px solid var(--border-color, #e1e4e8);">
+            <div style="display: flex; gap: 8px;">
+                <button id="sim-copy-current-btn" class="primary-button">📋 复制当前视图</button>
+                <button id="sim-copy-json-btn" class="secondary-button">💻 复制请求 JSON</button>
+            </div>
+            <button id="simulate-send-close-btn2" class="modal-close-btn" style="padding: 6px 16px;">关闭</button>
+        </div>
+    </div>
+</div>
+
+<!-- Message Edit Modal -->
+<div id="message-edit-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-content" style="max-width:1000px;">
+        <div class="modal-header">
+            <h2>编辑消息</h2>
+            <button class="modal-close-btn cancel-button" id="message-edit-cancel-btn" title="关闭">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div id="message-edit-attachment-preview" class="attachment-preview" style="display:none;"></div>
+            <textarea id="message-edit-textarea" rows="8" style="width:100%;resize:vertical;"></textarea>
+        </div>
+        <div class="modal-actions">
+            <button id="message-edit-save-btn">保存</button>
+            <button id="message-edit-cancel-btn2">取消</button>
+        </div>
+    </div>
+</div>
+
+<!-- Avatar Preview Modal -->
+<div id="avatar-preview-modal" class="modal-overlay" style="display:none; align-items:center; justify-content:center;">
+    <div class="modal-content"
+        style="display: flex; flex-direction: column; width: 90%; max-width: 800px; max-height: 90vh; background: #fff; border-radius: 16px; box-shadow: 0 4px 24px rgba(0,0,0,0.18); overflow: hidden;">
+        <div class="modal-header"
+            style="width:100%; display: flex; justify-content:flex-end; padding: 8px 12px; box-sizing: border-box;">
+            <button class="modal-close-btn" id="avatar-preview-close-btn" title="关闭">×</button>
+        </div>
+        <div class="modal-body" style="overflow-y: auto; padding: 0 20px 20px 20px; text-align: center;">
+            <img id="avatar-preview-img" src="" alt="头像大图"
+                style="max-width: 100%; height: auto; object-fit: contain;" />
+        </div>
+    </div>
+</div>
+
+<!-- API Edit Modal -->
+<div id="api-edit-modal" class="modal-overlay">
+    <div class="modal-content" style="max-width:600px;">
+        <div class="modal-header">
+            <h2 id="api-edit-form-title">添加/编辑 API 端点</h2>
+            <button class="modal-close-btn" title="关闭">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div id="api-edit-preset-buttons"></div>
+            <input type="hidden" id="api-edit-id-input">
+            <div class="form-group">
+                <label for="api-edit-name-input">名称 (自定义)</label>
+                <input type="text" id="api-edit-name-input" placeholder="例如：我的本地 Llama3">
+            </div>
+            <div class="form-group">
+                <label for="api-edit-type-selector">API 类型</label>
+                <select id="api-edit-type-selector">
+                    <option value="openai-compatible">OpenAI 兼容</option>
+                    <option value="sse">Spring Boot (SSE)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="api-edit-url-input">URL</label>
+                <input type="text" id="api-edit-url-input" placeholder="例如：http://localhost:11434/v1">
+            </div>
+            <div class="form-group api-edit-openai-field">
+                <label for="api-edit-model-input">模型名称</label>
+                <div class="input-with-button">
+                    <input type="text" id="api-edit-model-input" placeholder="例如：llama3 或 deepseek-reasoner">
+                    <button type="button" id="api-edit-fetch-models-btn" class="btn-in-input">获取模型</button>
+                </div>
+            </div>
+            <div class="form-group api-edit-openai-field">
+                <label for="api-edit-key-input">API Key (可选)</label>
+                <input type="password" id="api-edit-key-input">
+            </div>
+            
+            <!-- 乌鸦：Omni 全模态模型标记（美团 LongCat-Flash-Omni 等使用非标准请求格式的模型） -->
+            <div class="form-group api-edit-openai-field" style="margin-bottom:0;">
+                <div class="param-enable-toggle" style="margin-top:10px;">
+                    <input type="checkbox" id="api-edit-omni-model-toggle"> 
+                    <label for="api-edit-omni-model-toggle" style="margin:0;cursor:pointer;color:var(--text-secondary);">🔮 适配美团全模态模型</label>
+                </div>
+            </div>
+
+            <div class="form-group api-edit-openai-field" style="margin-bottom:0;">
+                <div class="param-enable-toggle" style="margin-top:10px;">
+                    <input type="checkbox" id="api-edit-custom-params-toggle"> 
+                    <label for="api-edit-custom-params-toggle" style="font-weight:bold;color:var(--text-primary);margin:0;cursor:pointer;">自定义参数 (覆盖全局默认)</label>
+                </div>
+            </div>
+            
+            <div id="api-edit-custom-params-section" class="api-custom-params-content api-edit-openai-field">
+                <div class="api-custom-params">
+                    <div class="form-group-slider">
+                        <label class="param-label" for="api-edit-param-temperature" data-tooltip="控制输出的随机性。值越高越有创意（可能胡说），值越低越确定（更保守）。">Temperature: <span id="api-edit-temperature-value">0.5</span><i class="param-tooltip-icon">?</i></label>
+                        <input type="range" id="api-edit-param-temperature" min="0" max="2" step="0.1" value="0.5">
+                    </div>
+                    <div class="form-group-slider">
+                        <label class="param-label" for="api-edit-param-top-p" data-tooltip="核采样。推荐值：0.9-0.95">Top P: <span id="api-edit-top-p-value">0.95</span><i class="param-tooltip-icon">?</i></label>
+                        <input type="range" id="api-edit-param-top-p" min="0" max="1" step="0.05" value="0.95">
+                    </div>
+                    <div class="form-group-slider">
+                        <div class="param-enable-toggle">
+                            <input type="checkbox" id="api-edit-param-enable-top-k"> <label for="api-edit-param-enable-top-k" style="margin:0;">启用 Top K</label>
+                        </div>
+                        <label class="param-label" for="api-edit-param-top-k" data-tooltip="限制每次只从概率最高的 K 个词中选择。⚠️ 仅本地推理引擎支持">Top K: <span id="api-edit-top-k-value">40</span><i class="param-tooltip-icon">?</i></label>
+                        <input type="range" id="api-edit-param-top-k" min="1" max="100" step="1" value="40">
+                    </div>
+                    <div class="form-group-slider">
+                        <div class="param-enable-toggle">
+                            <input type="checkbox" id="api-edit-param-enable-min-p"> <label for="api-edit-param-enable-min-p" style="margin:0;">启用 Min P</label>
+                        </div>
+                        <label class="param-label" for="api-edit-param-min-p" data-tooltip="动态过滤低概率词。⚠️ 仅本地推理引擎支持">Min P: <span id="api-edit-min-p-value">0.05</span><i class="param-tooltip-icon">?</i></label>
+                        <input type="range" id="api-edit-param-min-p" min="0" max="1" step="0.01" value="0.05">
+                    </div>
+                    <div class="form-group">
+                        <label class="param-label" for="api-edit-param-max-tokens" data-tooltip="限制 AI 回复的最大长度（token 数）。-1 表示不限制">Max Tokens (-1为不限制)<i class="param-tooltip-icon">?</i></label>
+                        <input type="number" id="api-edit-param-max-tokens" placeholder="例如: 4096" value="-1">
+                    </div>
+                    <div class="form-group-toggle">
+                        <label class="param-label" for="api-edit-stream-mode-toggle" data-tooltip="开启后 AI 会逐字返回内容（打字机效果）">流式输出<i class="param-tooltip-icon">?</i></label>
+                        <div style="display: flex; align-items: center;">
+                            <label class="theme-switch">
+                                <input type="checkbox" id="api-edit-stream-mode-toggle" checked>
+                                <span class="slider round"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button id="api-edit-cancel-btn" class="cancel-button">取消</button>
+                <button id="api-edit-save-btn">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Persona Edit Modal -->
+<div id="persona-edit-modal" class="modal-overlay">
+    <div class="modal-content" style="max-width:600px;">
+        <div class="modal-header">
+            <h2 id="persona-edit-form-title">添加/编辑 角色</h2>
+            <button class="modal-close-btn" title="关闭">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="persona-edit-id-input">
+            <div class="form-group">
+                <label for="persona-edit-name-input">角色名称</label>
+                <input type="text" id="persona-edit-name-input" placeholder="例如：程序员助手">
+            </div>
+            <div class="form-group">
+                <label for="persona-edit-prompt-input">角色提示词</label>
+                <textarea id="persona-edit-prompt-input" style="border: 1px solid #dbdada; " rows="6"
+                    placeholder="请输入角色提示词..."></textarea>
+                <div id="persona-edit-char-counter" class="char-counter">0 字</div>
+            </div>
+            <div class="modal-actions">
+                <button id="persona-edit-cancel-btn" class="cancel-button">取消</button>
+                <button id="persona-edit-save-btn">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Model List Modal -->
+<div id="model-list-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-content" style="max-width:600px;width:600px;">
+        <div class="modal-header">
+            <h2>可用模型</h2>
+            <button class="modal-close-btn" title="关闭">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div id="model-list-container"></div>
+        </div>
+    </div>
+</div>
+
+<!-- System Prompt Modal -->
+<div id="system-prompt-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>会话数据详情</h2>
+            <button class="modal-close-btn" title="关闭">&times;</button>
+        </div>
+        <div class="session-stats-bar">
+            <p>实际发送Token: <span id="actual-sent-tokens" style="font-weight:bold;color:var(--accent-blue);">0</span> <small style="opacity:0.85;font-size:0.9em;">(实际发送字符: <span id="actual-sent-characters">0</span>)</small></p>
+            <p>总预估Token: <span id="total-estimated-tokens">0</span> <small style="opacity:0.85;font-size:0.9em;">(已隐藏: <span id="hidden-tokens">0</span> / 正文: <span id="main-tokens">0</span> / 思考: <span id="thinking-tokens">0</span>)</small></p>
+            <p>总字符数量: <span id="total-characters">0</span> <small style="opacity:0.85;font-size:0.9em;">(已隐藏: <span id="hidden-characters">0</span> / 正文: <span id="main-characters">0</span> / 思考: <span id="thinking-characters">0</span>)</small></p>
+            <p>附件数据: <span id="attachments-tokens">0</span> tokens / <span id="attachments-chars">0</span> 字符</p>
+            <p>MCP工具调用: <span id="mcp-tool-calls-count">0</span> 次</p>
+            <p>MCP分析内容: <span id="mcp-analysis-tokens">0</span> tokens / <span id="mcp-analysis-chars">0</span> 字符</p>
+            <p>MCP工具数据: <span id="mcp-tool-data-tokens">0</span> tokens / <span id="mcp-tool-data-chars">0</span> 字符</p>
+        </div>
+        <div class="modal-body">
+            <details open>
+                <summary>
+                    <span class="details-title">角色提示词</span>
+                    <!--                    <span class="details-toggle-icon">▼</span>-->
+                    <button class="copy-system-prompt-btn modern" data-target="system-prompt-persona" title="复制角色提示词">
+                        复制
+                    </button>
+                </summary>
+                <div id="system-prompt-persona" class="system-prompt-content"></div>
+            </details>
+            <details open>
+                <summary>
+                    <span id="worldbook-title" class="details-title">备忘录内容</span>
+                    <!--                    <span class="details-toggle-icon">▼</span>-->
+                    <button class="copy-system-prompt-btn modern" data-target="system-prompt-worldbook" title="复制备忘录内容">
+                        复制
+                    </button>
+                </summary>
+                <div id="system-prompt-worldbook" class="system-prompt-content"></div>
+            </details>
+            <details open>
+                <summary>
+                    <span class="details-title">总结内容</span>
+                    <!--                    <span class="details-toggle-icon">▼</span>-->
+                    <button class="copy-system-prompt-btn modern" data-target="system-prompt-summary" title="复制总结内容">
+                        复制
+                    </button>
+                </summary>
+                <div id="system-prompt-summary" class="system-prompt-content"></div>
+            </details>
+            <hr style="border: 0.3px solid #ccc; margin-top: 10px; margin-bottom: 10px;">
+
+        </div>
+    </div>
+</div>
+
+<!-- 乌鸦：更新日志弹窗 -->
+<div id="changelog-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-content" style="max-width:680px;">
+        <div class="modal-header">
+            <h2>更新日志 & 开发计划</h2>
+            <button class="modal-close-btn" title="关闭">&times;</button>
+        </div>
+        <!-- 乌鸦：标签页切换，两个标签：更新日志 / 待开发功能 -->
+        <div class="changelog-tabs">
+            <button class="changelog-tab-btn active" data-changelog-tab="changelog-content"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:4px;"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>更新日志</button>
+            <button class="changelog-tab-btn" data-changelog-tab="roadmap-content"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:4px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>待开发功能</button>
+        </div>
+        <div class="modal-body" style="max-height: 65vh; overflow-y: auto;">
+            <!-- 更新日志标签内容 -->
+            <div id="changelog-content" class="changelog-tab-content active">
+                <!-- v2.8.6 -->
+                <div class="changelog-version">
+                    <div class="changelog-version-header">
+                        <span class="changelog-version-tag">v2.8.6</span>
+                        <span class="changelog-version-date">2026-08-18</span>
+                    </div>
+                    <ul class="changelog-list">
+                        <li class="changelog-item feat">【历史总结】版本管理列表新增「查看全部 / 收起」切换与「📋 复制全文」功能，超长文本优雅折叠，避免视觉冗长；</li>
+                        <li class="changelog-item feat">【会话管理】侧边栏会话卡片新增「复制会话」快捷操作，支持一键完整克隆多分支对话、自动同步继承局部关联备忘录与隐藏总结历史版本；</li>
+                        <li class="changelog-item feat">【数据联动】单会话 JSON 导出支持 Smart Bundle 智能打包，自动附带当前会话关联的局部生效备忘录及隐藏总结数据；</li>
+                        <li class="changelog-item feat">【数据联动】单会话 TXT / Markdown 导出在文件头部元信息中自动注入当前会话生效的备忘录名称与挂载深度清单；</li>
+                        <li class="changelog-item feat">【数据联动】设置页「全部导出」与「会话导入」全流程升级：导入单会话或全量会话时自动增量恢复关联备忘录，并无缝重映射局部生效绑定关系。</li>
+                    </ul>
+                </div>
+                <!-- v2.8.5 -->
+                <div class="changelog-version">
+                    <div class="changelog-version-header">
+                        <span class="changelog-version-tag">v2.8.5</span>
+                        <span class="changelog-version-date">2026-08-17</span>
+                    </div>
+                    <ul class="changelog-list">
+                        <li class="changelog-item feat">【备忘录管理】左侧标签筛选与条目列表统一化重构：每次点开备忘录弹窗强制全量重置并勾选高亮“全部”，条目全量展示，消除历史残留筛选状态；</li>
+                        <li class="changelog-item feat">【备忘录管理】标签筛选与“全部”双向智能联动：勾选具体标签自动取消“全部”，全部取消时自动回退勾选“全部”；点击“清除筛选”一键恢复全选；</li>
+                        <li class="changelog-item feat">【备忘录管理】右侧表单新增「局部生效（当前会话）」开关与联动控制：全局开启时局部自动打勾并置灰禁用；全局关闭时允许自由勾选；无会话时自动置灰防误触；</li>
+                        <li class="changelog-item feat">【备忘录管理】编辑与新建条目时精准回显会话状态，保存条目时自动原子化同步 `sessionIds` 列表；</li>
+                        <li class="changelog-item feat">【备忘录管理】参数输入栏紧凑单行化重构：将「标签输入 (flex:1)」、「挂载深度 (72px)」、「发送角色 (90px)」、「全局开关」与「局部开关」整合成单行排布；</li>
+                        <li class="changelog-item opt">【备忘录管理】标签解析徽章胶囊独立展示于参数行下方，清晰直观且不挤占输入空间；</li>
+                        <li class="changelog-item opt">【备忘录管理】右侧表单面板采用纵向 Flex 锁高自适应布局，底部保存操作栏（`worldbook-actions`）实现永久吸底固定，无论文本多长均不发生移位。</li>
+                    </ul>
+                </div>
+                <!-- v2.8.4 -->
+                <div class="changelog-version">
+                    <div class="changelog-version-header">
+                        <span class="changelog-version-tag">v2.8.4</span>
+                        <span class="changelog-version-date">2026-08-14</span>
+                    </div>
+                    <ul class="changelog-list">
+                        <li class="changelog-item feat">【会话导出】历史会话导出重构为独立模态弹窗（`export-modal.js`），支持 JSON / 纯 AI 回复 / 完整对话 / 纯用户提问 4 种模式并默认选中最新分支</li>
+                        <li class="changelog-item feat">【会话导出】新增「指定楼层切片导出」功能，支持选择全部楼层或自定义「从第 M 至 N 楼」切片导出，切换分支时自动联动总楼层上限并自动纠偏校验</li>
+                        <li class="changelog-item feat">【会话导出】新增「Markdown 格式 (.md)」与「纯文本 (.txt)」双格式自由切换，Markdown 模式采用标准分块排版与原生代码块高亮，完美适配 Obsidian / Notion / VS Code</li>
+                        <li class="changelog-item feat">【会话导出】深度优化 AI 思考过程提取引擎，全源聚合 `reasoningParts`、`analysisReasoning` 与内联标签，确保勾选时完整导出 AI 深度思考内容</li>
+                        <li class="changelog-item feat">【数据安全】新增「本地 IndexedDB 数据备份健康度提醒」独立服务（`backup-reminder.js`），未备份超过 14 天时在侧边栏温和提示，支持一键备份全部、分别导出会话与配置、支持延期 30 天或 7 天提醒</li>
+                        <li class="changelog-item opt">【配置管理】补全 `exportConfig` 与 `importConfig`：完整打包快捷提示词、MCP工具全局设置及自定义气泡颜色/宽度等最新配置，导入后自动即时刷新外观生效</li>
+                    </ul>
+                </div>
+                <!-- v2.8.3 -->
+                <div class="changelog-version">
+                    <div class="changelog-version-header">
+                        <span class="changelog-version-tag">v2.8.3</span>
+                        <span class="changelog-version-date">2026-08-14</span>
+                    </div>
+                    <ul class="changelog-list">
+                        <li class="changelog-item feat">【文件交互】新增聊天区域直接拖拽上传文件功能，拖拽文件进入视口即时唤起全屏半透明 Drop Zone 蒙层</li>
+                        <li class="changelog-item feat">基于计数器跟踪机制与子节点穿透，彻底解决拖拽进出子元素时的频繁闪烁跳动 BUG</li>
+                        <li class="changelog-item feat">文件处理管线解耦为统一核心模块，拖拽上传与点击上传 100% 共享魔数安全校验、文件大小限制、ANSI/GBK 编码智能识别与多格式文档异步解析</li>
+                        <li class="changelog-item opt">Drop Zone 蒙层与虚线呼吸光晕支持浅色磨砂与深色沉浸双主题无缝适配</li>
+                        <li class="changelog-item opt">全局拦截非法外部拖拽事件，防止非受控区域误拖导致浏览器直接跳转打开文件</li>
+                    </ul>
+                </div>
+                <!-- v2.8.2 -->
+                <div class="changelog-version">
+                    <div class="changelog-version-header">
+                        <span class="changelog-version-tag">v2.8.2</span>
+                        <span class="changelog-version-date">2026-08-14</span>
+                    </div>
+                    <ul class="changelog-list">
+                        <li class="changelog-item feat">【通用设置】新增「用户气泡颜色自定义」功能，内置原生拾色器，自动生成立体微渐变与柔和阴影，支持一键恢复当前主题默认色</li>
+                        <li class="changelog-item feat">【通用设置】新增「气泡最大宽度」滑动条调节（默认 100%，范围 30%~100%），消息气泡宽度实时等比拉伸，支持一键恢复默认</li>
+                        <li class="changelog-item feat">【会话管理】侧边栏修改标题改造为独立模态弹窗（独立 `conv-title-modal.js` 模块），支持自动聚焦全选、Enter 快速保存与 ESC 安全退出</li>
+                        <li class="changelog-item feat">【快捷提示】架构模块化重构（拆分 Storage/Executor/UI 子模块），强化本地持久化保障，彻底解决刷新后数据丢失问题</li>
+                        <li class="changelog-item feat">新增内置核心快捷提示（双引号“”居中、双星号**加粗居中、括号()居中、移到行首、移到行尾、换行）</li>
+                        <li class="changelog-item feat">新增高阶光标定位引擎，支持内容开头/内容中间(单数智能-1居中)/内容结尾/自定义第 N 个字后光标落点</li>
+                        <li class="changelog-item feat">新增四种插入模式：当前光标位置、当前行开头、当前行结尾、下一行（自动换行）</li>
+                        <li class="changelog-item feat">快捷提示设置列表新增「置顶到第一条」按钮，且新增提示默认直接插入第 1 条</li>
+                        <li class="changelog-item fix">重构拖拽排序同步机制，基于 DOM 真实 ID 映射全量对齐，彻底解决多次拖拽和搜索过滤排序脱节 BUG</li>
+                        <li class="changelog-item opt">聊天区快捷提示闪电按钮升级为鼠标悬浮展开（200ms 防抖平滑移入），弹窗最大高度加高至可完整展示前 10 条项目</li>
+                    </ul>
+                </div>
+                <!-- v2.8.1 -->
+                <div class="changelog-version">
+                    <div class="changelog-version-header">
+                        <span class="changelog-version-tag">v2.8.1</span>
+                        <span class="changelog-version-date">2026-08-13</span>
+                    </div>
+                    <ul class="changelog-list">
+                        <li class="changelog-item feat">【内容搜索】重构为左右二级分栏 (Master-Detail) 双栏视图，左侧按会话聚合卡片、右侧按分支分组展示匹配消息，彻底解决多分支会话搜索结果刷屏问题</li>
+                        <li class="changelog-item feat">内容搜索跳转自动检测精简折叠消息并展开加载，定位后平滑居中高亮闪烁 2.5 秒</li>
+                        <li class="changelog-item opt">"加载全部消息"按钮升级为顶部右侧悬浮胶囊样式，支持浅色/深色双主题适配</li>
+                        <li class="changelog-item opt">内容搜索按钮与搜索框高度统一对齐 (36px 胶囊圆角)</li>
+                        <li class="changelog-item fix">修复内容搜索按钮点击无响应问题（侧边栏异步加载导致事件绑定失效，改用全局事件委托）</li>
+                        <li class="changelog-item fix">修复内容搜索双栏浮窗在深色主题下右侧面板、搜索框、消息卡片、触发按钮等大面积白底未适配问题</li>
+                        <li class="changelog-item opt">GEMINI.md 新增"主题色双模式适配"最高优先级 UI 铁律，从制度上杜绝暗色主题遗漏</li>
+                    </ul>
+                </div>
+                <!-- v2.8.0 -->
+                <div class="changelog-version">
+                    <div class="changelog-version-header">
+                        <span class="changelog-version-tag">v2.8.0</span>
+                        <span class="changelog-version-date">2026-08-13</span>
+                    </div>
+                    <ul class="changelog-list">
+                        <li class="changelog-item feat">应用名称升级为“智能摸鱼”，视觉体验更接地气</li>
+                        <li class="changelog-item feat">新增独立可拖拽【内容搜索】浮窗与流式游标分批全文检索算法（Cursor-Streamed Search），零常驻内存开销</li>
+                        <li class="changelog-item feat">全文搜索深度感知会话分支状态，非当前分支精准提示 `[分支 X/Y]` 并支持一键二次确认跳转切换</li>
+                        <li class="changelog-item feat">新增单条消息固化多版本编辑切换系统 (v1~vN)，实现版本固化锁定与自由无损还原，与全局分支 100% 隔离零冲突</li>
+                        <li class="changelog-item feat">侧边栏搜索升级为“只搜索标题 (Title-only Search)”，打字延迟降低 100 倍</li>
+                        <li class="changelog-item feat">侧边栏新增 250ms 防抖 Hover 悬浮预览卡片，自动展示完整标题与前 2 条问答消息摘要</li>
+                        <li class="changelog-item feat">聊天气泡增加字符数与 Token 拆分展示，区分“正文字符/Token”与“思维链思考过程/Token”</li>
+                        <li class="changelog-item opt">强化侧边栏搜索框防密码管理器（LastPass/1Password/Chrome）自动预填防打扰机制</li>
+                        <li class="changelog-item opt">用户消息气泡脚部版本胶囊升级高亮半透明玻璃质感，高对比度不刺眼</li>
+                        <li class="changelog-item fix">修复会话数据详情中正文与思考 Token 倒扣为0及两数相加不等的分配冲突 BUG</li>
+                    </ul>
+                </div>
+                <!-- v2.7.0 -->
+                <div class="changelog-version">
+                    <div class="changelog-version-header">
+                        <span class="changelog-version-tag">v2.7.0</span>
+                        <span class="changelog-version-date">2026-07-31</span>
+                    </div>
+                    <ul class="changelog-list">
+                        <li class="changelog-item feat">新增顶部工具栏当前会话总预估 Token 实时徽章展示，切换会话自动同步刷新</li>
+                        <li class="changelog-item feat">隐藏与总结按钮新增发送限制楼层数字角标，与滑动条设置实时联动</li>
+                        <li class="changelog-item feat">附件系统新增 .doc 格式文件识别与解析支持</li>
+                        <li class="changelog-item fix">修复新用户首次导入 API 设置后默认会话发送消息无响应的问题，增加自动新建会话保底机制</li>
+                        <li class="changelog-item fix">修复会话数据详情弹窗统计遗漏用户附件文本字数与 Token 的重大偏差问题，新增附件数据专项指标</li>
+                        <li class="changelog-item opt">优化 WPS/Word 格式解析逻辑，新增二进制魔数检测、RTF回退与人性化中文解决引导</li>
+                        <li class="changelog-item opt">文件解析失败提示升级为持久 Modal 交互弹窗，包含一键复制说明，防止 Toast 自动消失无法看清</li>
+                        <li class="changelog-item opt">优化顶部工具栏中小型屏幕响应式自适应，实现分级图标收容与隐藏防止拥挤折行</li>
+                        <li class="changelog-item opt">调整楼层跳转按钮位置，移至滚动到顶部按钮正上方，提升操作流畅度</li>
+                    </ul>
+                </div>
+                <!-- v2.6.2 -->
+                <div class="changelog-version">
+                    <div class="changelog-version-header">
+                        <span class="changelog-version-tag">v2.6.2</span>
+                        <span class="changelog-version-date">2026-03-25</span>
+                    </div>
+                    <ul class="changelog-list">
+                        <li class="changelog-item feat">新增更新日志弹窗，支持查看版本更新与待开发功能</li>
+                        <li class="changelog-item feat">文件附件支持 .pptx 格式上传与解析</li>
+                        <li class="changelog-item feat">新增 OCR 翻译功能（PaddleOCR + AI 多模态识别）</li>
+                        <li class="changelog-item fix">修复MCP多轮调用结束后 controller 内存泄漏</li>
+                        <li class="changelog-item fix">修复会话切换后 generatingMessages 状态清理失败</li>
+                        <li class="changelog-item opt">回看滚动体验优化，减少滚动阻尼感</li>
+                        <li class="changelog-item opt">代码块渲染性能优化</li>
+                    </ul>
+                </div>
+                <!-- v2.6.1 -->
+                <div class="changelog-version">
+                    <div class="changelog-version-header">
+                        <span class="changelog-version-tag">v2.6.1</span>
+                        <span class="changelog-version-date">2026-03-15</span>
+                    </div>
+                    <ul class="changelog-list">
+                        <li class="changelog-item feat">新增实时滚动跟随模式，停止生成后自动继续跟随</li>
+                        <li class="changelog-item feat">代码预览侧边栏支持拖拽调整宽度</li>
+                        <li class="changelog-item feat">新增缩略消息优化，支持只加载最近一条</li>
+                        <li class="changelog-item fix">修复代码预览窗口滚动定位问题</li>
+                        <li class="changelog-item fix">修复MCP请求时不应弹出预览窗口的问题</li>
+                        <li class="changelog-item fix">修复隐藏文本状态恢复的bug</li>
+                        <li class="changelog-item opt">Token速度展示优化</li>
+                    </ul>
+                </div>
+                <!-- v2.6.0 -->
+                <div class="changelog-version">
+                    <div class="changelog-version-header">
+                        <span class="changelog-version-tag">v2.6.0</span>
+                        <span class="changelog-version-date">2026-03-01</span>
+                    </div>
+                    <ul class="changelog-list">
+                        <li class="changelog-item feat">MCP工具改造为多轮调用模式，支持AI连续调用多个工具</li>
+                        <li class="changelog-item feat">图表工具(ECharts)集成，支持AI生成可视化图表</li>
+                        <li class="changelog-item feat">批量删除会话功能，会话数量统计展示</li>
+                        <li class="changelog-item feat">楼层快速跳转面板，支持快速定位历史消息</li>
+                        <li class="changelog-item feat">统一通知提示系统(Toast)抽离与样式统一</li>
+                        <li class="changelog-item feat">数据库选择器常驻，新增表结构表格化展示</li>
+                        <li class="changelog-item feat">会话数据详情加入MCP调用数据展示</li>
+                        <li class="changelog-item opt">分支导航器内嵌到persona-bar，节省UI空间</li>
+                    </ul>
+                </div>
+                <!-- v2.5.0 -->
+                <div class="changelog-version">
+                    <div class="changelog-version-header">
+                        <span class="changelog-version-tag">v2.5.0</span>
+                        <span class="changelog-version-date">2026-02-20</span>
+                    </div>
+                    <ul class="changelog-list">
+                        <li class="changelog-item feat">思考内容(推理链)展示重构，支持DeepSeek等模型思维链渲染</li>
+                        <li class="changelog-item feat">流式输出改为Web Worker子线程处理，提升渲染性能</li>
+                        <li class="changelog-item feat">代码块右侧预览功能，支持实时预览和运行代码</li>
+                        <li class="changelog-item feat">会话分支导航器，支持在不同版本间切换</li>
+                        <li class="changelog-item feat">文件附件支持 Word(.docx)/PDF/Excel(.xlsx)/PPT(.pptx) 解析</li>
+                        <li class="changelog-item feat">MCP工具渲染优化，支持自定义模板引擎</li>
+                        <li class="changelog-item opt">世界书标签管理优化</li>
+                        <li class="changelog-item opt">版本号管理与缓存清理机制</li>
+                    </ul>
+                </div>
+                <!-- v2.4.0 -->
+                <div class="changelog-version">
+                    <div class="changelog-version-header">
+                        <span class="changelog-version-tag">v2.4.0</span>
+                        <span class="changelog-version-date">2026-01-25</span>
+                    </div>
+                    <ul class="changelog-list">
+                        <li class="changelog-item feat">Draw页面独立发布（Vue3 + TailwindCSS + Mermaid）</li>
+                        <li class="changelog-item feat">Mermaid流程图/序列图渲染支持</li>
+                        <li class="changelog-item feat">API配置导入/导出功能</li>
+                        <li class="changelog-item feat">苹方字体本地化，支持内网离线部署</li>
+                        <li class="changelog-item opt">消除滚动阻尼感，优化悬浮按钮跟手感</li>
+                        <li class="changelog-item opt">代码块底色与滚动条颜色优化</li>
+                    </ul>
+                </div>
+            </div>
+            <!-- 待开发功能标签内容 -->
+            <div id="roadmap-content" class="changelog-tab-content">
+                <p class="settings-hint" style="margin-bottom: 1rem;">以下是计划开发的功能，排名不分先后。欢迎提出建议！</p>
+                <div class="roadmap-list">
+                    <div class="roadmap-item priority-high">
+                        <span class="roadmap-priority">高优先</span>
+                        <div class="roadmap-detail">
+                            <strong>🎙️ 语音输入/输出</strong>
+                            <p>支持语音识别输入和AI语音回复（TTS），打造免手动交互体验</p>
+                        </div>
+                    </div>
+                    <div class="roadmap-item priority-high">
+                        <span class="roadmap-priority">高优先</span>
+                        <div class="roadmap-detail">
+                            <strong>🖼️ 多模态图片理解</strong>
+                            <p>接入Vision API，支持上传图片让AI分析和理解图片内容</p>
+                        </div>
+                    </div>
+                    <div class="roadmap-item priority-medium">
+                        <span class="roadmap-priority">中优先</span>
+                        <div class="roadmap-detail">
+                            <strong>🧩 插件系统</strong>
+                            <p>提供插件化扩展机制，允许用户自定义功能模块和第三方集成</p>
+                        </div>
+                    </div>
+                    <div class="roadmap-item priority-medium">
+                        <span class="roadmap-priority">中优先</span>
+                        <div class="roadmap-detail">
+                            <strong>📄 会话导出为 PDF/Word</strong>
+                            <p>支持将完整聊天记录导出为格式化的PDF或Word文档</p>
+                        </div>
+                    </div>
+                    <div class="roadmap-item priority-medium">
+                        <span class="roadmap-priority">中优先</span>
+                        <div class="roadmap-detail">
+                            <strong>📱 移动端APP适配</strong>
+                            <p>优化移动端触控体验，支持PWA或包装为独立APP</p>
+                        </div>
+                    </div>
+                    <div class="roadmap-item priority-low">
+                        <span class="roadmap-priority">规划中</span>
+                        <div class="roadmap-detail">
+                            <strong>👥 多人协作会话</strong>
+                            <p>支持多个用户加入同一会话，共同与AI进行对话</p>
+                        </div>
+                    </div>
+                    <div class="roadmap-item priority-low">
+                        <span class="roadmap-priority">规划中</span>
+                        <div class="roadmap-detail">
+                            <strong>🤖 自动摘要标题</strong>
+                            <p>AI根据对话内容自动生成会话标题，省去手动命名</p>
+                        </div>
+                    </div>
+                    <div class="roadmap-item priority-low">
+                        <span class="roadmap-priority">规划中</span>
+                        <div class="roadmap-detail">
+                            <strong>⌨️ 快捷键自定义</strong>
+                            <p>支持用户自定义键盘快捷键配置，提升操作效率</p>
+                        </div>
+                    </div>
+                    <div class="roadmap-item priority-low">
+                        <span class="roadmap-priority">规划中</span>
+                        <div class="roadmap-detail">
+                            <strong>🌍 国际化多语言</strong>
+                            <p>支持英文、日文等多语言界面切换</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Hide Confirmation Modal -->
+<div id="quick-hide-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-content" style="max-width: 440px;">
+        <div class="modal-header">
+            <h2>快速隐藏确认</h2>
+            <button class="modal-close-btn" title="关闭">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p id="quick-hide-prompt-text">请选择隐藏范围：</p>
+            <div id="quick-hide-status-box" class="quick-hide-status-box">
+                <div class="quick-hide-status-header">
+                    <span>当前分支已隐藏楼层</span>
+                    <span id="quick-hide-status-count" class="quick-hide-status-count">0 个楼层</span>
+                </div>
+                <div id="quick-hide-status-tags" class="quick-hide-status-tags">
+                    <span class="quick-hide-tag-empty">暂无隐藏楼层（全部可见）</span>
+                </div>
+            </div>
+            <div class="quick-hide-range-bar">
+                <span class="range-label">区间快捷隐藏：</span>
+                <div class="range-controls">
+                    <span>第</span>
+                    <input type="number" id="quick-hide-range-start" min="1" class="quick-hide-range-input" value="1">
+                    <span>至</span>
+                    <input type="number" id="quick-hide-range-end" min="1" class="quick-hide-range-input">
+                    <span>楼</span>
+                    <button id="quick-hide-range-btn" class="quick-hide-range-btn" title="将指定范围内的楼层加入隐藏（不影响已有隐藏楼层）">隐藏此区间</button>
+                </div>
+            </div>
+            <p class="settings-hint">(如需总结请前往左上角隐藏域总结弹窗)</p>
+        </div>
+        <div class="modal-actions" style="display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 1.2rem;">
+            <button id="quick-hide-reset-btn" class="cancel-button" title="清除当前会话的所有楼层隐藏">取消所有隐藏</button>
+            <div style="display: flex; gap: 8px;">
+                <button id="quick-hide-single-btn" title="仅对当前楼层执行隐藏或取消隐藏">隐藏当前楼层</button>
+                <button id="quick-hide-confirm-btn" title="隐藏从第1楼至当前楼层">隐藏1至本楼</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Auto Summary Conflict Modal (后台自动总结并发冲突解决弹窗) -->
+<div id="auto-summary-conflict-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+            <h2>⚡ 后台记忆提炼中...</h2>
+            <button class="modal-close-btn" id="auto-summary-conflict-close-btn" title="关闭">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p style="margin-bottom: 8px; font-size: 13px; color: var(--text-primary);">
+                检测到您发出了新消息，系统后台正在提炼长程记忆并压缩前文上下文：
+            </p>
+            <div class="auto-summary-stream-box">
+                <div class="auto-summary-stream-header">
+                    <span>💡 实时提炼内容预览</span>
+                    <span id="auto-summary-elapsed-time" class="auto-summary-elapsed-badge">⏱️ 已耗时 0.0s</span>
+                </div>
+                <div id="auto-summary-stream-content" class="auto-summary-stream-content">
+                    <span class="auto-summary-typing-placeholder">正在连接流式输出...</span>
+                </div>
+            </div>
+            <p class="settings-hint" style="margin-top: 6px; font-size: 12px;">
+                建议等待记忆提炼完成后发送，以获得更连贯准确的上下文体验。
+            </p>
+        </div>
+        <div class="modal-actions" style="display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 1.2rem;">
+            <button id="auto-summary-cancel-send-btn" class="cancel-button" title="取消本次发送，消息完整保留在输入框中">取消本次发送</button>
+            <div style="display: flex; gap: 8px;">
+                <button id="auto-summary-skip-send-btn" class="secondary-button" title="跳过后台总结，以当前上下文立即发送">立即发送(跳过)</button>
+                <button id="auto-summary-wait-send-btn" class="primary-button" title="等待后台总结完成后自动将消息发送">等待完成自动发</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Conversation Title Modal -->
+<div id="edit-conv-title-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-content" style="max-width: 440px;">
+        <div class="modal-header">
+            <h2>修改对话标题</h2>
+            <button class="modal-close-btn" title="关闭">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group" style="margin-bottom: 0;">
+                <label for="edit-conv-title-input">对话标题</label>
+                <input type="text" id="edit-conv-title-input" placeholder="请输入新的对话标题..." maxlength="100" style="width: 100%;">
+            </div>
+        </div>
+        <div class="modal-actions">
+            <button id="edit-conv-title-cancel-btn" class="cancel-button modal-close-btn">取消</button>
+            <button id="edit-conv-title-save-btn">保存</button>
+        </div>
+    </div>
+</div>
+
+<!-- Export Conversation Modal -->
+<div id="export-conv-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-content export-modal-dialog" style="max-width: 520px;">
+        <div class="modal-header">
+            <h2>导出会话</h2>
+            <button class="modal-close-btn" title="关闭">&times;</button>
+        </div>
+        <div class="modal-body export-modal-body">
+            <div class="export-target-info">
+                <span class="export-info-label">会话：</span>
+                <span id="export-conv-title-display" class="export-conv-title-display">会话标题</span>
+            </div>
+
+            <div class="form-group">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <label class="export-section-label" style="margin-bottom: 0;">导出格式</label>
+                    <!-- 文件后缀切换胶囊（仅在选择文本/对话格式时生效） -->
+                    <div id="export-file-ext-group" class="export-file-ext-group">
+                        <span class="export-inline-label">格式：</span>
+                        <div class="export-ext-capsules">
+                            <label class="export-ext-capsule active" title="纯文本格式 (.txt)">
+                                <input type="radio" name="export-file-ext" value="txt" checked>
+                                <span>.txt</span>
+                            </label>
+                            <label class="export-ext-capsule" title="Markdown 格式 (.md)">
+                                <input type="radio" name="export-file-ext" value="md">
+                                <span>.md</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="export-format-grid">
+                    <label class="export-format-card">
+                        <input type="radio" name="export-conv-format" value="json">
+                        <div class="export-card-content">
+                            <div class="export-card-title">
+                                <span class="export-card-icon">📦</span>
+                                <strong>完整会话 (JSON)</strong>
+                            </div>
+                            <div class="export-card-desc">含全部分支与元数据，用于备份还原</div>
+                        </div>
+                    </label>
+
+                    <label class="export-format-card active">
+                        <input type="radio" name="export-conv-format" value="ai_txt" checked>
+                        <div class="export-card-content">
+                            <div class="export-card-title">
+                                <span class="export-card-icon">🤖</span>
+                                <strong>纯 AI 回复</strong>
+                            </div>
+                            <div class="export-card-desc">仅提取 AI 回复，带清晰楼层分隔</div>
+                        </div>
+                    </label>
+
+                    <label class="export-format-card">
+                        <input type="radio" name="export-conv-format" value="full_txt">
+                        <div class="export-card-content">
+                            <div class="export-card-title">
+                                <span class="export-card-icon">💬</span>
+                                <strong>完整对话</strong>
+                            </div>
+                            <div class="export-card-desc">问答按楼层交替呈现，带角色标记</div>
+                        </div>
+                    </label>
+
+                    <label class="export-format-card">
+                        <input type="radio" name="export-conv-format" value="user_txt">
+                        <div class="export-card-content">
+                            <div class="export-card-title">
+                                <span class="export-card-icon">👤</span>
+                                <strong>纯用户提问</strong>
+                            </div>
+                            <div class="export-card-desc">仅提取用户提问与 Prompt 提示词</div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <div id="export-branch-group" class="form-group" style="margin-bottom: 12px;">
+                <label for="export-conv-branch-select" class="export-section-label" style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>目标分支</span>
+                    <span id="export-branch-tip" class="export-label-tip">（已默认选中最新分支）</span>
+                </label>
+                <select id="export-conv-branch-select" class="export-branch-select" style="width: 100%;">
+                    <!-- 动态填充分支选项 -->
+                </select>
+            </div>
+
+            <!-- 楼层切片范围选择 -->
+            <div id="export-floor-range-group" class="form-group" style="margin-bottom: 12px;">
+                <label class="export-section-label" style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>楼层范围</span>
+                    <span id="export-floor-total-tip" class="export-label-tip">（当前分支共 0 楼）</span>
+                </label>
+                <div class="export-range-controls">
+                    <label class="export-radio-label">
+                        <input type="radio" name="export-floor-mode" value="all" checked>
+                        <span>全部楼层</span>
+                    </label>
+                    <label class="export-radio-label">
+                        <input type="radio" name="export-floor-mode" value="custom">
+                        <span>指定范围：</span>
+                    </label>
+                    <div id="export-custom-range-inputs" class="export-custom-range-inputs">
+                        <span class="range-input-prefix">第</span>
+                        <input type="number" id="export-range-start" class="export-range-input" min="1" value="1" disabled>
+                        <span class="range-input-sep">至</span>
+                        <input type="number" id="export-range-end" class="export-range-input" min="1" value="1" disabled>
+                        <span class="range-input-suffix">楼</span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="export-options-group" class="form-group export-options-group" style="margin-bottom: 4px;">
+                <label class="export-checkbox-label">
+                    <input type="checkbox" id="export-include-think-checkbox">
+                    <span>包含 AI 思考过程 (<code>&lt;think&gt;</code>)</span>
+                </label>
+            </div>
+        </div>
+        <div class="modal-actions">
+            <button id="export-conv-cancel-btn" class="cancel-button modal-close-btn">取消</button>
+            <button id="export-conv-confirm-btn">立即导出</button>
+        </div>
+    </div>
+</div>

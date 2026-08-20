@@ -1,0 +1,543 @@
+/* --- Responsive Design (Mobile & Tablet) --- */
+@media (max-width: 768px) {
+
+    /* --- App Container & Dynamic Viewport Height --- */
+    #app {
+        height: 100vh;
+        height: 100dvh;
+        overflow: hidden;
+    }
+
+    /* --- Layout: Sidebar Drawer --- */
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: 82%;
+        max-width: 320px;
+        transform: translateX(-100%);
+        z-index: 150;
+        box-shadow: var(--shadow-xl);
+        transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+        padding: 0.85rem;
+        padding-top: max(env(safe-area-inset-top, 0px), 0.85rem);
+        padding-bottom: max(env(safe-area-inset-bottom, 0px), 0.85rem);
+    }
+
+    .sidebar.sidebar-visible {
+        transform: translateX(0);
+    }
+
+    /* 真实遮罩层：提供平滑半透明背景与 100% 可点击关闭区域 */
+    .sidebar-backdrop {
+        display: block;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(2px);
+        -webkit-backdrop-filter: blur(2px);
+        z-index: 140;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.28s ease;
+    }
+
+    .sidebar-backdrop.active {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    /* 侧边栏头部与操作区防溢出 */
+    .sidebar-header {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        padding-left: 0.5rem !important;
+        padding-right: 0.5rem !important;
+        padding-bottom: 0.5rem !important;
+        margin-bottom: 0.5rem !important;
+        min-width: 0 !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    .sidebar-close-btn {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        min-width: 32px !important;
+        min-height: 32px !important;
+        padding: 0 !important;
+        border-radius: var(--radius-full);
+        color: var(--text-primary);
+        cursor: pointer;
+        margin-right: 4px;
+        background: none;
+        border: none;
+        flex-shrink: 0 !important;
+    }
+
+    .sidebar-header h1 {
+        font-size: 0.95rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        flex: 1 1 auto;
+        min-width: 0;
+        margin: 0 4px;
+    }
+
+    .sidebar-actions {
+        display: flex !important;
+        align-items: center !important;
+        gap: 4px !important;
+        flex-shrink: 0 !important;
+    }
+
+    .sidebar-actions button {
+        min-width: 32px !important;
+        min-height: 32px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 4px !important;
+        flex-shrink: 0 !important;
+    }
+
+    /* 汉堡按钮：固定在左上角安全区内，层级低于展开的侧边栏抽屉 */
+    #sidebar-toggle-btn {
+        position: fixed;
+        top: max(env(safe-area-inset-top, 0px), 6px);
+        left: 6px;
+        z-index: 95;
+        width: 38px;
+        height: 38px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: var(--bg-light);
+        border: 1px solid var(--border-color);
+        box-shadow: var(--shadow-sm);
+        border-radius: var(--radius-full);
+        padding: 0;
+    }
+
+    #sidebar-toggle-btn svg {
+        width: 22px;
+        height: 22px;
+    }
+
+    #app.sidebar-collapsed #sidebar-toggle-btn svg {
+        transform: rotate(0deg);
+    }
+
+    /* --- Chat Area --- */
+    .main-chat {
+        width: 100%;
+        height: 100%;
+        position: relative;
+    }
+
+    #chat-messages {
+        padding: 0.75rem;
+        padding-top: calc(max(env(safe-area-inset-top, 0px), 6px) + 50px);
+        padding-bottom: 0.75rem;
+    }
+
+    .message-wrapper {
+        max-width: 95% !important;
+        margin-bottom: 12px;
+    }
+
+    .message-wrapper.user {
+        max-width: 92% !important;
+    }
+
+    .message-bubble {
+        padding: 0.75rem 0.9rem;
+        font-size: 15px;
+        max-width: 100% !important;
+        box-sizing: border-box;
+    }
+
+    /* 气泡底部信息栏防溢出：允许自适应换行，确保数据不突破气泡边缘 */
+    .message-footer {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        gap: 4px 8px !important;
+        margin-top: 0.5rem !important;
+        padding-top: 0.35rem !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        overflow: hidden !important;
+    }
+
+    .message-timestamp {
+        font-size: 0.68rem !important;
+        color: var(--text-secondary);
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    .message-stats {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        align-items: center !important;
+        gap: 4px !important;
+        max-width: 100% !important;
+        margin-left: auto;
+    }
+
+    .message-stats span {
+        font-size: 0.65rem !important;
+        padding: 1px 4px !important;
+        white-space: nowrap;
+    }
+
+    /* 移动端彻底禁用会话悬浮预览卡片，防止误触遮挡 */
+    .history-preview-tooltip {
+        display: none !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+        opacity: 0 !important;
+    }
+
+    .message-bubble.editing {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    /* --- Top Persona Bar --- */
+    .persona-bar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
+        max-width: 100%;
+        transform: none;
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+        border-top: none;
+        padding-top: max(env(safe-area-inset-top, 0px), 6px);
+        padding-bottom: 6px;
+        padding-left: 48px; /* 留出左上角汉堡按钮空间，防止重叠 */
+        padding-right: 8px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        z-index: 90;
+        background: color-mix(in srgb, var(--bg-medium) 94%, transparent);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        overflow-x: auto;
+        white-space: nowrap;
+        scrollbar-width: none;
+        box-sizing: border-box;
+    }
+
+    .persona-bar::-webkit-scrollbar {
+        display: none;
+    }
+
+    .persona-combo {
+        display: inline-flex !important;
+        align-items: center !important;
+        flex-shrink: 0 !important;
+        min-width: 120px !important;
+        max-width: 160px !important;
+        height: 32px !important;
+    }
+
+    .persona-combo select {
+        min-width: 85px !important;
+        max-width: 125px !important;
+        flex: 1 1 auto !important;
+        font-size: 13px !important;
+        padding: 0 4px !important;
+        height: 100% !important;
+        border: none !important;
+        background: transparent !important;
+    }
+
+    .persona-combo button {
+        flex-shrink: 0 !important;
+        width: 28px !important;
+        min-height: 100% !important;
+        padding: 0 !important;
+    }
+
+    .persona-bar button {
+        padding: 0.35rem 0.5rem;
+        min-height: 32px;
+        flex-shrink: 0;
+        font-size: 13px;
+    }
+
+    #manage-worldbook-btn .btn-text {
+        display: none;
+    }
+
+    .session-token-badge {
+        font-size: 10px;
+        padding: 1px 5px;
+    }
+
+    /* --- Bottom Input Area & Controls (分行防溢出排版) --- */
+    .input-area {
+        padding: 0.5rem;
+        padding-bottom: max(env(safe-area-inset-bottom, 0px), 0.5rem);
+        background: var(--input-area-bg, var(--bg-deep));
+    }
+
+    .input-wrapper {
+        padding: 0.45rem 0.6rem;
+        border-radius: var(--radius-lg);
+    }
+
+    .input-controls {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+        position: relative;
+        width: 100%;
+    }
+
+    /* 消息输入框占满第一行 */
+    #message-input {
+        order: 1;
+        width: 100%;
+        min-height: 40px;
+        max-height: 120px;
+        padding: 0.45rem 0.55rem;
+        font-size: 15px;
+        box-sizing: border-box;
+    }
+
+    /* 清空按钮绝对定位在输入框右上角 */
+    #clear-input-btn {
+        order: 2;
+        position: absolute;
+        right: 4px;
+        top: 4px;
+        z-index: 2;
+        padding: 3px;
+        background: var(--bg-deep);
+        border-radius: 50%;
+    }
+
+    /* 底部操作图标排列在第二行 */
+    .input-controls > select,
+    .input-controls > button:not(#send-button):not(#clear-input-btn),
+    .input-controls > div {
+        order: 3;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .input-area-btn {
+        padding: 0;
+        width: 36px;
+        height: 36px;
+        min-width: 36px;
+        min-height: 36px;
+        border-radius: var(--radius-md);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .input-area-btn svg {
+        width: 19px;
+        height: 19px;
+    }
+
+    .api-selector {
+        max-width: 105px;
+        height: 34px;
+        font-size: 11px;
+        padding: 0 4px;
+        border-radius: var(--radius-sm);
+        flex-shrink: 0;
+    }
+
+    /* 发送按钮靠右自适应对齐 */
+    #send-button {
+        order: 4;
+        margin-left: auto;
+        min-width: 44px;
+        height: 36px;
+        padding: 0 0.75rem;
+        border-radius: var(--radius-full);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    /* --- Modals & Popups (移动端全屏/居中微调) --- */
+    .modal-content {
+        width: 95%;
+        height: 85vh;
+        max-height: 85vh;
+    }
+
+    .modal-header,
+    .modal-tabs,
+    .modal-body {
+        padding-left: 0.85rem;
+        padding-right: 0.85rem;
+    }
+
+    .modal-header {
+        padding-top: 0.85rem;
+    }
+
+    #worldbook-modal .modal-content {
+        width: 100vw;
+        height: 100vh;
+        max-width: none;
+        max-height: none;
+        border-radius: 0;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+    }
+
+    #worldbook-modal .modal-body {
+        padding: 0;
+        flex: 1;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .worldbook-mobile-nav {
+        display: grid;
+    }
+
+    .worldbook-header-left .drag-sort-hint {
+        display: none;
+    }
+
+    .worldbook-merge-toggle-wrap label:first-child {
+        display: none;
+    }
+
+    .worldbook-split-container {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        overflow: hidden;
+        gap: 0;
+    }
+
+    /* 列表视图 (data-mobile-view 为 list 或默认时) */
+    #worldbook-modal:not([data-mobile-view="form"]) .worldbook-tags-panel {
+        display: flex;
+        max-height: 125px;
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+        padding: 0.5rem 0.75rem;
+        flex-shrink: 0;
+    }
+
+    #worldbook-modal:not([data-mobile-view="form"]) .worldbook-list-panel {
+        display: flex;
+        flex: 1;
+        border: none;
+        padding: 0.5rem 0.75rem;
+        border-bottom: none;
+        margin-bottom: 0;
+    }
+
+    #worldbook-modal:not([data-mobile-view="form"]) .worldbook-form-panel {
+        display: none !important;
+    }
+
+    /* 表单编辑视图 (data-mobile-view="form") */
+    #worldbook-modal[data-mobile-view="form"] .worldbook-tags-panel,
+    #worldbook-modal[data-mobile-view="form"] .worldbook-list-panel {
+        display: none !important;
+    }
+
+    #worldbook-modal[data-mobile-view="form"] .worldbook-form-panel {
+        display: flex !important;
+        flex: 1;
+        padding: 0.75rem;
+        border: none;
+    }
+
+    .worldbook-params-row {
+        gap: 0.5rem;
+    }
+
+    .worldbook-params-row .param-tags-group {
+        width: 100%;
+        flex: auto;
+    }
+
+    .worldbook-params-row .param-depth-group {
+        flex: 1;
+        width: auto;
+    }
+
+    .worldbook-params-row .param-role-group {
+        flex: 1;
+        width: auto;
+    }
+
+    #message-edit-modal .modal-content {
+        width: 100vw;
+        height: 100vh;
+        border-radius: 0;
+        max-width: none;
+        max-height: none;
+    }
+
+    #avatar-preview-modal .modal-content {
+        max-width: 95vw;
+        max-height: 98vh;
+        width: 95vw;
+        height: 98vh;
+        border-radius: 0;
+    }
+
+    #avatar-preview-img {
+        max-width: 93vw;
+        max-height: 96vh;
+    }
+
+    #model-list-modal .modal-content {
+        max-width: 95vw;
+        width: 95vw;
+    }
+
+    /* --- Font & Spacing --- */
+    body {
+        font-size: 15px;
+    }
+
+    .history-item-title {
+        font-size: 0.9rem;
+    }
+
+    .history-item .api-badge-container {
+        display: none;
+    }
+
+    #new-chat-btn {
+        padding: 0.6rem;
+    }
+}

@@ -1,0 +1,256 @@
+/*
+ * 乌鸦：这个文件专门为 Shadow DOM 内的 Markdown 内容服务。
+ * 这里的选择器都是最基础的标签选择器，因为它们的作用域已经被 Shadow DOM 限制了。
+ */
+
+/*
+ * 乌鸦：移除 :host 的 color 规则。
+ * 颜色将从父元素 .message-bubble 继承。
+ * .message-bubble.user 已定义 color: white，正好满足需求。
+ * 这样可以确保用户消息为白色，AI消息为默认黑色，且无需在JS中添加额外逻辑。
+ */
+
+/* --- Markdown & Content Styles --- */
+p,
+li,
+pre,
+code,
+ul,
+ol {
+    line-height: 1.5;
+}
+
+p {
+    margin-bottom: .5em;
+}
+
+ul,
+ol {
+    padding-left: 1.5em;
+    margin-bottom: .5em;
+}
+
+a {
+    color: var(--accent-blue);
+    text-decoration: underline;
+}
+
+pre {
+    position: relative;
+    margin: 1em 0;
+    background-color: var(--code-bg);
+    border-radius: var(--radius-md);
+    padding: 1em;
+    border: 1px solid var(--border-color);
+    overflow-x: auto;
+
+    /* 乌鸦：代码块限高与滚动条优化 */
+    max-height: 400px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+pre::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+pre::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+pre::-webkit-scrollbar-thumb {
+    background-color: var(--scrollbar-thumb);
+    border-radius: 3px;
+}
+
+pre::-webkit-scrollbar-thumb:hover {
+    background-color: var(--text-secondary);
+}
+
+pre code.hljs {
+    background-color: transparent;
+    padding: 0;
+}
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1em 0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+}
+
+th,
+td {
+    border: 1px solid var(--border-color);
+    padding: 0.75em 1em;
+    text-align: left;
+}
+
+th {
+    background-color: var(--bg-light);
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+tr:nth-child(even) {
+    background-color: var(--bg-deep);
+}
+
+.error-indicator {
+    color: var(--accent-red);
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+
+/* ===========================================
+   乌鸦：工具调用申请条（在 Shadow DOM 内渲染）
+   mcp.css 不在 Shadow DOM 的加载列表中，所以样式需要定义在这里
+   =========================================== */
+
+.tool-call-request-bar {
+    margin: 0.75em 0;
+    border-radius: var(--radius-md, 8px);
+    overflow: hidden;
+    border: 1px solid rgba(124, 58, 237, 0.3);
+}
+
+.tool-call-request-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: linear-gradient(135deg, #7c3aed, #a78bfa);
+    color: #fff;
+    font-size: 0.85em;
+    flex-wrap: wrap;
+}
+
+.tool-call-request-icon {
+    font-size: 1.1em;
+    flex-shrink: 0;
+}
+
+.tool-call-request-title {
+    font-weight: 600;
+    flex-shrink: 0;
+    margin-right: 4px;
+}
+
+.tool-call-request-tools {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    flex-grow: 1;
+}
+
+.tool-call-request-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(255, 255, 255, 0.2);
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 0.9em;
+}
+
+.tool-call-request-name {
+    font-weight: 500;
+}
+
+.tool-call-request-analyze {
+    font-size: 0.85em;
+    background: rgba(239, 68, 68, 0.7);
+    color: #fff;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-weight: 600;
+}
+
+.tool-call-request-expand-btn {
+    background: rgba(255, 255, 255, 0.15) !important;
+    color: #fff !important;
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    padding: 3px 8px !important;
+    border-radius: var(--radius-sm, 4px) !important;
+    font-size: 0.85em !important;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+.tool-call-request-expand-btn:hover {
+    background: rgba(255, 255, 255, 0.3) !important;
+    border-color: rgba(255, 255, 255, 0.5) !important;
+}
+
+/* ===========================================
+   乌鸦：Mermaid 图表渲染样式（Shadow DOM 内）
+   mcp.css 不在 Shadow DOM 作用域内，所以样式必须定义在这里
+   =========================================== */
+
+.mermaid-result-wrapper {
+    margin-top: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md, 8px);
+    background-color: var(--bg-secondary);
+    overflow: hidden;
+}
+
+.mermaid-chart-container {
+    padding: 16px;
+    background-color: white;
+    display: flex;
+    justify-content: center;
+    overflow-x: auto;
+}
+
+[data-theme="dark"] .mermaid-chart-container {
+    background-color: #1e1e1e;
+}
+
+.mermaid-actions {
+    padding: 12px 16px;
+    background-color: white;
+    border-top: 1px solid rgba(0,0,0,0.05);
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+[data-theme="dark"] .mermaid-actions {
+    background-color: #1e1e1e;
+    border-top: 1px solid rgba(255,255,255,0.05);
+}
+
+.mermaid-actions button {
+    background: var(--bg-light);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    padding: 5px 14px;
+    border-radius: var(--radius-full, 999px);
+    cursor: pointer;
+    font-size: 0.82em;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-weight: 500;
+}
+
+.mermaid-actions button:hover {
+    background: var(--accent-blue);
+    color: white;
+    border-color: var(--accent-blue);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}

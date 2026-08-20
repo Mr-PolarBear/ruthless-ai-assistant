@@ -1,0 +1,20 @@
+{
+  "name": "ruthless-ai-assistant",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "无情AI助手 - 手机端独立应用",
+  "main": "index.html",
+  "scripts": {
+    "sync": "node sync-assets.js",
+    "cap:sync": "node sync-assets.js && npx cap sync android",
+    "cap:build": "node sync-assets.js && npx cap sync android && cd android && .\\gradlew.bat assembleDebug"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@capacitor/android": "^7.0.1",
+    "@capacitor/cli": "^7.0.1",
+    "@capacitor/core": "^7.0.1"
+  }
+}
