@@ -3,9 +3,9 @@
  * @description Handles message editing modal and choice popover.
  */
 
-import { dom } from '../dom.js';
-import { setEditingMsg } from './base.js';
-import { showMessageEditAttachmentPreview } from '../attachment.js';
+import { dom } from '../dom.js?v=260820-1';
+import { setEditingMsg } from './base.js?v=260820-1';
+import { showMessageEditAttachmentPreview } from '../attachment.js?v=260820-1';
 
 export function openMessageEditModal(message, index) {
     setEditingMsg(message, index);

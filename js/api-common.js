@@ -1,7 +1,7 @@
-import { state } from './state.js';
-import { getSelectedToolsDescription } from './mcp-tools-selector.js';
-import { parseRegex } from './regex-engine.js';
-import { isFloorHiddenInConfig, isMessageHidden } from './utils.js';
+import { state } from './state.js?v=260820-1';
+import { getSelectedToolsDescription } from './mcp-tools-selector.js?v=260820-1';
+import { parseRegex } from './regex-engine.js?v=260820-1';
+import { isFloorHiddenInConfig, isMessageHidden } from './utils.js?v=260820-1';
 
 /**
  * 处理单条消息的内容，包括文本和附件

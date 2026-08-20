@@ -1,9 +1,9 @@
 // db-choose.js
 // 数据库选择弹窗及相关逻辑
-import { state } from './state.js';
-import { dom } from './dom.js';
-import { saveConversation } from './db.js';
-import { saveToLocalStorage } from './utils.js';
+import { state } from './state.js?v=260820-1';
+import { dom } from './dom.js?v=260820-1';
+import { saveConversation } from './db.js?v=260820-1';
+import { saveToLocalStorage } from './utils.js?v=260820-1';
 
 export function showDbChooseModal(currentDbId, onChoose) {
     let modal = document.getElementById('db-choose-modal');

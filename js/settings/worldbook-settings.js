@@ -3,16 +3,16 @@
  * @description Handles World Book (Memo) settings events.
  */
 
-import { dom } from '../dom.js';
-import { state } from '../state.js';
-import { saveToLocalStorage, saveAppSettings, escapeHtml } from '../utils.js';
+import { dom } from '../dom.js?v=260820-1';
+import { state } from '../state.js?v=260820-1';
+import { saveToLocalStorage, saveAppSettings, escapeHtml } from '../utils.js?v=260820-1';
 import { 
     renderWorldBookList, resetWorldBookForm, updateCharCounter,
     openWorldBookModal, renderWorldBookTagsPanel, filterWorldBookByTags,
     updateFormSessionToggleState, setWorldBookMobileView, toggleWorldBookContentExpand
-} from '../modals.js';
-import { updateAllDynamicUI, updateWorldBookButton } from '../ui-updater.js';
-import { DraggableList } from '../draggable-list.js';
+} from '../modals.js?v=260820-1';
+import { updateAllDynamicUI, updateWorldBookButton } from '../ui-updater.js?v=260820-1';
+import { DraggableList } from '../draggable-list.js?v=260820-1';
 
 let lastWorldBookCopyTime = 0;
 let worldBookDragInstance = null;

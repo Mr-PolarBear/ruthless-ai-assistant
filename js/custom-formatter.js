@@ -3,7 +3,7 @@
  * @description 在Markdown渲染前，对原生文本进行预处理
  */
 
-import { regexPatterns } from './regex.js';
+import { regexPatterns } from './regex.js?v=260820-1';
 
 /**
  * 对原生文本应用自定义格式，包裹特殊标签

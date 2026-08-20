@@ -3,13 +3,13 @@
  * @description Handles Markdown parsing, sanitization, and enhancement pipeline. 
  */
 
-import { state } from '../state.js';
-import { applyPreMarkdownRules, applyPostMarkdownRules } from '../regex-engine.js';
-import { applyColorFormatting } from '../highlighter.js';
-import CodeBlockEnhancer from '../code-block-enhancer.js';
-import { jsonToMarkdownTable } from '../utils.js';
-import { regexPatterns } from '../regex.js';
-import { markdownWorkerClient } from './markdown-worker-client.js';
+import { state } from '../state.js?v=260820-1';
+import { applyPreMarkdownRules, applyPostMarkdownRules } from '../regex-engine.js?v=260820-1';
+import { applyColorFormatting } from '../highlighter.js?v=260820-1';
+import CodeBlockEnhancer from '../code-block-enhancer.js?v=260820-1';
+import { jsonToMarkdownTable } from '../utils.js?v=260820-1';
+import { regexPatterns } from '../regex.js?v=260820-1';
+import { markdownWorkerClient } from './markdown-worker-client.js?v=260820-1';
 
 // --- Internal Helpers ---
 

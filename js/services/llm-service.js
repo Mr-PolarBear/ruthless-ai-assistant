@@ -3,22 +3,22 @@
  * @description Handles streaming and non-streaming responses from LLMs.
  */
 
-import { state } from '../state.js';
-import { dom } from '../dom.js';
-import { saveConversation } from '../db.js';
-import { formatMessagePipeline, renderFormattedContent, updateReasoningContainer } from '../renderer.js';
-import { addOrUpdateMessageFooter, updateMessageActions, addCollapseButtonDuringStreaming, smartCollapseStateCheck } from '../message-manager.js';
-import { updateFloatingButton } from '../floating-button.js';
-import { countTokens, throttle, saveToLocalStorage, escapeHtml, extractThinkingFromContent, mergeReasoningParts, parseStreamingThinkContent, isFloorHiddenInConfig, isMessageHidden } from '../utils.js';
-import { scrollManager } from '../scroll-manager.js';
-import { handleToolCalls, preRenderToolCallCards } from './mcp-handler.js';
+import { state } from '../state.js?v=260820-1';
+import { dom } from '../dom.js?v=260820-1';
+import { saveConversation } from '../db.js?v=260820-1';
+import { formatMessagePipeline, renderFormattedContent, updateReasoningContainer } from '../renderer.js?v=260820-1';
+import { addOrUpdateMessageFooter, updateMessageActions, addCollapseButtonDuringStreaming, smartCollapseStateCheck } from '../message-manager.js?v=260820-1';
+import { updateFloatingButton } from '../floating-button.js?v=260820-1';
+import { countTokens, throttle, saveToLocalStorage, escapeHtml, extractThinkingFromContent, mergeReasoningParts, parseStreamingThinkContent, isFloorHiddenInConfig, isMessageHidden } from '../utils.js?v=260820-1';
+import { scrollManager } from '../scroll-manager.js?v=260820-1';
+import { handleToolCalls, preRenderToolCallCards } from './mcp-handler.js?v=260820-1';
 // 乌鸦：多轮工具调用需要的额外导入
-import { parseToolCalls, mcpExecutor } from '../mcp-core.js';
-import { mcpSessionManager } from '../mcp-session-manager.js';
-import { renderToolCallResult } from '../mcp-renderer.js';
-import { regexPatterns as regex } from '../regex.js';
-import { notify, updateScrollButtonsVisibility, updateAllDynamicUI } from '../ui-updater.js';
-import { checkAndTriggerAutoSummary } from '../summary-manager.js';
+import { parseToolCalls, mcpExecutor } from '../mcp-core.js?v=260820-1';
+import { mcpSessionManager } from '../mcp-session-manager.js?v=260820-1';
+import { renderToolCallResult } from '../mcp-renderer.js?v=260820-1';
+import { regexPatterns as regex } from '../regex.js?v=260820-1';
+import { notify, updateScrollButtonsVisibility, updateAllDynamicUI } from '../ui-updater.js?v=260820-1';
+import { checkAndTriggerAutoSummary } from '../summary-manager.js?v=260820-1';
 
 /**
  * 乌鸦：创建调试响应日志
@@ -77,7 +77,7 @@ const throttledRender = throttle(async (contentEl, formattedHtml, targetBubble, 
         if (contentEl.shadowRoot) {
             const codeBlockContainer = contentEl.shadowRoot.querySelector('.shadow-content-wrapper');
             if (codeBlockContainer) {
-                import('../code-block-enhancer.js').then(module => {
+                import('../code-block-enhancer.js?v=260820-1').then(module => {
                     if (module.default && module.default.rebindEventsInContainer) {
                         module.default.rebindEventsInContainer(codeBlockContainer);
                     }
@@ -516,7 +516,7 @@ ${currentToolResultsText}`
             saveToLocalStorage();
 
             setTimeout(() => {
-                import('../renderer.js').then(({ refreshMessageBubble }) => {
+                import('../renderer.js?v=260820-1').then(({ refreshMessageBubble }) => {
                     console.log(`乌鸦：多轮工具调用完成(共${round}轮)，触发局部热更新`);
                     refreshMessageBubble(originalBubble, finalMessage, msgIndex);
                 });

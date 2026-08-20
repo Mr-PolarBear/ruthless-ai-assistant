@@ -3,58 +3,58 @@
  * @description The main entry point for the application.
  */
 
-import { dom, initDom, toggleMessageActions } from './dom.js';
-import { getLocalStorageRemainingSpace } from './ls-space.js';
-import { state, API_PRESETS } from './state.js';
+import { dom, initDom, toggleMessageActions } from './dom.js?v=260820-1';
+import { getLocalStorageRemainingSpace } from './ls-space.js?v=260820-1';
+import { state, API_PRESETS } from './state.js?v=260820-1';
 // 挂载 API_PRESETS 到 window，供动态模块（如 db-table-choose.js）访问
 window.API_PRESETS = API_PRESETS;
 // 挂载 state 到 window，供动态模块（如 db-table-choose.js）访问
 window.state = state;
-import { prepareRequest, handleStream, handleNonStreamResponse, fetchModels } from './api.js';
+import { prepareRequest, handleStream, handleNonStreamResponse, fetchModels } from './api.js?v=260820-1';
 import {
     renderChatMessages, formatMessagePipeline, renderFormattedContent, displayMessage, displayError, populateApiSelector, populatePersonaSelector
-} from './renderer.js';
-import { renderHistory } from './sidebar.js';
-import { initBatchDelete } from './batch-delete.js';
+} from './renderer.js?v=260820-1';
+import { renderHistory } from './sidebar.js?v=260820-1';
+import { initBatchDelete } from './batch-delete.js?v=260820-1';
 import {
     toggleSendButton, updateBranchNavigator, scrollToBottom, adjustTextareaHeight,
     updateWorldBookButton, updateSendButtonState, updateAllDynamicUI, showLoadingOverlay, hideLoadingOverlay
-} from './ui-updater.js';
+} from './ui-updater.js?v=260820-1';
 import {
     addOrUpdateMessageFooter, updateMessageActions, updateSingleMessageCollapseState
-} from './message-manager.js';
-import { clearAttachment } from './attachment.js';
-import { loadFromLocalStorage, loadSettings, saveAppSettings, extractJsonArrayString, jsonToMarkdownTable, saveToLocalStorage } from './utils.js';
-import { setupChatSearch, closeChatSearch } from './chat-search.js';
-import { setupEventListeners } from './events.js';
+} from './message-manager.js?v=260820-1';
+import { clearAttachment } from './attachment.js?v=260820-1';
+import { loadFromLocalStorage, loadSettings, saveAppSettings, extractJsonArrayString, jsonToMarkdownTable, saveToLocalStorage } from './utils.js?v=260820-1';
+import { setupChatSearch, closeChatSearch } from './chat-search.js?v=260820-1';
+import { setupEventListeners } from './events.js?v=260820-1';
 // 乌鸦：导入阻止会话切换的检查函数
-import { shouldBlockConversationSwitch } from './chat-events.js';
-import { saveConversation, openDB, getIndexedDBUsage, clearAllAvatars } from './db.js';
-import { initDatabaseSettings } from './db-settings.js';
+import { shouldBlockConversationSwitch } from './chat-events.js?v=260820-1';
+import { saveConversation, openDB, getIndexedDBUsage, clearAllAvatars } from './db.js?v=260820-1';
+import { initDatabaseSettings } from './db-settings.js?v=260820-1';
 // 乌鸦：导入代码预览管理器，用于新建会话时关闭侧边栏
-import { codePreviewManager } from './code-preview-manager.js';
+import { codePreviewManager } from './code-preview-manager.js?v=260820-1';
 // 乌鸦：导入工具箱管理器
-import { toolsManager } from './tools-manager.js';
-import { initFloatingCollapseButton } from './floating-button.js';
-import { initializeAppearanceSettings } from './appearance.js';
-import { initializeQuickPrompts } from './quick-prompts.js';
-import { regexPatterns } from './regex.js';
-import { setupUserAvatarUI } from './modals.js';
-import { MCPToolsRegistry, DEFAULT_TOOLS } from './mcp-tools-registry.js';
-import { initMCPToolsSelector } from './mcp-tools-selector.js';
-import { initMCPManagement } from './mcp-management.js';
-import { initBackupReminder } from './services/backup-reminder.js';
-import { applyBubbleCustomStyles } from './settings/bubble-settings.js';
-import { scrollManager } from './scroll-manager.js';
-import { mcpSessionManager } from './mcp-session-manager.js';
+import { toolsManager } from './tools-manager.js?v=260820-1';
+import { initFloatingCollapseButton } from './floating-button.js?v=260820-1';
+import { initializeAppearanceSettings } from './appearance.js?v=260820-1';
+import { initializeQuickPrompts } from './quick-prompts.js?v=260820-1';
+import { regexPatterns } from './regex.js?v=260820-1';
+import { setupUserAvatarUI } from './modals.js?v=260820-1';
+import { MCPToolsRegistry, DEFAULT_TOOLS } from './mcp-tools-registry.js?v=260820-1';
+import { initMCPToolsSelector } from './mcp-tools-selector.js?v=260820-1';
+import { initMCPManagement } from './mcp-management.js?v=260820-1';
+import { initBackupReminder } from './services/backup-reminder.js?v=260820-1';
+import { applyBubbleCustomStyles } from './settings/bubble-settings.js?v=260820-1';
+import { scrollManager } from './scroll-manager.js?v=260820-1';
+import { mcpSessionManager } from './mcp-session-manager.js?v=260820-1';
 // 乌鸦：导入楼层快速跳转模块
-import { initFloorJump } from './floor-jump.js';
+import { initFloorJump } from './floor-jump.js?v=260820-1';
 
 // 挂载 DEFAULT_TOOLS 到 window，供其他模块访问
 window.DEFAULT_TOOLS = DEFAULT_TOOLS;
 
 // Flag to track if we are saving to avoid multiple concurrent saves
-import { initContentSearchModule } from './content-search.js';
+import { initContentSearchModule } from './content-search.js?v=260820-1';
 
 let isSaving = false;
 
@@ -85,7 +85,7 @@ export async function handleSendMessage(options = {}) {
 
     // 乌鸦：检查是否正在解析文件，如果是则阻止发送
     if (state.isParsingFile) {
-        const { notify } = await import('./ui-updater.js');
+        const { notify } = await import('./ui-updater.js?v=260820-1');
         notify.warning('文件正在解析中，请稍候...');
         return;
     }
@@ -126,7 +126,7 @@ export async function handleSendMessage(options = {}) {
     // 当后台正在进行自动总结时，若用户发出新消息，会产生并发竞态（旧上下文未压缩即被发送）。
     // 此处拦截发送流程，弹出可视化冲突确认弹窗，向大爷实时展示提炼内容与精确秒表已耗时，由大爷选择【立即发】或【等待完成自动发】
     if (state.isAutoSummarizing && !options.skipAutoSummaryCheck && !isBranching && (userMessageText || userAttachments.length > 0)) {
-        const { openAutoSummaryConflictModal } = await import('./modals/auto-summary-conflict-modal.js');
+        const { openAutoSummaryConflictModal } = await import('./modals/auto-summary-conflict-modal.js?v=260820-1');
         openAutoSummaryConflictModal({
             onSkip: () => {
                 handleSendMessage({ ...options, skipAutoSummaryCheck: true });
@@ -328,7 +328,7 @@ export async function handleSendMessage(options = {}) {
  */
 export async function createNewConversation() {
     if (shouldBlockConversationSwitch()) {
-        const { notify } = await import('./ui-updater.js');
+        const { notify } = await import('./ui-updater.js?v=260820-1');
         notify.warning('当前会话正在进行包含MCP工具的对话，请等待回复结束后，再新建会话。');
         return;
     }
@@ -424,7 +424,7 @@ export function switchToConversation(convId) {
                 } catch (error) {
                     console.error('乌鸦：MCP会话切换通知失败:', error);
                     // 乌鸦：如果MCP管理器未初始化，尝试动态导入
-                    import('./mcp-session-manager.js').then(module => {
+                    import('./mcp-session-manager.js?v=260820-1').then(module => {
                         if (module.mcpSessionManager) {
                             module.mcpSessionManager.onConversationSwitch(convId, oldConversationId);
                             console.log('乌鸦：动态导入MCP管理器成功，已通知会话切换');
@@ -435,7 +435,7 @@ export function switchToConversation(convId) {
                 }
             } else {
                 // 乌鸦：如果全局没有mcpSessionManager，尝试动态导入
-                import('./mcp-session-manager.js').then(module => {
+                import('./mcp-session-manager.js?v=260820-1').then(module => {
                     if (module.mcpSessionManager) {
                         module.mcpSessionManager.onConversationSwitch(convId, oldConversationId);
                         console.log('乌鸦：首次导入MCP管理器成功，已通知会话切换');
@@ -668,7 +668,7 @@ export async function initialize() {
         dom.chooseDbBtn.onclick = async function () {
             const currentConv = state.conversations[state.currentConversationId];
             const currentDbId = currentConv && currentConv.dbId ? currentConv.dbId : null;
-            const { showDbChooseModal } = await import('./db-choose.js');
+            const { showDbChooseModal } = await import('./db-choose.js?v=260820-1');
             showDbChooseModal(currentDbId, async (selectedDbId) => {
                 if (state.currentConversationId && state.conversations[state.currentConversationId]) {
                     state.conversations[state.currentConversationId].dbId = selectedDbId;
@@ -688,7 +688,7 @@ export async function initialize() {
                 alert('请先选择数据库');
                 return;
             }
-            const { showTableChooseModal } = await import('./db-table-choose.js');
+            const { showTableChooseModal } = await import('./db-table-choose.js?v=260820-1');
             showTableChooseModal();
         };
     }
@@ -706,7 +706,7 @@ export async function initialize() {
             console.log('乌鸦：MCP工具选择器初始化完成，自定义工具数量:', Object.keys(state.mcpCustomTools || {}).length);
 
             // 乌鸦：初始化MCP会话管理器并设置全局引用
-            import('./mcp-session-manager.js').then(module => {
+            import('./mcp-session-manager.js?v=260820-1').then(module => {
                 window.mcpSessionManager = module.mcpSessionManager;
                 console.log('乌鸦：MCP会话管理器已设置为全局引用');
             }).catch(error => {

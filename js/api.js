@@ -3,13 +3,13 @@
  * @description API module entry point. Facade for API services.
  */
 
-import { state } from './state.js';
-import { processAndFilterMessages, buildApiRequest } from './api-common.js';
+import { state } from './state.js?v=260820-1';
+import { processAndFilterMessages, buildApiRequest } from './api-common.js?v=260820-1';
 
 // Re-export services
-export { fetchModels } from './services/model-fetcher.js';
-export { handleNonStreamResponse, handleStream, continueConversation } from './services/llm-service.js';
-export { handleToolCalls } from './services/mcp-handler.js';
+export { fetchModels } from './services/model-fetcher.js?v=260820-1';
+export { handleNonStreamResponse, handleStream, continueConversation } from './services/llm-service.js?v=260820-1';
+export { handleToolCalls } from './services/mcp-handler.js?v=260820-1';
 
 /**
  * 乌鸦：准备API请求数据

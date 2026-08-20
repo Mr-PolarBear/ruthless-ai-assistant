@@ -3,7 +3,7 @@
  * @description 专职负责快捷提示的插入位置计算、光标偏移计算与文本注入
  */
 
-import { adjustTextareaHeight } from '../ui-updater.js';
+import { adjustTextareaHeight } from '../ui-updater.js?v=260820-1';
 
 /**
  * 计算光标在插入内容中的相对偏移量

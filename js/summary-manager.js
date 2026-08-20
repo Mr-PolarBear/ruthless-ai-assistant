@@ -3,14 +3,14 @@
  * @description 对话记忆与智能总结模块（支持手动总结、自动触发与滚动上下文压缩）
  */
 
-import { state } from './state.js';
-import { dom } from './dom.js';
-import { saveConversation } from './db.js';
-import { saveToLocalStorage, countTokens, isMessageHidden } from './utils.js';
-import { buildApiRequest, processAndFilterMessages } from './api-common.js';
-import { renderChatMessages } from './renderer.js';
-import { notify, updateSummaryEditorLockState } from './ui-updater.js';
-import { getHideSummaryForConversation, setHideSummaryForConversation, getHideSummaryForCurrentConversation, setHideSummaryForCurrentConversation } from './main.js';
+import { state } from './state.js?v=260820-1';
+import { dom } from './dom.js?v=260820-1';
+import { saveConversation } from './db.js?v=260820-1';
+import { saveToLocalStorage, countTokens, isMessageHidden } from './utils.js?v=260820-1';
+import { buildApiRequest, processAndFilterMessages } from './api-common.js?v=260820-1';
+import { renderChatMessages } from './renderer.js?v=260820-1';
+import { notify, updateSummaryEditorLockState } from './ui-updater.js?v=260820-1';
+import { getHideSummaryForConversation, setHideSummaryForConversation, getHideSummaryForCurrentConversation, setHideSummaryForCurrentConversation } from './main.js?v=260820-1';
 
 // — 为什么这么写 —
 // 默认提供一段全面且条理清晰的长期记忆提取提示词，不限制字数，引导模型提取背景、决策、共识与待办

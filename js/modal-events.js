@@ -3,9 +3,9 @@
  * @description Handles all modal-related events including opening, closing, and form submissions.
  */
 
-import { dom } from './dom.js';
-import { state } from './state.js';
-import { processAndFilterMessages, getWorldBookContent, buildApiRequest } from './api-common.js';
+import { dom } from './dom.js?v=260820-1';
+import { state } from './state.js?v=260820-1';
+import { processAndFilterMessages, getWorldBookContent, buildApiRequest } from './api-common.js?v=260820-1';
 import {
     openSettingsModal, closeSettingsModal, openPersonaModal, openWorldBookModal,
     openApiEditModal, closeApiEditModal, openPersonaEditModal, closePersonaEditModal,
@@ -13,14 +13,14 @@ import {
     openAvatarPreview, closeAvatarPreview, openConversationAvatarModal, closeConversationAvatarModal,
     openQuickHideModal, closeQuickHideModal, closeConvTitleModal, setupConvTitleModalEvents,
     closeExportConvModal, setupExportConvModalEvents
-} from './modals.js';
+} from './modals.js?v=260820-1';
 import {
     renderChatMessages,
     populateApiSelector,
     populatePersonaSelector,
     formatMessagePipeline,
     renderFormattedContent
-} from './renderer.js';
+} from './renderer.js?v=260820-1';
 import {
     saveToLocalStorage,
     importConfig,
@@ -30,15 +30,15 @@ import {
     escapeHtml,
     showImportTemplate,
     fallbackCopyText
-} from './utils.js';
-import { showLoadingOverlay, hideLoadingOverlay, notify, updateSummaryEditorLockState } from './ui-updater.js';
-import { addOrUpdateMessageFooter, updateMessageActions } from './message-manager.js';
-import { switchToConversation, setHideSummaryForCurrentConversation, getHideSummaryForCurrentConversation } from './main.js';
-import { saveConversation } from './db.js';
-import { closeSidebarMobile } from './ui-events.js';
-import { DEFAULT_SUMMARY_PROMPT, getVisibleMessagesForSummary, generateSummaryApiCall, applySummaryResult } from './summary-manager.js';
-import { initSummaryHistoryModal, updateHideSummaryHistoryCount } from './modals/summary-history-modal.js';
-import { initSimulateSendModal } from './modals/simulate-send-modal.js';
+} from './utils.js?v=260820-1';
+import { showLoadingOverlay, hideLoadingOverlay, notify, updateSummaryEditorLockState } from './ui-updater.js?v=260820-1';
+import { addOrUpdateMessageFooter, updateMessageActions } from './message-manager.js?v=260820-1';
+import { switchToConversation, setHideSummaryForCurrentConversation, getHideSummaryForCurrentConversation } from './main.js?v=260820-1';
+import { saveConversation } from './db.js?v=260820-1';
+import { closeSidebarMobile } from './ui-events.js?v=260820-1';
+import { DEFAULT_SUMMARY_PROMPT, getVisibleMessagesForSummary, generateSummaryApiCall, applySummaryResult } from './summary-manager.js?v=260820-1';
+import { initSummaryHistoryModal, updateHideSummaryHistoryCount } from './modals/summary-history-modal.js?v=260820-1';
+import { initSimulateSendModal } from './modals/simulate-send-modal.js?v=260820-1';
 
 /**
  * Sets up modal-related event listeners

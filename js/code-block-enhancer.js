@@ -1,4 +1,4 @@
-import { codePreviewManager } from './code-preview-manager.js';
+import { codePreviewManager } from './code-preview-manager.js?v=260820-1';
 
 const FILE_EXTENSIONS = {
     html: 'html',

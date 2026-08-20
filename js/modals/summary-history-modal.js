@@ -1,10 +1,10 @@
-import { dom } from '../dom.js';
-import { state } from '../state.js';
-import { escapeHtml, saveToLocalStorage } from '../utils.js';
-import { notify } from '../ui-updater.js';
-import { saveConversation } from '../db.js';
-import { getHideSummaryForConversation, setHideSummaryForConversation, getHideSummaryForCurrentConversation, setHideSummaryForCurrentConversation } from '../main.js';
-import { renderChatMessages } from '../renderer.js';
+import { dom } from '../dom.js?v=260820-1';
+import { state } from '../state.js?v=260820-1';
+import { escapeHtml, saveToLocalStorage } from '../utils.js?v=260820-1';
+import { notify } from '../ui-updater.js?v=260820-1';
+import { saveConversation } from '../db.js?v=260820-1';
+import { getHideSummaryForConversation, setHideSummaryForConversation, getHideSummaryForCurrentConversation, setHideSummaryForCurrentConversation } from '../main.js?v=260820-1';
+import { renderChatMessages } from '../renderer.js?v=260820-1';
 
 let pendingRollbackVersion = null;
 

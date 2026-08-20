@@ -3,11 +3,11 @@
  * @description MCP工具管理界面模块 - 增删改查和拖拽排序
  */
 
-import { state } from './state.js';
-import { saveToLocalStorage } from './utils.js';
-import { DEFAULT_TOOLS, RISK_LEVELS } from './mcp-tools-registry.js';
-import { DraggableList } from './draggable-list.js';
-import { notify } from './ui-updater.js';
+import { state } from './state.js?v=260820-1';
+import { saveToLocalStorage } from './utils.js?v=260820-1';
+import { DEFAULT_TOOLS, RISK_LEVELS } from './mcp-tools-registry.js?v=260820-1';
+import { DraggableList } from './draggable-list.js?v=260820-1';
+import { notify } from './ui-updater.js?v=260820-1';
 
 let mcpToolsDragInstance = null;
 
@@ -771,7 +771,7 @@ function previewTemplate() {
     // 乌鸦：使用 setTimeout 让模块加载异步执行，不阻塞主线程
     setTimeout(() => {
         try {
-            import('./mcp-template-engine.js').then(({ processTemplate, preprocessApiData }) => {
+            import('./mcp-template-engine.js?v=260820-1').then(({ processTemplate, preprocessApiData }) => {
                 try {
                     const mockTool = {
                         id: 'preview_tool',

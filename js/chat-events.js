@@ -3,25 +3,25 @@
  * @description Handles chat-related events including message operations, history management, and chat interactions.
  */
 
-import { dom } from './dom.js';
-import { state } from './state.js';
-import { handleSendMessage, switchToConversation, switchBranch } from './main.js';
-import { closeSidebarMobile } from './ui-events.js';
-import { renderHistory } from './sidebar.js';
-import { renderChatMessages, formatMessagePipeline, renderFormattedContent } from './renderer.js';
+import { dom } from './dom.js?v=260820-1';
+import { state } from './state.js?v=260820-1';
+import { handleSendMessage, switchToConversation, switchBranch } from './main.js?v=260820-1';
+import { closeSidebarMobile } from './ui-events.js?v=260820-1';
+import { renderHistory } from './sidebar.js?v=260820-1';
+import { renderChatMessages, formatMessagePipeline, renderFormattedContent } from './renderer.js?v=260820-1';
 import {
     enterEditMode, cancelEdit, smartCollapseStateCheck, addOrUpdateMessageFooter, 
     updateMessageActions, showCopyMenu, updateSingleMessageCollapseState, updateToggleButtonState
-} from './message-manager.js';
-import { showFileViewer } from './attachment.js';
-import { saveToLocalStorage, saveMessageAsFile } from './utils.js';
-import { deleteConversation, saveConversation, getConversation } from './db.js';
-import { openConversationAvatarModal, openQuickHideModal, openConvTitleModal, openExportConvModal } from './modals.js';
-import { adjustTextareaHeight, notify } from './ui-updater.js';
+} from './message-manager.js?v=260820-1';
+import { showFileViewer } from './attachment.js?v=260820-1';
+import { saveToLocalStorage, saveMessageAsFile } from './utils.js?v=260820-1';
+import { deleteConversation, saveConversation, getConversation } from './db.js?v=260820-1';
+import { openConversationAvatarModal, openQuickHideModal, openConvTitleModal, openExportConvModal } from './modals.js?v=260820-1';
+import { adjustTextareaHeight, notify } from './ui-updater.js?v=260820-1';
 // 乌鸦：导入代码预览管理器，用于在切换会话时关闭侧边栏
-import { codePreviewManager } from './code-preview-manager.js';
-import { eventBus, EVENTS } from './services/event-bus.js';
-import { toggleConvSelection } from './batch-delete.js';
+import { codePreviewManager } from './code-preview-manager.js?v=260820-1';
+import { eventBus, EVENTS } from './services/event-bus.js?v=260820-1';
+import { toggleConvSelection } from './batch-delete.js?v=260820-1';
 
 /**
  * Sets up chat-related event listeners

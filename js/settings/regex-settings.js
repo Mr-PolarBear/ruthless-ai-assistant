@@ -3,15 +3,15 @@
  * @description Handles Regex rules settings events.
  */
 
-import { dom } from '../dom.js';
-import { state, DEFAULT_REGEX_RULES } from '../state.js';
-import { saveToLocalStorage, debounce } from '../utils.js';
+import { dom } from '../dom.js?v=260820-1';
+import { state, DEFAULT_REGEX_RULES } from '../state.js?v=260820-1';
+import { saveToLocalStorage, debounce } from '../utils.js?v=260820-1';
 import { 
     renderRegexRulesList, resetRegexForm, populateRegexForm, updateRegexFloorSummary
-} from '../modals.js';
-import { parseRegex } from '../regex-engine.js';
-import { renderChatMessages } from '../renderer.js';
-import { DraggableList } from '../draggable-list.js';
+} from '../modals.js?v=260820-1';
+import { parseRegex } from '../regex-engine.js?v=260820-1';
+import { renderChatMessages } from '../renderer.js?v=260820-1';
+import { DraggableList } from '../draggable-list.js?v=260820-1';
 
 let lastRegexCopyTime = 0;
 let regexRuleDragInstance = null;

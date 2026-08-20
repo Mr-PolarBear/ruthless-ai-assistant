@@ -3,27 +3,27 @@
  * @description Main event listener setup - coordinates all event handling modules.
  */
 
-import { dom } from './dom.js';
-import { createNewConversation } from './main.js';
-import { setupUIEvents } from './ui-events.js';
-import { setupModalEvents } from './modal-events.js';
-import { setupChatEvents } from './chat-events.js';
-import { setupFileEvents } from './file-events.js';
-import { setupSettingsEvents } from './settings-events.js';
+import { dom } from './dom.js?v=260820-1';
+import { createNewConversation } from './main.js?v=260820-1';
+import { setupUIEvents } from './ui-events.js?v=260820-1';
+import { setupModalEvents } from './modal-events.js?v=260820-1';
+import { setupChatEvents } from './chat-events.js?v=260820-1';
+import { setupFileEvents } from './file-events.js?v=260820-1';
+import { setupSettingsEvents } from './settings-events.js?v=260820-1';
 
 /**
  * Sets up all event listeners for the application by coordinating different event modules.
  */
 export function setupEventListeners() {
     // 挂载隐藏按钮高亮函数到全局
-    import('./ui-updater.js').then(mod => { window.updateHideSummaryBtnColor = mod.updateHideSummaryBtnColor; });
+    import('./ui-updater.js?v=260820-1').then(mod => { window.updateHideSummaryBtnColor = mod.updateHideSummaryBtnColor; });
     
     // Setup new chat button
     if (dom.newChatBtn) {
         dom.newChatBtn.addEventListener('click', async () => {
             await createNewConversation();
             if (window.innerWidth <= 768) {
-                const { closeSidebarMobile } = await import('./ui-events.js');
+                const { closeSidebarMobile } = await import('./ui-events.js?v=260820-1');
                 closeSidebarMobile();
             }
         });

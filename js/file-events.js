@@ -3,24 +3,24 @@
  * @description Handles file-related events including uploads, attachments, avatars, and file operations.
  */
 
-import { dom } from './dom.js';
-import { state, ALLOWED_FILE_TYPES } from './state.js';
+import { dom } from './dom.js?v=260820-1';
+import { state, ALLOWED_FILE_TYPES } from './state.js?v=260820-1';
 import { 
     showAttachmentPreviewMulti, showFileViewer, showMessageEditAttachmentPreview,
     showParsingPreview, openDocumentEditor
-} from './attachment.js';
+} from './attachment.js?v=260820-1';
 import { 
     setupUserAvatarUI, setupConversationAvatarUI, closeCropModal, closeConvAvatarCropModal, 
     DEFAULT_AVATAR, currentConversationIdForAvatar
-} from './modals.js';
-import { renderChatMessages } from './renderer.js';
-import { saveAppSettings, exportConfig, exportAllConversations, saveToLocalStorage } from './utils.js';
-import { saveAvatar, deleteAvatar, saveConversation } from './db.js';
-import { renderHistory } from './sidebar.js';
+} from './modals.js?v=260820-1';
+import { renderChatMessages } from './renderer.js?v=260820-1';
+import { saveAppSettings, exportConfig, exportAllConversations, saveToLocalStorage } from './utils.js?v=260820-1';
+import { saveAvatar, deleteAvatar, saveConversation } from './db.js?v=260820-1';
+import { renderHistory } from './sidebar.js?v=260820-1';
 // 乌鸦：导入文档解析服务
-import { isDocumentFile, parseDocumentFile, getDocumentType, MAX_DOCUMENT_SIZE_BYTES } from './services/file-parser.js';
+import { isDocumentFile, parseDocumentFile, getDocumentType, MAX_DOCUMENT_SIZE_BYTES } from './services/file-parser.js?v=260820-1';
 // 乌鸦：导入通知与弹窗组件
-import { notify, showErrorDialog } from './ui-updater.js';
+import { notify, showErrorDialog } from './ui-updater.js?v=260820-1';
 
 /**
  * Sets up file-related event listeners
@@ -590,7 +590,7 @@ async function processDocumentFiles(documentFiles) {
     state.isParsingFile = true;
     
     // 乌鸦：显示全局加载框
-    const { showLoadingOverlay, hideLoadingOverlay } = await import('./ui-updater.js');
+    const { showLoadingOverlay, hideLoadingOverlay } = await import('./ui-updater.js?v=260820-1');
     showLoadingOverlay();
     
     // 乌鸦：立即显示解析中的预览状态
