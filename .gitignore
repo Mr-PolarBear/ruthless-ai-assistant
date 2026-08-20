@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+
+# IDE & Editors
+.idea/
+.vscode/
+*.iml
+.windsurf/
+
+# Build artifacts & Archives
+*.zip
+*.apk
+*.tar.gz
+*.7z
+_dist_build_temp/
+_test_*/
+dist/
+build/
+
+# Android specific
+android/local.properties
+android/**/build/
+android/.gradle/
+android/app/build/
+android/build/
+android/capacitor-cordova-android-plugins/build/
+.gradle/
+
+# Logs and OS files
+*.log
+*.tmp
+.DS_Store
+Thumbs.db

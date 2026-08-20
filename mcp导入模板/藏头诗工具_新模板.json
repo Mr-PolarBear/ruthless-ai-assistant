@@ -1,0 +1,47 @@
+{
+  "mcpTools": {
+    "acrostic_poem_optimized": {
+      "id": "acrostic_poem_optimized",
+      "name": "藏头诗生成器",
+      "description": "根据指定关键词生成五言或七言藏头诗，可指定押韵类型和藏头位置。适用于用户想要创作诗词或文学创作时使用。",
+      "category": "entertainment",
+      "riskLevel": "read",
+      "enabled": true,
+      "sort": 40,
+      "parameters": {
+        "word": {
+          "type": "string",
+          "description": "藏字内容，2-8个字",
+          "required": true,
+          "example": "天行数据"
+        },
+        "len": {
+          "type": "number",
+          "description": "诗句格式：0-五言诗，1-七言诗",
+          "required": false,
+          "default": 0
+        },
+        "type": {
+          "type": "number",
+          "description": "藏头位置：1-藏头，2-藏尾，3-藏中",
+          "required": false,
+          "default": 1
+        }
+      },
+      "endpoint": {
+        "url": "https://apis.tianapi.com/cangtoushi/index?key=DEMO_KEY_PLEASE_REPLACE",
+        "method": "GET",
+        "headers": {
+          "Content-Type": "application/json"
+        }
+      },
+      "customTemplate": {
+        "enabled": true,
+        "htmlTemplate": "<div class=\"acrostic-poem-card\">\n  {{#if code}}\n    {{#if (eq code 200)}}\n      <div class=\"poem-header\">\n        <h3 class=\"poem-title\">🏮 藏头诗「{{tool.parameters.word}}」</h3>\n        <div class=\"poem-meta\">\n          <span class=\"poem-type\">{{#if items.0.type}}{{#if (eq items.0.type 1)}}藏头{{else}}{{#if (eq items.0.type 2)}}藏尾{{else}}{{#if (eq items.0.type 3)}}藏中{{/if}}{{/if}}{{/if}}{{else}}藏头{{/if}}</span>\n          <span class=\"poem-format\">{{#if items.0.len}}{{#if (eq items.0.len 0)}}五言诗{{else}}七言诗{{/if}}{{else}}五言诗{{/if}}</span>\n        </div>\n      </div>\n      {{#if items}}\n      <div class=\"poem-content\">\n        {{#each items}}\n        {{content}}\n        {{/each}}\n      </div>\n      {{else}}\n      <div class=\"no-results\">\n        <p>🔍 未能生成藏头诗</p>\n        <p class=\"suggestion\">建议尝试更换藏字内容或修改诗句格式</p>\n      </div>\n      {{/if}}\n    {{else}}\n      <div class=\"error-message\">\n        <h3>❌ 生成藏头诗失败</h3>\n        <p>错误代码：{{code}}</p>\n        <p>错误信息：{{msg}}</p>\n        <div class=\"error-tips\">\n          <p><strong>可能的原因：</strong></p>\n          <ul>\n            <li>API调用次数已用完</li>\n            <li>藏字内容不符合要求（应2-8个字）</li>\n            <li>网络连接问题</li>\n            <li>API服务暂时不可用</li>\n          </ul>\n        </div>\n      </div>\n    {{/if}}\n  {{else}}\n    {{#if status}}\n      {{#if (eq status 100)}}\n        <div class=\"poem-header\">\n          <h3 class=\"poem-title\">🏮 藏头诗「{{tool.parameters.word}}」</h3>\n          <div class=\"poem-meta\">\n            <span class=\"poem-type\">{{#if items.0.type}}{{#if (eq items.0.type 1)}}藏头{{else}}{{#if (eq items.0.type 2)}}藏尾{{else}}{{#if (eq items.0.type 3)}}藏中{{/if}}{{/if}}{{/if}}{{else}}藏头{{/if}}</span>\n            <span class=\"poem-format\">{{#if items.0.len}}{{#if (eq items.0.len 0)}}五言诗{{else}}七言诗{{/if}}{{else}}五言诗{{/if}}</span>\n          </div>\n        </div>\n        {{#if items}}\n        <div class=\"poem-content\">\n          {{#each items}}\n          {{content}}\n          {{/each}}\n        </div>\n        {{else}}\n        <div class=\"no-results\">\n          <p>🔍 未能生成藏头诗</p>\n          <p class=\"suggestion\">建议尝试更换藏字内容或修改诗句格式</p>\n        </div>\n        {{/if}}\n      {{else}}\n        <div class=\"error-message\">\n          <h3>❌ 生成藏头诗失败</h3>\n          <p>错误代码：{{status}}</p>\n          <p>错误信息：{{message}}</p>\n          <div class=\"error-tips\">\n            <p><strong>可能的原因：</strong></p>\n            <ul>\n              <li>API调用次数已用完</li>\n              <li>藏字内容不符合要求（应2-8个字）</li>\n              <li>网络连接问题</li>\n              <li>API服务暂时不可用</li>\n            </ul>\n          </div>\n        </div>\n      {{/if}}\n    {{else}}\n      <div class=\"error-message\">\n        <h3>❌ 数据格式错误</h3>\n        <p>返回的数据格式不符合预期，请联系管理员检查API配置。</p>\n      </div>\n    {{/if}}\n  {{/if}}\n  \n  <div class=\"poem-footer\">\n    <span class=\"poem-source\">✨ 天行数据 API</span>\n    <span class=\"creation-time\">{{new Date().toLocaleString()}}</span>\n  </div>\n</div>\n\n<style>\n.acrostic-poem-card {\n  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);\n  color: white;\n  padding: 24px;\n  border-radius: 20px;\n  box-shadow: 0 12px 40px rgba(102, 126, 234, 0.3);\n  margin: 16px 0;\n  position: relative;\n  overflow: hidden;\n  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;\n  transition: transform 0.3s ease, box-shadow 0.3s ease;\n}\n\n.acrostic-poem-card:hover {\n  transform: translateY(-2px);\n  box-shadow: 0 16px 50px rgba(102, 126, 234, 0.4);\n}\n\n.acrostic-poem-card::before {\n  content: '';\n  position: absolute;\n  top: 0;\n  left: 0;\n  right: 0;\n  bottom: 0;\n  background: radial-gradient(circle at 20% 20%, rgba(255,255,255,0.1) 0%, transparent 50%),\n              radial-gradient(circle at 80% 80%, rgba(255,255,255,0.1) 0%, transparent 50%);\n  opacity: 0.8;\n  pointer-events: none;\n}\n\n.poem-header {\n  position: relative;\n  z-index: 1;\n  margin-bottom: 20px;\n  text-align: center;\n}\n\n.poem-title {\n  margin: 0 0 12px 0;\n  font-size: 1.4em;\n  font-weight: 700;\n  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);\n  letter-spacing: 1px;\n}\n\n.poem-meta {\n  display: flex;\n  justify-content: center;\n  gap: 12px;\n  font-size: 0.85em;\n  opacity: 0.95;\n}\n\n.poem-type, .poem-format {\n  background: rgba(255, 255, 255, 0.25);\n  padding: 6px 14px;\n  border-radius: 16px;\n  backdrop-filter: blur(10px);\n  border: 1px solid rgba(255, 255, 255, 0.2);\n  font-weight: 500;\n}\n\n.poem-content {\n  position: relative;\n  z-index: 1;\n  font-size: 1.15em;\n  line-height: 2;\n  text-align: center;\n  margin: 24px 0;\n  padding: 20px;\n  background: rgba(255, 255, 255, 0.15);\n  border-radius: 16px;\n  backdrop-filter: blur(8px);\n  border: 1px solid rgba(255, 255, 255, 0.2);\n  white-space: pre-line;\n  font-family: 'STKaiti', 'KaiTi', '楷体', 'Times New Roman', serif;\n  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);\n  letter-spacing: 2px;\n}\n\n.no-results {\n  position: relative;\n  z-index: 1;\n  text-align: center;\n  padding: 40px 20px;\n  background: rgba(255, 255, 255, 0.15);\n  border-radius: 16px;\n  backdrop-filter: blur(8px);\n  border: 1px solid rgba(255, 255, 255, 0.2);\n  margin: 24px 0;\n}\n\n.no-results p {\n  margin: 8px 0;\n  color: rgba(255, 255, 255, 0.9);\n}\n\n.suggestion {\n  font-size: 0.9em;\n  font-style: italic;\n  opacity: 0.8;\n}\n\n.error-message {\n  position: relative;\n  z-index: 1;\n  background: rgba(255, 255, 255, 0.95);\n  color: #c33;\n  border: 1px solid rgba(255, 204, 204, 0.8);\n  border-radius: 16px;\n  padding: 20px;\n  margin: 24px 0;\n  backdrop-filter: blur(8px);\n}\n\n.error-message h3 {\n  margin-top: 0;\n  color: #a22;\n}\n\n.error-tips {\n  margin-top: 16px;\n  padding: 12px;\n  background: rgba(254, 248, 248, 0.8);\n  border-radius: 6px;\n}\n\n.error-tips ul {\n  margin: 8px 0 0 0;\n  padding-left: 20px;\n}\n\n.error-tips li {\n  margin: 4px 0;\n  font-size: 0.9em;\n}\n\n.poem-footer {\n  position: relative;\n  z-index: 1;\n  display: flex;\n  justify-content: space-between;\n  align-items: center;\n  font-size: 0.75em;\n  opacity: 0.85;\n  margin-top: 20px;\n  padding-top: 16px;\n  border-top: 1px solid rgba(255, 255, 255, 0.2);\n}\n\n.poem-source {\n  background: rgba(255, 255, 255, 0.2);\n  padding: 6px 12px;\n  border-radius: 20px;\n  backdrop-filter: blur(10px);\n  border: 1px solid rgba(255, 255, 255, 0.2);\n}\n\n.creation-time {\n  color: rgba(255, 255, 255, 0.8);\n  font-style: italic;\n}\n\n/* 响应式设计 */\n@media (max-width: 480px) {\n  .acrostic-poem-card {\n    padding: 20px 16px;\n    margin: 12px 0;\n  }\n  \n  .poem-title {\n    font-size: 1.2em;\n  }\n  \n  .poem-content {\n    font-size: 1.1em;\n    line-height: 1.8;\n    letter-spacing: 1px;\n  }\n  \n  .poem-footer {\n    flex-direction: column;\n    gap: 8px;\n    text-align: center;\n  }\n}\n\n/* 深色主题适配 */\n@media (prefers-color-scheme: dark) {\n  .acrostic-poem-card {\n    box-shadow: 0 12px 40px rgba(102, 126, 234, 0.2);\n  }\n}\n</style>\n\n<script>\n// 添加复制功能\ndocument.addEventListener('DOMContentLoaded', function() {\n  const poemCards = document.querySelectorAll('.acrostic-poem-card');\n  \n  poemCards.forEach(card => {\n    // 添加双击复制功能\n    card.addEventListener('dblclick', function() {\n      const content = card.querySelector('.poem-content');\n      if (content) {\n        navigator.clipboard.writeText(content.textContent).then(() => {\n          // 显示复制成功提示\n          const tooltip = document.createElement('div');\n          tooltip.textContent = '诗词已复制 ✓';\n          tooltip.style.cssText = `\n            position: absolute;\n            top: 10px;\n            right: 10px;\n            background: rgba(0, 0, 0, 0.8);\n            color: white;\n            padding: 6px 12px;\n            border-radius: 8px;\n            font-size: 12px;\n            z-index: 1000;\n            pointer-events: none;\n          `;\n          card.appendChild(tooltip);\n          \n          setTimeout(() => {\n            if (tooltip.parentNode) {\n              tooltip.parentNode.removeChild(tooltip);\n            }\n          }, 2000);\n        });\n      }\n    });\n    \n    // 添加hover提示\n    card.title = '双击可复制诗词内容';\n  });\n});\n</script>"
+      }
+    }
+  },
+  "mcpToolStates": {},
+  "exportTime": "2025-01-08T15:30:00.000Z",
+  "version": "1.0"
+}

@@ -1,0 +1,9 @@
+{
+  "appId": "com.ruthless.ai",
+  "appName": "智能摸鱼",
+  "webDir": "www",
+  "server": {
+    "cleartext": true,
+    "androidScheme": "https"
+  }
+}

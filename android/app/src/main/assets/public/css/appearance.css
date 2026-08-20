@@ -1,0 +1,82 @@
+:root {
+    /* 定义外观相关的CSS变量，方便JS动态修改 */
+    --quote-text-color: #E18A24;
+    --quote-text-font-weight: normal;
+    --underline-color: #BCE7CF;
+    --underline-text-font-weight: normal;
+    --italic-text-color: #919191;
+    --italic-text-font-weight: normal; /* 注意：斜体通常不建议再加粗 */
+}
+
+/* 
+  关键规则：
+  当我们在HTML中将引用的内容包裹在 <span class="quote"> 中后，
+  这个CSS规则就会生效，将其文字颜色设置为上面定义的变量值。
+*/
+.quote {
+    color: var(--quote-text-color);
+    font-weight: var(--quote-text-font-weight);
+}
+
+/* 为斜体文本预留的样式钩子 */
+.italic-text, em, i {
+    color: var(--italic-text-color);
+    font-weight: var(--italic-text-font-weight);
+    font-style: italic;
+}
+
+/* 为下划线文本预留的样式钩子 */
+.underline-text, u {
+    color: var(--underline-color);
+    font-weight: var(--underline-text-font-weight);
+    text-decoration: underline; /* 乌鸦：根据新需求，显示下划线 */
+}
+
+/* --- 设置弹窗中，颜色选择器的美化样式 --- */
+
+/* 颜色选择器容器 */
+.color-picker-group {
+    display: flex;
+    align-items: center;
+    gap: 12px; /* 增加元素之间的间距 */
+    padding: 8px;
+    border-radius: var(--radius-md);
+    background-color: var(--bg-secondary);
+    border: 1px solid transparent;
+    transition: border-color 0.2s ease;
+}
+
+.color-picker-group:hover {
+    border-color: var(--accent-blue-muted);
+}
+
+/* 隐藏原生的input[type=color]的丑陋部分 */
+.color-input-wrapper {
+    position: relative;
+    width: 40px;
+    height: 40px;
+}
+
+.color-input-wrapper input[type="color"] {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0; /* 完全透明，但仍然可以点击 */
+    cursor: pointer;
+}
+
+/* 自定义的美丽色块 */
+.color-swatch {
+    width: 100%;
+    height: 100%;
+    border-radius: var(--radius-md);
+    border: 2px solid var(--border-color);
+    pointer-events: none; /* 让点击事件穿透到下面的input */
+    transition: border-color 0.2s ease;
+}
+
+.color-picker-group:hover .color-swatch {
+    border-color: var(--accent-blue);
+}

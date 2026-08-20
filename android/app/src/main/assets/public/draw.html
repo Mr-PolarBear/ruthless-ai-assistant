@@ -1,0 +1,1322 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 智能流程图工具</title>
+
+    <!-- 核心依赖库 (本地化) -->
+    <script src="draw_css/tailwindcss.3.4.17.js"></script>
+    <script src="draw_css/vue.global.js"></script>
+    <script src="draw_css/mermaid.min.js"></script>
+
+    <style>
+        @font-face {
+            font-family: "PingFangSC";
+            src: url("font/PingFangSC_0.ttf") format("truetype");
+            font-weight: normal;
+            font-style: normal;
+        }
+
+        @import url('draw_css/css2.css');
+
+        body, button, input, select, textarea { font-family: 'PingFangSC', 'Inter', system-ui, sans-serif; }
+        .font-mono { font-family: 'JetBrains Mono', 'Courier New', monospace; }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        .mermaid-stage {
+            cursor: grab;
+            transform-origin: 0 0;
+        }
+        .mermaid-stage:active { cursor: grabbing; }
+
+        .fade-enter-active, .fade-leave-active { transition: opacity 0.2s; }
+        .fade-enter-from, .fade-leave-to { opacity: 0; }
+
+        .slide-enter-active, .slide-leave-active { transition: transform 0.3s ease; }
+        .slide-enter-from, .slide-leave-to { transform: translateX(100%); }
+
+        .bg-grid {
+            background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        /* 简单的弹窗动画 */
+        @keyframes scaleIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .animate-scale-in {
+            animation: scaleIn 0.2s ease-out forwards;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 h-screen w-screen overflow-hidden text-gray-800">
+
+<div id="app" class="h-full flex flex-col relative" v-cloak>
+
+    <!-- ================= 顶部导航栏 ================= -->
+    <header class="bg-white border-b border-gray-200 h-14 px-4 flex items-center justify-between shrink-0 z-20 shadow-sm">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-sm">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+            </div>
+            <div class="flex flex-col">
+                <h1 class="text-base font-bold text-gray-800 leading-tight">AI 智能绘图</h1>
+                <span class="text-[10px] text-gray-500">Vue3 + Mermaid + Version Control</span>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <button @click="showHistory = !showHistory" class="p-2 text-gray-500 hover:bg-gray-100 hover:text-blue-600 rounded-lg transition relative" title="历史记录">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <span v-if="history.length > 0" class="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
+            </button>
+            <button @click="downloadSVG" class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium bg-gray-900 text-white hover:bg-gray-800 rounded-lg shadow-sm transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                导出 SVG
+            </button>
+        </div>
+    </header>
+
+    <!-- ================= 主体内容区 ================= -->
+    <main class="flex-1 flex overflow-hidden relative">
+
+        <!-- 左侧面板：控制与代码 -->
+        <div class="w-[400px] flex flex-col border-r border-gray-200 bg-white shrink-0 z-10 shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
+
+            <!-- A. AI 控制区 -->
+            <div class="p-4 border-b border-gray-100 flex flex-col gap-3 bg-gray-50/50">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">角色模板</label>
+                            <button @click="openPromptSettings" class="text-[10px] text-blue-600 hover:underline">管理</button>
+                        </div>
+                        <select v-model="selectedPromptId" class="w-full text-xs border-gray-300 rounded focus:ring-1 focus:ring-blue-500 py-1.5 bg-white">
+                            <option v-for="p in prompts" :key="p.id" :value="p.id">{{ p.name }}</option>
+                        </select>
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">API 源</label>
+                            <button @click="openApiSettings" class="text-[10px] text-blue-600 hover:underline">管理</button>
+                        </div>
+                        <select v-model="selectedApiId" class="w-full text-xs border-gray-300 rounded focus:ring-1 focus:ring-blue-500 py-1.5 bg-white">
+                            <option v-if="apiList.length === 0" value="" disabled>请添加 API</option>
+                            <option v-for="api in apiList" :key="api.id" :value="api.id">{{ api.name }}</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="relative group">
+                    <textarea
+                            v-model="userInput"
+                            @keydown.ctrl.enter="generate(false)"
+                            placeholder="描述你的需求... (例如: 画一个包含网关、鉴权服务和Redis缓存的微服务架构图)"
+                            class="w-full h-32 p-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none shadow-sm transition bg-white"
+                    ></textarea>
+
+                    <div class="mt-2 flex items-center justify-between">
+                        <span class="text-[10px] text-gray-400 bg-gray-100 px-2 py-0.5 rounded">Ctrl + Enter</span>
+                        <button
+                                @click="isGenerating ? stopGeneration() : generate(false)"
+                                :disabled="apiList.length === 0"
+                                class="flex items-center gap-1.5 px-4 py-1.5 rounded-md text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition shadow-sm"
+                                :class="isGenerating ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-blue-600 text-white hover:bg-blue-700'"
+                        >
+                            <span v-if="isGenerating" class="flex items-center gap-1.5">
+                                <span class="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                                停止
+                            </span>
+                            <span v-else>✨ 生成图表</span>
+                        </button>
+                    </div>
+
+                    <div v-if="apiList.length === 0" class="absolute top-2 right-2 text-xs text-red-500 bg-red-50 px-2 py-1 rounded border border-red-100 flex items-center animate-pulse cursor-pointer" @click="openApiSettings">
+                        ! 未配置 API 源
+                    </div>
+                </div>
+            </div>
+
+            <!-- B. 代码编辑器 -->
+            <div class="flex-1 flex flex-col min-h-0">
+                <div class="px-4 py-1.5 border-b border-gray-200 bg-gray-100 flex justify-between items-center shrink-0 h-10">
+                    <div class="flex items-center gap-2">
+                        <span class="text-[10px] font-bold text-gray-500 font-mono tracking-wider">SOURCE</span>
+                        <!-- 示例加载下拉框 (绑定到 currentExample 以便重置) -->
+                        <select v-model="currentExample" @change="loadExample" class="text-[10px] border-none bg-transparent text-blue-600 hover:bg-blue-50 rounded cursor-pointer focus:ring-0 py-0 pl-1 pr-6 outline-none">
+                            <option value="" disabled selected>📂 加载示例...</option>
+                            <option v-for="(val, key) in examples" :key="key" :value="key">{{ key }}</option>
+                        </select>
+                        <!-- 乌鸦：增加当前编辑状态提示 -->
+                        <span v-if="currentHistoryId && isCurrentModified" class="text-[10px] text-amber-600 bg-amber-50 px-1.5 rounded animate-pulse" title="当前修改已自动保存">
+                            ● 已编辑
+                        </span>
+                    </div>
+                    <span class="text-[10px] text-gray-400" :class="{'text-blue-500': isRendering}">{{ isRendering ? '渲染中...' : '实时预览' }}</span>
+                </div>
+                <div class="flex-1 relative bg-white">
+                    <textarea
+                            v-model="mermaidCode"
+                            class="absolute inset-0 w-full h-full p-4 font-mono text-sm leading-relaxed resize-none outline-none text-gray-700"
+                            spellcheck="false"
+                            placeholder="Mermaid 代码将显示在这里..."
+                    ></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右侧面板：预览画布 -->
+        <div class="flex-1 bg-slate-50 relative overflow-hidden flex flex-col items-center justify-center bg-grid"
+             @wheel.prevent="handleWheel"
+             @mousedown="startPan"
+             @mousemove="pan"
+             @mouseup="endPan"
+             @mouseleave="endPan">
+
+            <!-- 乌鸦：思考过程展示区 (悬浮在顶部) -->
+            <div v-if="reasoningData.content" class="absolute top-4 left-1/2 transform -translate-x-1/2 w-full max-w-2xl px-4 z-20 transition-all duration-300">
+                <div class="bg-white rounded-lg shadow-lg border border-blue-100 overflow-hidden flex flex-col max-h-[60vh]">
+                    <div 
+                        @click="reasoningData.collapsed = !reasoningData.collapsed"
+                        class="px-4 py-2 bg-blue-50/50 hover:bg-blue-50 flex items-center justify-between cursor-pointer border-b border-blue-100/50 select-none"
+                    >
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-bold text-blue-700 flex items-center gap-1">
+                                <span v-if="reasoningData.isThinking" class="animate-spin">⏳</span>
+                                <span v-else>💡</span>
+                                深度思考过程
+                            </span>
+                            <span class="text-[10px] text-blue-400 bg-white px-1.5 rounded border border-blue-100">
+                                {{ reasoningData.isThinking ? '思考中...' : '已完成' }}
+                            </span>
+                        </div>
+                        <button class="text-blue-400 hover:text-blue-600 transition-transform duration-200" :class="{'rotate-180': !reasoningData.collapsed}">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                    </div>
+                    
+                    <div v-show="!reasoningData.collapsed" ref="reasoningScrollArea" class="overflow-y-auto p-4 bg-white/95 backdrop-blur-sm">
+                        <div class="prose prose-sm max-w-none text-xs text-gray-600 font-mono leading-relaxed whitespace-pre-wrap break-words border-l-2 border-blue-100 pl-3">
+                            {{ reasoningData.content }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <transition name="fade">
+                <div v-if="isGenerating && !reasoningData.isThinking" class="absolute top-4 left-1/2 transform -translate-x-1/2 bg-white/90 backdrop-blur px-4 py-2 rounded-full shadow-lg z-10 flex items-center gap-2 border border-blue-100">
+                    <div class="flex gap-1">
+                        <div class="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style="animation-delay: 0s"></div>
+                        <div class="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+                        <div class="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+                    </div>
+                    <span class="text-xs font-medium text-blue-700">AI 正在生成代码...</span>
+                </div>
+            </transition>
+
+            <div v-if="renderError" class="absolute top-20 z-10 max-w-lg w-full px-4 select-text cursor-default">
+                <div class="bg-white border-l-4 border-red-500 rounded-r-lg shadow-lg p-4">
+                    <div class="flex justify-between items-start">
+                        <div class="flex items-center gap-2 text-red-700 font-bold mb-1">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                            Mermaid 语法错误
+                        </div>
+                        <!-- 乌鸦：一键修复按钮 -->
+                        <button @click="generate(true)" class="text-xs bg-red-50 hover:bg-red-100 text-red-700 px-2 py-1 rounded border border-red-200 flex items-center gap-1 transition shadow-sm" title="将错误信息发回给 AI 进行修复">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                            携带错误重试
+                        </button>
+                    </div>
+                    <pre class="text-xs text-gray-600 bg-red-50 p-2 rounded overflow-x-auto font-mono mt-2">{{ renderError }}</pre>
+                </div>
+            </div>
+
+            <div ref="zoomContainer" class="mermaid-stage transition-transform duration-75 ease-out" :style="transformStyle">
+                <div ref="mermaidRef" class="min-w-[100px] min-h-[100px] flex items-center justify-center" :class="{'opacity-50': isRendering}">
+                    <!-- SVG 由 Mermaid 注入 -->
+                </div>
+            </div>
+
+            <div class="absolute bottom-6 right-6 flex flex-col gap-2 bg-white rounded-lg shadow-md border border-gray-200 p-1.5 z-10 select-none">
+                <button @click="zoomIn" class="p-1.5 hover:bg-gray-100 rounded text-gray-600" title="放大">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                </button>
+                <button @click="resetZoom" class="p-1.5 hover:bg-gray-100 rounded text-gray-600 font-mono text-xs" title="重置视角">
+                    {{ Math.round(scale * 100) }}%
+                </button>
+                <button @click="zoomOut" class="p-1.5 hover:bg-gray-100 rounded text-gray-600" title="缩小">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path></svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- ================= 侧边栏：历史记录 ================= -->
+        <transition name="slide">
+            <div v-if="showHistory" class="absolute top-0 right-0 h-full w-80 bg-white shadow-2xl z-30 border-l border-gray-200 flex flex-col">
+                <div class="p-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
+                    <h3 class="font-bold text-gray-700">生成历史</h3>
+                    <div class="flex gap-3 text-xs">
+                        <button v-if="history.length" @click="clearHistory" class="text-red-500 hover:text-red-700">清空</button>
+                        <button @click="showHistory = false" class="text-gray-500 hover:text-gray-700">关闭</button>
+                    </div>
+                </div>
+
+                <div class="flex-1 overflow-y-auto p-3 space-y-3">
+                    <div v-if="history.length === 0" class="flex flex-col items-center justify-center h-40 text-gray-400 text-xs">
+                        <svg class="w-8 h-8 mb-2 opacity-20" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/></svg>
+                        暂无记录
+                    </div>
+
+                    <div v-for="item in history" :key="item.id"
+                         @click="restore(item)"
+                         class="group bg-white border hover:border-blue-400 rounded-lg p-3 cursor-pointer shadow-sm hover:shadow-md transition relative"
+                         :class="[
+                             currentHistoryId === item.id ? 'border-blue-500 ring-1 ring-blue-500 bg-blue-50/10' : 'border-gray-200'
+                         ]"
+                    >
+                        <div class="flex justify-between items-start mb-1.5 pr-6">
+                            <div class="flex items-center gap-2">
+                                <span class="text-[10px] text-gray-400 font-mono">{{ formatDate(item.timestamp) }}</span>
+                                <!-- 乌鸦：编辑状态标识 -->
+                                <span v-if="isModified(item)" class="text-[9px] bg-amber-100 text-amber-700 px-1 rounded border border-amber-200 leading-tight">已编辑</span>
+                            </div>
+                            <span class="text-[10px] bg-blue-50 text-blue-600 px-1.5 rounded">{{ getApiName(item.apiId) }}</span>
+                        </div>
+                        <p class="text-xs text-gray-700 line-clamp-2 leading-relaxed">{{ item.prompt }}</p>
+
+                        <!-- 乌鸦：操作按钮区 -->
+                        <div class="mt-2 flex items-center justify-end gap-2" v-if="isModified(item)">
+                            <button @click.stop="revertItem(item)" class="text-[10px] flex items-center gap-1 text-blue-600 hover:bg-blue-50 px-2 py-0.5 rounded border border-blue-200 transition opacity-80 hover:opacity-100">
+                                ↺ 还原原始版本
+                            </button>
+                        </div>
+
+                        <button @click.stop="deleteHistoryItem(item.id)" class="absolute top-2 right-2 p-1 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </transition>
+
+        <!-- ================= 模态框：设置中心 ================= -->
+        <div v-if="showSettings" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4" @click.self="showSettings = false">
+            <div class="bg-white rounded-xl shadow-2xl w-[640px] max-h-[80vh] flex flex-col overflow-hidden animate-scale-in">
+
+                <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                    <h2 class="text-lg font-bold text-gray-800">系统配置</h2>
+                    <button @click="showSettings = false" class="text-gray-400 hover:text-gray-600"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+                </div>
+
+                <div class="flex border-b border-gray-200 px-6">
+                    <button v-for="tab in ['API 源管理', '提示词模板']" :key="tab"
+                            @click="activeTab = tab"
+                            class="px-4 py-3 text-sm font-medium border-b-2 transition-colors"
+                            :class="activeTab === tab ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'"
+                    >{{ tab }}</button>
+                </div>
+
+                <div class="flex-1 overflow-y-auto p-6 bg-white">
+                    <div v-if="activeTab === 'API 源管理'" class="space-y-6">
+                        <!-- 乌鸦：导入导出工具栏 -->
+                        <div class="flex justify-between items-center">
+                            <div class="text-xs text-gray-400">管理您的 API 连接配置</div>
+                            <div class="flex gap-2">
+                                <input type="file" ref="fileInput" class="hidden" accept=".json" @change="handleImport">
+                                <button @click="triggerImport" class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-white border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition shadow-sm">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                                    导入配置
+                                </button>
+                                <button id="export-config-btn" @click="exportApis" class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-white border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition shadow-sm">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                                    导出配置
+                                </button>
+                                <button @click="syncMainApis" class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-blue-50 border border-blue-200 text-blue-700 rounded hover:bg-blue-100 transition shadow-sm">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                                    同步主系统 API
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                            <div class="text-xs font-bold text-gray-500 uppercase mb-3 flex justify-between">
+                                <span>{{ editingApiId ? '编辑 API 配置' : '添加新 API 源' }}</span>
+                                <button v-if="editingApiId" @click="cancelEditApi" class="text-blue-600 hover:underline">取消编辑</button>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3 mb-3">
+                                <div>
+                                    <label class="block text-[10px] font-semibold text-gray-500 mb-1">显示名称 (别名)</label>
+                                    <input v-model="newApi.name" type="text" placeholder="例如: 公司内部 GPT-4" class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-semibold text-gray-500 mb-1">模型 ID (Model)</label>
+                                    <input v-model="newApi.modelId" type="text" placeholder="例如: gpt-4o, deepseek-v2" class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="block text-[10px] font-semibold text-gray-500 mb-1">Base URL (API Endpoint)</label>
+                                <input v-model="newApi.baseUrl" type="text" placeholder="https://api.openai.com/v1" class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 font-mono">
+                            </div>
+                            <div class="mb-3">
+                                <label class="block text-[10px] font-semibold text-gray-500 mb-1">API Key</label>
+                                <div class="relative">
+                                    <input :type="showKey ? 'text' : 'password'" v-model="newApi.apiKey" placeholder="sk-..." class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 font-mono pr-8">
+                                    <button @click="showKey = !showKey" class="absolute right-2 top-2 text-gray-400 hover:text-gray-600">
+                                        <svg v-if="!showKey" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                        <svg v-else class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"></path></svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <button @click="saveApi" :disabled="!newApi.name || !newApi.baseUrl || !newApi.apiKey" class="bg-blue-600 text-white px-3 py-1.5 rounded text-xs font-medium hover:bg-blue-700 disabled:opacity-50">
+                                    {{ editingApiId ? '更新配置' : '添加到列表' }}
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="border rounded-lg overflow-hidden">
+                            <div v-if="apiList.length === 0" class="p-4 text-center text-gray-400 text-sm">
+                                暂无配置，请在上方添加
+                            </div>
+                            <ul v-else class="divide-y divide-gray-100">
+                                <li v-for="api in apiList" :key="api.id" class="px-4 py-3 flex justify-between items-center hover:bg-gray-50 group">
+                                    <div>
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-sm font-bold text-gray-800">{{ api.name }}</span>
+                                            <span class="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded font-mono">{{ api.modelId }}</span>
+                                        </div>
+                                        <div class="text-xs text-gray-400 mt-0.5 truncate max-w-[300px] font-mono">{{ api.baseUrl }}</div>
+                                    </div>
+                                    <div class="flex gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition">
+                                        <button @click="editApi(api)" class="text-xs text-blue-500 hover:underline">编辑</button>
+                                        <button @click="removeApi(api.id)" class="text-xs text-red-500 hover:underline">删除</button>
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div v-if="activeTab === '提示词模板'" class="flex gap-4 h-[400px]">
+                        <div class="w-1/3 border-r pr-3 overflow-y-auto">
+                            <button @click="initNewPrompt" class="w-full text-xs flex items-center justify-center gap-1 border border-dashed border-blue-400 text-blue-600 py-1.5 rounded hover:bg-blue-50 mb-2">
+                                + 新建模板
+                            </button>
+                            <div v-for="p in prompts" :key="p.id"
+                                 @click="editingPrompt = {...p}"
+                                 class="cursor-pointer p-2 rounded text-xs mb-1 transition truncate"
+                                 :class="editingPrompt?.id === p.id ? 'bg-blue-600 text-white' : 'hover:bg-gray-100 text-gray-700'"
+                            >
+                                {{ p.name }} <span v-if="p.isBuiltin" class="opacity-50 ml-1 text-[10px]">(内置)</span>
+                            </div>
+                        </div>
+                        <div class="flex-1 flex flex-col" v-if="editingPrompt">
+                            <div class="flex justify-between items-center mb-2">
+                                <input v-model="editingPrompt.name" :disabled="editingPrompt.isBuiltin" class="text-sm font-bold border-none p-0 focus:ring-0 w-full" placeholder="模板名称">
+                                <button v-if="!editingPrompt.isBuiltin && editingPrompt.id" @click="deletePrompt(editingPrompt.id)" class="text-xs text-red-500 shrink-0">删除</button>
+                            </div>
+                            <textarea v-model="editingPrompt.content" :disabled="editingPrompt.isBuiltin" class="flex-1 w-full border border-gray-300 rounded p-2 text-xs resize-none" placeholder="输入系统 Prompt..."></textarea>
+                            <div v-if="!editingPrompt.isBuiltin" class="mt-2 text-right">
+                                <button @click="savePrompt" class="bg-blue-600 text-white px-3 py-1 rounded text-xs">保存修改</button>
+                            </div>
+                            <div v-else class="mt-2 text-[10px] text-gray-400 text-center bg-gray-50 py-1 rounded">
+                                系统内置模板不可修改，请新建自定义模板
+                            </div>
+                        </div>
+                        <div v-else class="flex-1 flex items-center justify-center text-gray-400 text-sm">
+                            请选择左侧模板进行查看或编辑
+                        </div>
+                    </div>
+                </div>
+
+                <div class="px-6 py-4 border-t border-gray-100 bg-gray-50 flex justify-end gap-3">
+                    <button @click="showSettings = false" class="px-4 py-2 text-gray-600 hover:bg-gray-200 rounded text-sm">关闭</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= 自定义确认弹窗 (替代浏览器 confirm) ================= -->
+        <div v-if="confirmDialog.show" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+            <div class="bg-white rounded-lg shadow-xl w-[420px] animate-scale-in border border-gray-200">
+                <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-lg">
+                    <h3 class="font-bold text-gray-700 text-sm">{{ confirmDialog.title }}</h3>
+                    <button @click="confirmDialog.show = false" class="text-gray-400 hover:text-gray-600">&times;</button>
+                </div>
+                <div class="p-5">
+                    <p class="text-sm text-gray-700 mb-4 leading-relaxed">{{ confirmDialog.message }}</p>
+                    <div v-if="confirmDialog.detail" class="bg-blue-50 border border-blue-100 rounded-md p-3 text-xs text-blue-800 font-mono whitespace-pre-wrap max-h-40 overflow-y-auto">
+                        {{ confirmDialog.detail }}
+                    </div>
+                </div>
+                <div class="p-4 border-t border-gray-100 flex justify-end gap-3 bg-gray-50 rounded-b-lg">
+                    <button @click="confirmDialog.show = false" class="px-4 py-2 text-xs text-gray-600 hover:bg-gray-200 rounded transition">取消</button>
+                    <button @click="handleConfirm" class="px-4 py-2 text-xs bg-blue-600 text-white hover:bg-blue-700 rounded font-medium shadow-sm transition">
+                        {{ confirmDialog.confirmText || '确认' }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+</div>
+
+<script>
+    const { createApp, ref, reactive, onMounted, watch, computed, nextTick } = Vue;
+
+    // --- 默认 Prompt ---
+    const DEFAULT_PROMPTS = [
+        {
+            id: 'sys_general', name: '通用 Mermaid 专家', isBuiltin: true,
+            content: `你是一个 Mermaid.js 图表生成专家。\n用户将描述一个流程或系统，请你将其转换为标准的 Mermaid 代码。\n\n规则：\n1. 仅返回 Markdown 代码块，不要包含任何解释性文字。\n2. 默认使用 graph TD (流程图) 或 sequenceDiagram (时序图)。\n3. 节点标签尽量简短。\n4. 确保语法正确，避免使用特殊字符导致渲染失败。`
+        },
+        {
+            id: 'sys_arch', name: '系统架构师 (C4)', isBuiltin: true,
+            content: `你是一名软件架构师。请将用户描述转换为 Mermaid 架构图。\n\n规则：\n1. 使用 subgraph 区分不同子系统或网络域。\n2. 使用丰富的节点形状：数据库 [()], 队列 >], 终端 (())。\n3. 必须在连线上标注动作（例如 -->|HTTP/JSON|）。\n4. 仅返回代码。`
+        },
+        {
+            id: 'sys_class', name: '类图专家', isBuiltin: true,
+            content: `你是一名 UML 类图设计专家。\n规则：\n1. 使用 classDiagram 开头。\n2. 定义类名、属性（+Type name）和方法（+method()）。\n3. 正确使用关系符号：继承 <|--, 关联 -->, 聚合 o--, 组合 *--。\n4. 仅返回代码。`
+        },
+        {
+            id: 'sys_state', name: '状态机专家', isBuiltin: true,
+            content: `你是一名状态机设计专家。\n规则：\n1. 使用 stateDiagram-v2。\n2. 使用 [*] 表示初始和结束状态。\n3. 清晰定义状态转换条件 (StateA --> StateB: Condition)。\n4. 支持复合状态 (state Composite {})。\n5. 仅返回代码。`
+        },
+        {
+            id: 'sys_er', name: 'ER 建模专家', isBuiltin: true,
+            content: `你是一名数据库建模专家。\n规则：\n1. 使用 erDiagram。\n2. 定义实体 Entity { type name }。\n3. 定义关系：一对一 ||--||, 一对多 ||--|{, 多对多 }|--|{。\n4. 仅返回代码。`
+        },
+        {
+            id: 'sys_mindmap', name: '思维导图专家', isBuiltin: true,
+            content: `你擅长总结归纳并生成思维导图。\n为了获得清晰的水平扩展效果，请严格使用 graph LR (左右结构) 替代 mindmap 语法。\n\n规则：\n1. 必须使用 graph LR 开头。\n2. 根节点使用 id((核心主题))。\n3. 二级节点使用 id[分支]并设置不同颜色。\n4. 连线尽量简单 (-->)。\n5. 仅返回 Markdown 代码块。`
+        }
+    ];
+
+    // --- 示例图表数据 ---
+    const DIAGRAM_EXAMPLES = {
+        "流程图 (Flowchart)": {
+            code: `graph TD\n    A[用户下单] --> B{库存检查}\n    B -- 有货 --> C[扣减库存]\n    B -- 无货 --> D[返回失败]\n    C --> E[创建订单]\n    E --> F[支付流程]`,
+            promptId: 'sys_general',
+            question: "画一个典型的电商用户下单流程图，包含库存检查、扣减库存、创建订单和支付环节，还要处理库存不足的异常分支。"
+        },
+        "分层架构图 (Layered Arch)": {
+            code: `graph TB\n    classDef client fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
+    classDef gateway fill:#fff9c4,stroke:#fbc02d,stroke-width:2px;
+    classDef service fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
+    classDef db fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,stroke-dasharray: 5 5;
+
+    subgraph ClientLayer [客户端层]
+        direction TB
+        App[移动端 App]:::client
+        Web[Web 浏览器]:::client
+    end
+
+    subgraph NetworkLayer [网关接入层]
+        Nginx[Nginx LB]:::gateway
+        Gateway[API Gateway]:::gateway
+    end
+
+    subgraph ServiceLayer [微服务核心层]
+        Auth[认证服务]:::service
+        Order[订单服务]:::service
+        Product[商品服务]:::service
+        Payment[支付服务]:::service
+    end
+
+    subgraph DataLayer [数据持久层]
+        Redis[(Redis 缓存)]:::db
+        MySQL[(MySQL 主库)]:::db
+        MQ(RocketMQ 消息队列):::db
+    end
+
+    App -->|HTTPS| Nginx
+    Web -->|HTTPS| Nginx
+    Nginx --> Gateway
+    Gateway --> Auth
+    Gateway --> Order
+    
+    Order -->|RPC 调用| Product
+    Order -->|RPC 调用| Payment
+    
+    Auth -.-> Redis
+    Product --> MySQL
+    Payment --> MQ`,
+            promptId: 'sys_arch',
+            question: "画一个典型的微服务分层架构图。包含客户端层（App、Web）、网关接入层（Nginx、API Gateway）、微服务核心层（认证、订单、商品、支付）和数据持久层（Redis、MySQL、MQ）。使用不同的颜色样式区分各层，使用 subgraph 分组，并标注层级之间的调用关系。"
+        },
+        "时序图 (Sequence)": {
+            code: `sequenceDiagram\n    autonumber\n    participant U as 用户\n    participant A as API网关\n    participant S as 订单服务\n    participant D as 数据库\n
+    U->>A: 提交订单\n    activate A\n    A->>S: 创建订单请求\n    activate S\n    S->>D: 锁定库存\n    D-->>S: 成功\n    S-->>A: 订单ID\n    deactivate S\n    A-->>U: 返回结果\n    deactivate A`,
+            promptId: 'sys_general',
+            question: "生成一个用户提交订单的时序图，参与者包括用户、API网关、订单服务和数据库。展示从提交请求、创建订单、锁定库存到返回结果的完整调用链路，包含激活条。"
+        },
+        "类图 (Class Diagram)": {
+            code: `classDiagram\n    class User {\n        +String name\n        +login()\n        +logout()\n    }\n    class Order {\n        +int id\n        +Date created\n        +pay()\n    }\n    User \"1\" --> \"*\" Order : places`,
+            promptId: 'sys_class',
+            question: "设计一个简单的用户和订单系统的类图。User类包含name属性和login/logout方法，Order类包含id、created属性和pay方法。用户和订单是一对多关系。"
+        },
+        "状态图 (State Diagram)": {
+            code: `stateDiagram-v2\n    [*] --> 待支付\n    待支付 --> 已支付: 支付成功\n    待支付 --> 取消: 超时/手动取消\n    已支付 --> 发货中\n    发货中 --> 已签收\n    已签收 --> [*]`,
+            promptId: 'sys_state',
+            question: "画一个订单生命周期的状态机图。初始状态进入'待支付'，可以流转到'已支付'或'取消'，已支付后进入'发货中'，最后是'已签收'结束状态。"
+        },
+        "实体关系图 (ER Diagram)": {
+            code: `erDiagram\n    CUSTOMER ||--o{ ORDER : places\n    ORDER ||--|{ LINE-ITEM : contains\n    CUSTOMER {\n        string name\n        string email\n    }\n    ORDER {\n        int id\n        string label\n    }`,
+            promptId: 'sys_er',
+            question: "为一个电商系统生成ER图。包含Customer(客户)、Order(订单)和Line-Item(订单项)。客户对订单是一对多，订单对订单项是一对多。列出Customer的name/email和Order的id/label字段。"
+        },
+        "甘特图 (Gantt)": {
+            code: `gantt\n    title 项目开发计划\n    dateFormat  YYYY-MM-DD\n    section 设计\n    需求分析       :a1, 2023-10-01, 3d\n    UI设计         :after a1, 5d\n    section 开发\n    后端API        :2023-10-10, 10d\n    前端对接       :2023-10-15, 8d`,
+            promptId: 'sys_general',
+            question: "生成一个软件开发项目的甘特图。包含设计阶段（需求分析3天，之后UI设计5天）和开发阶段（后端API 10天，前端对接8天），从2023-10-01开始。"
+        },
+        "思维导图 (Mindmap)": {
+            code: `graph LR
+    root((AI绘图工具))
+    
+    root --> F[核心功能]
+    F --> F1(文本生成)
+    F --> F2(代码编辑)
+    F --> F3(实时预览)
+    F --> F4(SVG导出)
+    
+    root --> T[技术架构]
+    T --> T1(Vue3)
+    T --> T2(Tailwind)
+    T --> T3(Mermaid.js)
+    T --> T4(OpenAI API)
+    
+    style root fill:#42b883,stroke:#35495e,stroke-width:2px,color:#fff
+    style F fill:#e1f5fe,stroke:#01579b
+    style T fill:#fff9c4,stroke:#fbc02d`,
+            promptId: 'sys_mindmap',
+            question: "用思维导图(graph LR形式)总结一下这个AI绘图工具的功能（文本生成、代码编辑、实时预览、SVG导出）和技术栈（Vue3, Tailwind, Mermaid, OpenAI API）。"
+        }
+    };
+
+    createApp({
+        setup() {
+            // --- 状态 ---
+            // 乌鸦：尝试从主系统同步 API
+            // 乌鸦：大哥说不要自动同步，改成手动按钮同步
+            const localApis = JSON.parse(localStorage.getItem('ai_flow_apis')) || [];
+            const apiList = ref(localApis);
+
+            // 乌鸦：手动同步主系统 API
+            const syncMainApis = () => {
+                const mainAppApis = JSON.parse(localStorage.getItem('ai-chat-api-endpoints-v1') || '{}');
+                const rawSyncApis = Object.values(mainAppApis).map(api => ({
+                    id: api.id,
+                    name: `[主] ${api.name}`, // 加个前缀区分
+                    baseUrl: api.url,
+                    apiKey: api.key,
+                    modelId: api.model
+                }));
+
+                let addedCount = 0;
+                rawSyncApis.forEach(syncApi => {
+                    // 查重：ID 一致则跳过
+                    const isIdDuplicate = apiList.value.some(a => a.id === syncApi.id);
+                    // 查重：内容完全一致则跳过
+                    const isContentDuplicate = apiList.value.some(localApi => 
+                        localApi.baseUrl === syncApi.baseUrl && 
+                        localApi.apiKey === syncApi.apiKey && 
+                        localApi.modelId === syncApi.modelId
+                    );
+
+                    if (!isIdDuplicate && !isContentDuplicate) {
+                        apiList.value.push(syncApi);
+                        addedCount++;
+                    }
+                });
+
+                if (addedCount > 0) {
+                    localStorage.setItem('ai_flow_apis', JSON.stringify(apiList.value));
+                    alert(`成功同步 ${addedCount} 个主系统 API 配置`);
+                } else {
+                    alert('未发现新的主系统 API 配置');
+                }
+            };
+
+            const localPrompts = JSON.parse(localStorage.getItem('ai_flow_prompts')) || [];
+            const mergedPrompts = [...DEFAULT_PROMPTS];
+            localPrompts.forEach(p => { if (!p.isBuiltin) mergedPrompts.push(p); });
+            const prompts = ref(mergedPrompts);
+            const history = ref(JSON.parse(localStorage.getItem('ai_flow_history')) || []);
+
+            const userInput = ref('');
+            const initialExampleKey = "流程图 (Flowchart)";
+            const mermaidCode = ref(DIAGRAM_EXAMPLES[initialExampleKey].code);
+            const currentExample = ref(""); // 用于 select v-model
+
+            const selectedPromptId = ref(prompts.value[0].id);
+            const selectedApiId = ref(apiList.value.length > 0 ? apiList.value[0].id : '');
+            
+            // 乌鸦：当前选中的历史记录 ID (用于追踪修改)
+            const currentHistoryId = ref(null);
+
+            // Pan & Zoom
+            const scale = ref(1);
+            const translateX = ref(0);
+            const translateY = ref(0);
+            const isPanning = ref(false);
+            const startX = ref(0);
+            const startY = ref(0);
+
+            // Flags
+            const isGenerating = ref(false);
+            const isRendering = ref(false);
+            const showSettings = ref(false);
+            const showHistory = ref(false);
+            const showKey = ref(false);
+            const activeTab = ref('API 源管理');
+            const renderError = ref('');
+
+            // Edit Refs
+            const mermaidRef = ref(null);
+            const newApi = reactive({ name: '', baseUrl: '', apiKey: '', modelId: '' });
+            const editingApiId = ref(null);
+            const editingPrompt = ref(null);
+            const fileInput = ref(null); // 乌鸦：文件导入引用
+
+            // 乌鸦：思考内容状态
+            const reasoningData = reactive({
+                content: '',
+                isThinking: false,
+                collapsed: false // 默认展开，思考完成后自动收起逻辑由 updateReasoningUI 控制
+            });
+
+            const reasoningScrollArea = ref(null); // 乌鸦：思考内容滚动引用
+            const abortController = ref(null); // 乌鸦：控制请求中止
+
+            // --- Custom Modal State ---
+            const confirmDialog = reactive({
+                show: false,
+                title: '',
+                message: '',
+                detail: '',
+                confirmText: '确认', 
+                onConfirm: null
+            });
+            
+            // 乌鸦：计算属性，判断当前视图是否有未保存的修改(相对于原始版本)
+            const isCurrentModified = computed(() => {
+                if (!currentHistoryId.value) return false;
+                const item = history.value.find(h => h.id === currentHistoryId.value);
+                if (!item) return false;
+                return item.originalCode && item.code !== item.originalCode;
+            });
+            
+            // 乌鸦：更新思考UI逻辑
+            const updateReasoningUI = (content, isThinking) => {
+                reasoningData.content = content;
+                reasoningData.isThinking = isThinking;
+                // 如果思考刚刚结束，自动收起
+                if (!isThinking && content && !reasoningData.collapsed) {
+                    reasoningData.collapsed = true;
+                }
+                // 如果正在思考，确保展开
+                if (isThinking && reasoningData.collapsed) {
+                    reasoningData.collapsed = false;
+                }
+
+                // 乌鸦：自动滚动到底部，大哥要能自己滚动
+                if (content && !reasoningData.collapsed) {
+                    nextTick(() => {
+                        if (reasoningScrollArea.value) {
+                            reasoningScrollArea.value.scrollTop = reasoningScrollArea.value.scrollHeight;
+                        }
+                    });
+                }
+            };
+
+            // 乌鸦：停止生成
+            const stopGeneration = () => {
+                if (abortController.value) {
+                    abortController.value.abort();
+                    abortController.value = null;
+                }
+            };
+
+            // 乌鸦：导出 API 配置
+            const exportApis = () => {
+                const dataStr = JSON.stringify(apiList.value, null, 2);
+                const blob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `ai_flow_apis_${new Date().toISOString().slice(0, 10)}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            };
+
+            // 乌鸦：触发导入
+            const triggerImport = () => {
+                fileInput.value?.click();
+            };
+
+            // 乌鸦：处理文件导入
+            const handleImport = (event) => {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const importedData = JSON.parse(e.target.result);
+                        let newApis = [];
+
+                        // 兼容两种格式：数组 (Draw Native) 或 对象 (Main App)
+                        if (Array.isArray(importedData)) {
+                            newApis = importedData;
+                        } else if (typeof importedData === 'object') {
+                            // 尝试转换主应用格式
+                            newApis = Object.values(importedData).map(api => ({
+                                id: api.id || `import_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                                name: api.name,
+                                baseUrl: api.url || api.baseUrl,
+                                apiKey: api.key || api.apiKey,
+                                modelId: api.model || api.modelId
+                            }));
+                        }
+
+                        let addedCount = 0;
+                        let updatedCount = 0;
+                        let skippedCount = 0;
+
+                        newApis.forEach(api => {
+                            // 乌鸦：Ollama 等本地模型可能没有 apiKey，所以只校验 baseUrl
+                            if (!api.baseUrl) return;
+
+                            // 1. 优先检查 ID：如果 ID 存在，则视为更新操作
+                            const existingByIdIndex = apiList.value.findIndex(a => a.id === api.id);
+                            
+                            if (existingByIdIndex !== -1) {
+                                // 乌鸦：使用 splice 确保 Vue 响应式更新生效
+                                console.log('更新 API:', api.id, api.name);
+                                apiList.value.splice(existingByIdIndex, 1, { ...api });
+                                updatedCount++;
+                            } else {
+                                // 2. ID 不存在，检查内容是否重复 (防止给别人用时重复导入)
+                                const isContentDuplicate = apiList.value.some(existing => 
+                                    existing.baseUrl === api.baseUrl && 
+                                    existing.apiKey === api.apiKey && 
+                                    existing.modelId === api.modelId
+                                );
+
+                                if (isContentDuplicate) {
+                                    console.log('跳过重复内容 API:', api.name);
+                                    skippedCount++;
+                                } else {
+                                    // 3. 全新导入
+                                    // 确保 ID 唯一
+                                    if (apiList.value.some(a => a.id === api.id)) {
+                                        api.id = `import_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                                    }
+                                    console.log('新增 API:', api.id, api.name);
+                                    apiList.value.push(api);
+                                    addedCount++;
+                                }
+                            }
+                        });
+
+                        // 乌鸦：强制刷新引用，确保 UI 更新
+                        apiList.value = [...apiList.value];
+                        
+                        // 保存并更新
+                        localStorage.setItem('ai_flow_apis', JSON.stringify(apiList.value));
+                        
+                        let msg = `导入完成：\n`;
+                        if (addedCount > 0) msg += `- 新增: ${addedCount} 条\n`;
+                        if (updatedCount > 0) msg += `- 更新: ${updatedCount} 条\n`;
+                        if (skippedCount > 0) msg += `- 跳过: ${skippedCount} 条 (配置已存在)`;
+                        
+                        if (addedCount === 0 && updatedCount === 0 && skippedCount === 0) {
+                            msg = '未发现有效的 API 配置';
+                        }
+                        
+                        alert(msg);
+                    } catch (err) {
+                        alert('导入失败：文件格式错误');
+                        console.error(err);
+                    } finally {
+                        // 清空 input 允许重复导入同名文件
+                        event.target.value = '';
+                    }
+                };
+                reader.readAsText(file);
+            };
+
+            // --- Modal Methods ---
+            const openConfirmModal = (title, message, detail, onConfirm, confirmText = '确认') => {
+                confirmDialog.title = title;
+                confirmDialog.message = message;
+                confirmDialog.detail = detail;
+                confirmDialog.onConfirm = onConfirm;
+                confirmDialog.confirmText = confirmText;
+                confirmDialog.show = true;
+            };
+
+            const handleConfirm = () => {
+                if (confirmDialog.onConfirm) confirmDialog.onConfirm();
+                confirmDialog.show = false;
+            };
+
+            // --- Pan & Zoom Logic ---
+            const transformStyle = computed(() => {
+                return { transform: `translate(${translateX.value}px, ${translateY.value}px) scale(${scale.value})` };
+            });
+            const handleWheel = (e) => {
+                if (e.ctrlKey) e.preventDefault();
+                const delta = e.deltaY > 0 ? 0.9 : 1.1;
+                scale.value = Math.min(Math.max(scale.value * delta, 0.1), 5);
+            };
+            const startPan = (e) => { isPanning.value = true; startX.value = e.clientX - translateX.value; startY.value = e.clientY - translateY.value; };
+            const pan = (e) => { if (!isPanning.value) return; translateX.value = e.clientX - startX.value; translateY.value = e.clientY - startY.value; };
+            const endPan = () => { isPanning.value = false; };
+            const zoomIn = () => { scale.value = Math.min(scale.value * 1.2, 5); };
+            const zoomOut = () => { scale.value = Math.max(scale.value * 0.8, 0.1); };
+            const resetZoom = () => { scale.value = 1; translateX.value = 0; translateY.value = 0; };
+
+            // --- API CRUD ---
+            const resetApiForm = () => { newApi.name = ''; newApi.baseUrl = ''; newApi.apiKey = ''; newApi.modelId = ''; editingApiId.value = null; };
+            const saveApi = () => {
+                if (!newApi.name || !newApi.baseUrl || !newApi.apiKey) return;
+                const apiData = { ...newApi };
+                if (editingApiId.value) {
+                    const idx = apiList.value.findIndex(a => a.id === editingApiId.value);
+                    if (idx > -1) apiList.value[idx] = { ...apiData, id: editingApiId.value };
+                } else {
+                    apiList.value.push({ ...apiData, id: `api_${Date.now()}` });
+                }
+                localStorage.setItem('ai_flow_apis', JSON.stringify(apiList.value));
+                if (apiList.value.length === 1) selectedApiId.value = apiList.value[0].id;
+                resetApiForm();
+            };
+            const editApi = (api) => { editingApiId.value = api.id; newApi.name = api.name; newApi.baseUrl = api.baseUrl; newApi.apiKey = api.apiKey; newApi.modelId = api.modelId; };
+            const cancelEditApi = () => resetApiForm();
+            const removeApi = (id) => {
+                // 使用自定义 Confirm 代替 window.confirm
+                openConfirmModal('删除确认', '确定删除此 API 配置吗？', '', () => {
+                    // 乌鸦：改用 splice 确保反应性更新更稳定，并添加调试反馈
+                    const idx = apiList.value.findIndex(a => a.id === id);
+                    if (idx !== -1) {
+                        apiList.value.splice(idx, 1);
+                        localStorage.setItem('ai_flow_apis', JSON.stringify(apiList.value));
+                        
+                        // 如果删除了当前选中的，重置选中项
+                        if (selectedApiId.value === id) {
+                            selectedApiId.value = apiList.value.length > 0 ? apiList.value[0].id : '';
+                        }
+                    } else {
+                        console.warn('试图删除不存在的 API ID:', id);
+                    }
+                }, '确认删除');
+            };
+
+            // --- Core Logic ---
+            const renderDiagram = async () => {
+                if (!mermaidRef.value || !mermaidCode.value.trim()) return;
+                isRendering.value = true;
+                renderError.value = '';
+                try {
+                    const id = `mermaid-${Date.now()}`;
+                    const { svg } = await mermaid.render(id, mermaidCode.value);
+                    mermaidRef.value.innerHTML = svg;
+                } catch (e) {
+                    console.error('Render Fail:', e);
+                    renderError.value = e.message || '语法错误';
+                } finally {
+                    isRendering.value = false;
+                }
+            };
+            
+            // 乌鸦：辅助保存历史记录
+            const saveHistoryToLocal = () => {
+                 localStorage.setItem('ai_flow_history', JSON.stringify(history.value));
+            };
+
+            const generate = async (isRetry = false) => {
+                if (!userInput.value.trim()) return alert('请输入需求描述');
+                if (!selectedApiId.value) return showSettings.value = true;
+                const currentApi = apiList.value.find(a => a.id === selectedApiId.value);
+                if (!currentApi) return alert('无效的 API 配置');
+
+                // 乌鸦：在清空前捕获上下文，用于重试
+                const previousCode = mermaidCode.value;
+                const currentError = renderError.value;
+
+                isGenerating.value = true;
+                mermaidCode.value = ''; // 清空以准备接收流
+                currentHistoryId.value = null; // 清空当前历史指针，因为是新生成的
+                
+                // 乌鸦：初始化中止控制器
+                abortController.value = new AbortController();
+                
+                try {
+                    const sysPrompt = prompts.value.find(p => p.id === selectedPromptId.value)?.content || prompts.value[0].content;
+                    let url = currentApi.baseUrl.replace(/\/+$/, '');
+                    if (!url.endsWith('/chat/completions')) url += '/chat/completions';
+
+                    // 乌鸦：构建消息链
+                    let messages = [{ role: 'system', content: sysPrompt }];
+                    
+                    if (isRetry && previousCode && currentError) {
+                        // 重试模式：带上上下文和错误信息
+                        messages.push({ role: 'user', content: userInput.value });
+                        messages.push({ role: 'assistant', content: previousCode });
+                        messages.push({ 
+                            role: 'user', 
+                            content: `生成的 Mermaid 代码渲染失败，错误信息如下：\n"${currentError}"\n\n请分析错误原因，并修复代码。请仅返回修复后的 Markdown 代码块。` 
+                        });
+                    } else {
+                        // 普通模式
+                        messages.push({ role: 'user', content: userInput.value });
+                    }
+
+                    const res = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${currentApi.apiKey}` },
+                        signal: abortController.value.signal, // 绑定信号
+                        body: JSON.stringify({
+                            model: currentApi.modelId || 'gpt-3.5-turbo',
+                            messages: messages,
+                            temperature: 0.1,
+                            stream: true // 开启流式
+                        })
+                    });
+
+                    if (!res.ok) {
+                        const errData = await res.json().catch(() => ({}));
+                        throw new Error(errData.error?.message || `API Error ${res.status}`);
+                    }
+
+                    const reader = res.body.getReader();
+                    const decoder = new TextDecoder();
+                    let buffer = '';
+                    let fullContent = '';
+                    let reasoningContent = ''; // 乌鸦：思考内容缓存
+                    let isThinking = false; // 乌鸦：思考状态标记
+
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        
+                        buffer += decoder.decode(value, { stream: true });
+                        const lines = buffer.split('\n');
+                        buffer = lines.pop(); 
+
+                        for (const line of lines) {
+                            if (line.startsWith('data: ')) {
+                                const dataStr = line.slice(6).trim();
+                                if (dataStr === '[DONE]') break; // 乌鸦：修复流结束逻辑
+                                try {
+                                    const json = JSON.parse(dataStr);
+                                    const delta = json.choices?.[0]?.delta || {};
+                                    
+                                    // 乌鸦：处理 reasoning_content (DeepSeek R1 等模型)
+                                    if (delta.reasoning_content) {
+                                        reasoningContent += delta.reasoning_content;
+                                        // 实时更新思考UI
+                                        updateReasoningUI(reasoningContent, true);
+                                    }
+                                    
+                                    // 乌鸦：处理常规 content 中的 <think> 标签
+                                    const content = delta.content || '';
+                                    if (content) {
+                                        let cleanContent = content;
+                                        
+                                        // 检查 <think> 开始
+                                        if (content.includes('<think>')) {
+                                            isThinking = true;
+                                            cleanContent = content.replace('<think>', '');
+                                            // 首次进入思考，清空之前的（如果有）或者初始化
+                                            updateReasoningUI(reasoningContent, true);
+                                        }
+                                        
+                                        // 检查 </think> 结束
+                                        if (content.includes('</think>')) {
+                                            isThinking = false;
+                                            const parts = content.split('</think>');
+                                            reasoningContent += parts[0]; // 补全思考内容
+                                            cleanContent = parts[1] || ''; // 剩余部分是正文
+                                            updateReasoningUI(reasoningContent, false); // 思考结束，收起
+                                        } else if (isThinking) {
+                                            // 正在思考中，所有内容都归为思考
+                                            reasoningContent += content;
+                                            cleanContent = ''; // 不作为正文输出
+                                            updateReasoningUI(reasoningContent, true);
+                                        }
+                                        
+                                        // 累加正文
+                                        if (cleanContent) {
+                                            fullContent += cleanContent;
+                                            // 实时清理 markdown 标记
+                                            mermaidCode.value = fullContent
+                                                .replace(/^```(mermaid)?/m, '') 
+                                                .replace(/```$/m, '');
+                                        }
+                                    }
+                                } catch (e) {
+                                    // 忽略非JSON行
+                                }
+                            }
+                        }
+                    }
+                    
+                    // 最终清理
+                    updateReasoningUI(reasoningContent, false); // 确保最后状态正确
+                    const finalCode = fullContent.replace(/^```(mermaid)?/m, '').replace(/```$/m, '').trim();
+                    mermaidCode.value = finalCode;
+
+                    const newId = Date.now();
+                    // 乌鸦：这里同时保存 originalCode 和 code (当前版本)
+                    history.value.unshift({
+                        id: newId, 
+                        timestamp: Date.now(), 
+                        prompt: userInput.value, 
+                        code: finalCode,        // 当前版本 (可编辑)
+                        originalCode: finalCode, // 原始版本 (不可变，用于恢复)
+                        apiId: selectedApiId.value 
+                    });
+                    
+                    if (history.value.length > 50) history.value.pop();
+                    saveHistoryToLocal();
+                    
+                    // 设置为当前正在编辑的历史记录
+                    currentHistoryId.value = newId;
+                    
+                } catch (e) {
+                    if (e.name === 'AbortError') {
+                        console.log('用户停止生成');
+                    } else {
+                        alert(`生成失败: ${e.message}`);
+                    }
+                } finally {
+                    isGenerating.value = false;
+                    reasoningData.isThinking = false; // Ensure thinking UI stops
+                    abortController.value = null;
+                }
+            };
+
+            // --- Prompt CRUD ---
+            const initNewPrompt = () => { editingPrompt.value = { id: `p_${Date.now()}`, name: '新建模板', content: '', isBuiltin: false }; };
+            const savePrompt = () => {
+                if (!editingPrompt.value) return;
+                const idx = prompts.value.findIndex(p => p.id === editingPrompt.value.id);
+                if (idx > -1) prompts.value[idx] = {...editingPrompt.value};
+                else prompts.value.push({...editingPrompt.value});
+                const toSave = prompts.value.filter(p => !p.isBuiltin);
+                localStorage.setItem('ai_flow_prompts', JSON.stringify(toSave));
+                editingPrompt.value = null;
+            };
+            const deletePrompt = (id) => {
+                openConfirmModal('删除模板', '确认删除此提示词模板？', '', () => {
+                    prompts.value = prompts.value.filter(p => p.id !== id);
+                    const toSave = prompts.value.filter(p => !p.isBuiltin);
+                    localStorage.setItem('ai_flow_prompts', JSON.stringify(toSave));
+                    editingPrompt.value = null;
+                }, '确认删除');
+            };
+
+            // --- Misc & Example Loading ---
+            const loadExample = () => {
+                const type = currentExample.value;
+                if (!type) return;
+
+                const example = DIAGRAM_EXAMPLES[type];
+                if (example) {
+                    mermaidCode.value = example.code;
+                    // 加载示例时不应关联任何历史记录
+                    currentHistoryId.value = null;
+
+                    // 1. Switch Role
+                    if (example.promptId) {
+                        const hasPrompt = prompts.value.some(p => p.id === example.promptId);
+                        if (hasPrompt) selectedPromptId.value = example.promptId;
+                    }
+
+                    // 2. Custom Confirm Modal for Prompt
+                    if (example.question) {
+                        openConfirmModal(
+                            '加载示例提问',
+                            `已加载 "${type}" 示例代码。\n\n是否将该示例的提问模板填充到左侧输入框？`,
+                            example.question,
+                            () => {
+                                userInput.value = example.question;
+                            },
+                            '确认填充'
+                        );
+                    }
+                }
+
+                // Reset select so change event fires even if same item clicked (not perfect but better UI)
+                currentExample.value = "";
+            };
+
+            /**
+             * 恢复历史记录
+             * @param {Object} item - 历史记录项
+             */
+            const restore = (item) => {
+                userInput.value = item.prompt;
+                // 优先使用修改后的 code，如果没有则使用原始的
+                // 兼容旧数据：如果 item.code 存在则用，否则...
+                mermaidCode.value = item.code;
+                
+                // 标记当前正在编辑此条历史
+                currentHistoryId.value = item.id;
+                
+                if (apiList.value.some(a => a.id === item.apiId)) selectedApiId.value = item.apiId;
+                // 乌鸦：大哥要求点击历史记录不关闭侧边栏，方便连续操作
+                // showHistory.value = false;
+            };
+
+            const clearHistory = () => {
+                openConfirmModal('清空历史', '确定要清空所有历史记录吗？', '', () => {
+                    history.value = [];
+                    currentHistoryId.value = null; // 清空当前关联
+                    localStorage.removeItem('ai_flow_history');
+                }, '确认清空');
+            };
+
+            const deleteHistoryItem = (id) => {
+                openConfirmModal('删除记录', '确定要删除这条生成记录吗？', '', () => {
+                    history.value = history.value.filter(h => h.id !== id);
+                    if (currentHistoryId.value === id) currentHistoryId.value = null;
+                    saveHistoryToLocal();
+                }, '确认删除');
+            };
+            
+            // 乌鸦：判断是否已修改
+            const isModified = (item) => {
+                // 如果没有 originalCode (旧数据)，视为未修改
+                if (!item.originalCode) return false;
+                return item.code !== item.originalCode;
+            };
+            
+            // 乌鸦：还原到原始版本
+            const revertItem = (item) => {
+                if (!item.originalCode) return;
+                
+                openConfirmModal(
+                    '还原原始版本', 
+                    '确定要丢弃当前的人工修改，恢复到 AI 最初生成的版本吗？',
+                    '此操作不可撤销。',
+                    () => {
+                        item.code = item.originalCode;
+                        saveHistoryToLocal();
+                        // 如果当前正在显示的正是这条记录，也要更新编辑器视图
+                        if (currentHistoryId.value === item.id) {
+                            mermaidCode.value = item.code;
+                        }
+                    },
+                    '确认还原'
+                );
+            };
+
+            const downloadSVG = () => {
+                const svg = mermaidRef.value?.querySelector('svg');
+                if (!svg) return;
+                const data = new XMLSerializer().serializeToString(svg);
+                const blob = new Blob([data], {type: 'image/svg+xml;charset=utf-8'});
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `diagram-${new Date().toISOString().slice(0,10)}.svg`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            };
+
+            const getApiName = (id) => apiList.value.find(a => a.id === id)?.name || '未知源';
+            const formatDate = (ts) => new Date(ts).toLocaleString('zh-CN', {month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit'});
+
+            let timer;
+            watch(mermaidCode, (newVal) => { 
+                clearTimeout(timer); 
+                timer = setTimeout(() => {
+                    renderDiagram();
+                    
+                    // 乌鸦：自动保存修改逻辑
+                    if (currentHistoryId.value && !isGenerating.value) { // 生成过程中不保存，因为还没生成完
+                        const item = history.value.find(h => h.id === currentHistoryId.value);
+                        if (item) {
+                            // 兼容旧数据：如果第一次修改旧数据，把当前的 code 视为 originalCode (作为基准)
+                            // 或者是：如果旧数据没有 originalCode，我们应该假设之前的 code 就是 original，现在开始修改
+                            if (item.originalCode === undefined) {
+                                item.originalCode = item.code; // 补全字段
+                            }
+                            
+                            // 只有当内容真的变了才保存
+                            if (item.code !== newVal) {
+                                item.code = newVal;
+                                saveHistoryToLocal();
+                            }
+                        }
+                    }
+                }, 800); 
+            });
+
+            onMounted(() => {
+                mermaid.initialize({
+                    startOnLoad: false,
+                    theme: 'base',
+                    securityLevel: 'loose',
+                    suppressErrorRendering: true,
+                    themeVariables: { primaryColor: '#eff6ff', primaryBorderColor: '#3b82f6', lineColor: '#64748b' }
+                });
+                renderDiagram();
+                if (apiList.value.length === 0) setTimeout(() => showSettings.value = true, 600);
+
+                // 乌鸦：添加全局键盘监听，支持 Enter 确认和 Esc 取消
+                window.addEventListener('keydown', (e) => {
+                    if (confirmDialog.show) {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleConfirm();
+                        } else if (e.key === 'Escape') {
+                            confirmDialog.show = false;
+                        }
+                    }
+                });
+            });
+
+            return {
+                apiList, prompts, history, examples: DIAGRAM_EXAMPLES,
+                userInput, mermaidCode, selectedPromptId, selectedApiId, currentExample,
+                isGenerating, isRendering, showSettings, showHistory, showKey, activeTab, renderError,
+                newApi, editingApiId, editingPrompt, mermaidRef, confirmDialog,
+                scale, translateX, translateY, transformStyle,
+                handleWheel, startPan, pan, endPan, zoomIn, zoomOut, resetZoom,
+                saveApi, editApi, cancelEditApi, removeApi,
+                generate, renderDiagram, initNewPrompt, savePrompt, deletePrompt, loadExample,
+                restore, clearHistory, deleteHistoryItem, downloadSVG,
+                getApiName, formatDate, openConfirmModal, handleConfirm,
+                openPromptSettings: () => { activeTab.value = '提示词模板'; showSettings.value = true; },
+                openApiSettings: () => { activeTab.value = 'API 源管理'; showSettings.value = true; },
+                
+                // New additions
+                syncMainApis, // 乌鸦：手动同步主系统 API
+                currentHistoryId,
+                isCurrentModified,
+                isModified,
+                revertItem,
+                reasoningData, // 乌鸦：暴露思考数据
+                reasoningScrollArea, // 乌鸦：暴露滚动引用
+                
+                // API Import/Export
+                fileInput, exportApis, triggerImport, handleImport,
+                stopGeneration // 乌鸦：停止生成
+            };
+        }
+    }).mount('#app');
+</script>
+</body>
+</html>

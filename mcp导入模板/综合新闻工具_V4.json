@@ -1,0 +1,35 @@
+{
+  "mcpTools": {
+    "general_news_v4": {
+      "id": "general_news_v4",
+      "name": "综合新闻(V4)",
+      "description": "获取最新的综合新闻资讯，修复了布局错误和图片显示问题。",
+      "category": "information",
+      "riskLevel": "read",
+      "enabled": true,
+      "sort": 51,
+      "parameters": {
+        "num": {
+          "type": "number",
+          "description": "返回新闻数量，1-50之间，默认10",
+          "required": false,
+          "default": 10
+        }
+      },
+      "endpoint": {
+        "url": "https://apis.tianapi.com/generalnews/index?key=YOUR_API_KEY",
+        "method": "GET",
+        "headers": {
+          "Content-Type": "application/json"
+        }
+      },
+      "customTemplate": {
+        "enabled": true,
+        "htmlTemplate": "<div class=\"news-container\">\n  <h2>📰 综合新闻资讯(V4)</h2>\n  \n  {{#if (eq code 200)}}\n    {{#if items}}\n    <div class=\"news-list\">\n      {{#each items}}\n      <div class=\"news-item\">\n        <div class=\"news-header\">\n          <h3 class=\"news-title\"><a href=\"{{url}}\" target=\"_blank\">{{title}}</a></h3>\n          <div class=\"news-meta\">\n            <span class=\"news-source\">{{source}}</span>\n            <span class=\"news-time\">{{ctime}}</span>\n          </div>\n        </div>\n        <div class=\"news-content\">\n          <p class=\"news-description\">{{description}}</p>\n          {{#if picUrl}}\n          <div class=\"news-image-wrapper\">\n            <button class=\"open-image-btn\" onclick=\"window.open('{{picUrl}}', '_blank')\">🖼️ 在新窗口打开图片</button>\n          </div>\n          {{/if}}\n        </div>\n      </div>\n      {{/each}}\n    </div>\n    {{else}}\n    <div class=\"no-results\">\n      <p>🔍 未找到相关新闻信息</p>\n    </div>\n    {{/if}}\n  {{else}}\n    <div class=\"error-message\">\n      <h3>❌ 获取新闻失败</h3>\n      <p>错误代码：{{code}}</p>\n      <p>错误信息：{{msg}}</p>\n    </div>\n  {{/if}}\n  \n  <div class=\"news-footer\">\n    <span class=\"api-source\">✨ 天行数据 API</span>\n    <span class=\"update-time\">{{new Date().toLocaleString()}}</span>\n  </div>\n</div>\n\n<style>\n.news-container {\n  background: var(--bg-lighter);\n  border-radius: 12px;\n  padding: 24px;\n  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);\n  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;\n  margin: 16px 0;\n}\n\n.news-list {\n  display: flex;\n  flex-direction: column;\n  gap: 24px;\n}\n\n.news-item {\n  padding: 16px;\n  border-radius: 8px;\n  background: var(--bg-medium);\n  border: 1px solid var(--border-color);\n}\n\n.news-content {\n  display: flex;\n  flex-wrap: wrap;\n  gap: 16px;\n  align-items: flex-start;\n}\n\n.news-description {\n  flex: 1 1 300px;\n  margin: 0;\n  color: var(--text-secondary);\n  line-height: 1.6;\n}\n\n.news-image-wrapper {\n  flex: 0 0 200px;\n  max-width: 200px;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n}\n\n.open-image-btn {\n  background: var(--primary-color);\n  color: white;\n  border: none;\n  padding: 8px 16px;\n  border-radius: 6px;\n  cursor: pointer;\n  font-size: 14px;\n  transition: background 0.3s ease;\n  white-space: nowrap;\n}\n\n.open-image-btn:hover {\n  background: var(--primary-color-hover);\n}\n\n.no-results {\n  text-align: center;\n  padding: 40px 20px;\n  color: var(--text-secondary);\n}\n\n.error-message {\n  background: #fee;\n  border: 1px solid #fcc;\n  border-radius: 8px;\n  padding: 20px;\n  color: #c33;\n}\n\n.error-message h3 {\n  margin-top: 0;\n  color: #a22;\n}\n\n.news-footer {\n  margin-top: 24px;\n  padding-top: 16px;\n  border-top: 1px solid var(--border-color);\n  display: flex;\n  justify-content: space-between;\n  font-size: 0.8em;\n  color: var(--text-secondary);\n}\n\n@media (max-width: 768px) {\n  .news-content {\n    flex-direction: column;\n  }\n  \n  .news-image-wrapper {\n    max-width: 100%;\n    flex: 1 1 auto;\n  }\n}\n</style>"
+      }
+    }
+  },
+  "mcpToolStates": {},
+  "exportTime": "2025-09-09T18:30:00.000Z",
+  "version": "1.0"
+}

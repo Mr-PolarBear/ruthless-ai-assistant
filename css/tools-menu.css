@@ -1,0 +1,79 @@
+/* --- Tools Menu Styles --- */
+
+/* 工具箱按钮（基础样式继承自 .sidebar-secondary-btn，此处补充特定状态） */
+#tool-box-btn {
+    position: relative; /* 为下拉菜单绝对定位提供参照 */
+}
+
+#tool-box-btn.active {
+    background-color: var(--bg-light);
+    color: var(--accent-blue);
+    border-color: var(--accent-blue);
+}
+
+/* 下拉菜单容器 */
+.tools-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0; /* 向左展开，避免溢出侧边栏右边界 */
+    left: auto;
+    background-color: var(--bg-medium);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    z-index: 1000;
+    min-width: 180px;
+    opacity: 0;
+    transform: translateY(-8px);
+    pointer-events: none;
+    transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    padding: 6px;
+}
+
+/* 显示状态 */
+.tools-dropdown.visible {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+/* 菜单项 */
+.tool-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    color: var(--text-primary);
+    text-decoration: none;
+    border-radius: var(--radius-sm);
+    transition: background-color 0.2s ease, color 0.2s ease;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.tool-item:hover {
+    background-color: var(--bg-light);
+    color: var(--accent-blue);
+}
+
+.tool-item svg {
+    width: 18px;
+    height: 18px;
+    opacity: 0.85;
+}
+
+/* 菜单顶部小箭头指示器 */
+.tools-dropdown::before {
+    content: '';
+    position: absolute;
+    top: -6px;
+    right: 14px;
+    width: 10px;
+    height: 10px;
+    background-color: var(--bg-medium);
+    border-top: 1px solid var(--border-color);
+    border-left: 1px solid var(--border-color);
+    transform: rotate(45deg);
+}

@@ -1,0 +1,247 @@
+/* --- Theme Variables --- */
+:root {
+    --bg-deep: #202123;
+    --bg-medium: #343541;
+    --bg-light: #444654;
+    --bg-user: #3c5d9e;
+    --text-primary: #ffffff;
+    --text-secondary: #b0b0b5;
+    --accent-blue: #4a90e2;
+    --accent-blue-hover: #39597f;
+    --accent-red: #d9534f;
+    --border-color: #555666;
+    /* 乌鸦：加深一点代码块背景，让它从深色背景中浮出来 */
+    --code-bg: #2b2d31;
+    --code-text-color: #abb2bf; /* 乌鸦：深色背景配浅色文字 */
+    --primary-color: #4a90e2;
+    --primary-rgb: 74, 144, 226; /* 乌鸦：新增 RGB 分量，用于 rgba() 动画 */
+    --primary-hover: #5aa1f2;
+    --danger-color: #d9534f;
+    --danger-hover: #c9302c;
+
+    /* Shadows & Radii */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.15);
+    --radius-sm: 0.25rem;
+    --radius-md: 0.5rem;
+    --radius-lg: 0.75rem;
+    --radius-full: 9999px;
+    --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+    --font-size-base: 16px;
+
+    /* Custom User Bubble Colors */
+    --user-bubble-gradient-start: #2A5A9E;
+    --user-bubble-gradient-end: #1C3D6B;
+    --user-bubble-shadow-color: rgba(0, 0, 0, 0.3);
+
+    /* Custom Input Area Color */
+    --input-area-bg: #282f3c;
+    --scrollbar-thumb: rgba(255, 255, 255, 0.2);
+}
+
+body[data-theme="light"] {
+    --bg-deep: #f9fafb;
+    --bg-medium: #ffffff;
+    --bg-light: #f3f4f6;
+    --bg-user: #4a90e2;
+    --text-primary: #111827;
+    --text-secondary: #6b7280;
+    --accent-blue: #3b82f6;
+    --accent-blue-hover: #9db5e8;
+    --accent-red: #ef4444;
+    --border-color: #e5e7eb;
+    /* 乌鸦：加深浅色模式下的代码块背景，增加辨识度 */
+    --code-bg: #e7ecf2;
+    --code-text-color: #383a42; /* 乌鸦：浅色背景配深色文字 */
+    --primary-color: #3b82f6;
+    --primary-rgb: 59, 130, 246;
+    --primary-hover: #2563eb;
+    --danger-color: #ef4444;
+    --danger-hover: #dc2626;
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.07), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+
+    /* Custom User Bubble Colors - Updated per user request */
+    --user-bubble-gradient-start: #92aecb;
+    --user-bubble-gradient-end: #1a5493;
+    --user-bubble-shadow-color: rgba(26, 84, 147, 0.25); /* Shadow adjusted to match gradient */
+
+    /* Custom Input Area Color for Light theme to keep it light */
+    --input-area-bg: var(--bg-deep);
+    --scrollbar-thumb: #aaa7a7;
+}
+
+body[data-theme="green"] {
+    --bg-deep: #1b2e1b;
+    --bg-medium: #234d20;
+    --bg-light: #3c763d;
+    --bg-user: #388e3c;
+    --text-primary: #e8f5e9;
+    --text-secondary: #a5d6a7;
+    --accent-blue: #43a047;
+    --accent-blue-hover: #66bb6a;
+    --border-color: #388e3c;
+    --code-bg: #2b2d31; /* 乌鸦：统一使用深色背景 */
+    --code-text-color: #abb2bf;
+    --primary-color: #43a047;
+    --primary-rgb: 67, 160, 71;
+    --primary-hover: #66bb6a;
+    --shadow-sm: 0 1px 2px 0 rgba(67, 160, 71, 0.10);
+    --shadow-md: 0 4px 6px -1px rgba(67, 160, 71, 0.15), 0 2px 4px -1px rgba(67, 160, 71, 0.10);
+    --shadow-lg: 0 10px 15px -3px rgba(67, 160, 71, 0.20), 0 4px 6px -2px rgba(67, 160, 71, 0.15);
+
+    /* Custom User Bubble Colors */
+    --user-bubble-gradient-start: #66BB6A;
+    --user-bubble-gradient-end: #388E3C;
+    --user-bubble-shadow-color: rgba(67, 160, 71, 0.2);
+}
+
+body[data-theme="gold"] {
+    --bg-deep: #3a2c13;
+    --bg-medium: #5c4326;
+    --bg-light: #cfa02a;
+    --bg-user: #c5b140;
+    --text-primary: #fffbe6;
+    --text-secondary: #e6d8ad;
+    --accent-blue: #c5b140;
+    --accent-blue-hover: #e6d8ad;
+    --border-color: #c5b140;
+    --code-bg: #2b2d31; /* 乌鸦：统一使用深色背景 */
+    --code-text-color: #abb2bf;
+    --primary-color: #c5b140;
+    --primary-rgb: 197, 177, 64;
+    --primary-hover: #e6d8ad;
+    --shadow-sm: 0 1px 2px 0 rgba(197, 177, 64, 0.10);
+    --shadow-md: 0 4px 6px -1px rgba(197, 177, 64, 0.15), 0 2px 4px -1px rgba(197, 177, 64, 0.10);
+    --shadow-lg: 0 10px 15px -3px rgba(197, 177, 64, 0.20), 0 4px 6px -2px rgba(197, 177, 64, 0.15);
+
+    /* Custom User Bubble Colors */
+    --user-bubble-gradient-start: #e6d8ad;
+    --user-bubble-gradient-end: #c5b140;
+    --user-bubble-shadow-color: rgba(197, 177, 64, 0.2);
+}
+
+body[data-theme="pink"] {
+    --bg-deep: #3a2236;
+    --bg-medium: #5c2a4d;
+    --bg-light: #de1981;
+    --bg-user: #e75480;
+    --text-primary: #fff0f6;
+    --text-secondary: #eec1d9;
+    --accent-blue: #e75480;
+    --accent-blue-hover: #ff8fb2;
+    --border-color: #e75480;
+    --code-bg: #2b2d31; /* 乌鸦：统一使用深色背景 */
+    --code-text-color: #abb2bf;
+    --primary-color: #e75480;
+    --primary-rgb: 231, 84, 128;
+    --primary-hover: #ff8fb2;
+    --shadow-sm: 0 1px 2px 0 rgba(231, 84, 128, 0.10);
+    --shadow-md: 0 4px 6px -1px rgba(231, 84, 128, 0.15), 0 2px 4px -1px rgba(231, 84, 128, 0.10);
+    --shadow-lg: 0 10px 15px -3px rgba(231, 84, 128, 0.20), 0 4px 6px -2px rgba(231, 84, 128, 0.15);
+
+    /* Custom User Bubble Colors */
+    --user-bubble-gradient-start: #ff8fb2;
+    --user-bubble-gradient-end: #e75480;
+    --user-bubble-shadow-color: rgba(231, 84, 128, 0.2);
+}
+
+body[data-theme="blue"] {
+    --bg-deep: #1a2236;
+    --bg-medium: #223a5c;
+    --bg-light: #3672af;
+    --bg-user: #4a90e2;
+    --text-primary: #eaf6ff;
+    --text-secondary: #a7c7e7;
+    --accent-blue: #4a90e2;
+    --accent-blue-hover: #5aa1f2;
+    --border-color: #4a90e2;
+    --code-bg: #2b2d31; /* 乌鸦：统一使用深色背景 */
+    --code-text-color: #abb2bf;
+    --shadow-sm: 0 1px 2px 0 rgba(74, 144, 226, 0.10);
+    --shadow-md: 0 4px 6px -1px rgba(74, 144, 226, 0.15), 0 2px 4px -1px rgba(74, 144, 226, 0.10);
+    --shadow-lg: 0 10px 15px -3px rgba(74, 144, 226, 0.20), 0 4px 6px -2px rgba(74, 144, 226, 0.15);
+
+    /* Custom User Bubble Colors */
+    --user-bubble-gradient-start: #5aa1f2;
+    --user-bubble-gradient-end: #4a90e2;
+    --user-bubble-shadow-color: rgba(74, 144, 226, 0.2);
+}
+
+body[data-theme="purple"] {
+    --bg-deep: #2d2236;
+    --bg-medium: #4b2c5c;
+    --bg-light: #6c37cc;
+    --bg-user: #8e54e9;
+    --text-primary: #f6f0ff;
+    --text-secondary: #d1c1ee;
+    --accent-blue: #8e54e9;
+    --accent-blue-hover: #b185f5;
+    --border-color: #8e54e9;
+    --code-bg: #2b2d31; /* 乌鸦：统一使用深色背景 */
+    --code-text-color: #abb2bf;
+    --primary-color: #8e54e9;
+    --primary-rgb: 142, 84, 233;
+    --primary-hover: #b185f5;
+    --shadow-sm: 0 1px 2px 0 rgba(142, 84, 233, 0.10);
+    --shadow-md: 0 4px 6px -1px rgba(142, 84, 233, 0.15), 0 2px 4px -1px rgba(142, 84, 233, 0.10);
+    --shadow-lg: 0 10px 15px -3px rgba(142, 84, 233, 0.20), 0 4px 6px -2px rgba(142, 84, 233, 0.15);
+
+    /* Custom User Bubble Colors */
+    --user-bubble-gradient-start: #b185f5;
+    --user-bubble-gradient-end: #8e54e9;
+    --user-bubble-shadow-color: rgba(142, 84, 233, 0.2);
+}
+
+body[data-theme="orange"] {
+    --bg-deep: #362b1a;
+    --bg-medium: #5c432a;
+    --bg-light: #cb841d;
+    --bg-user: #ff9800;
+    --text-primary: #fff7e6;
+    --text-secondary: #ffe0b2;
+    --accent-blue: #ff9800;
+    --accent-blue-hover: #ffc947;
+    --border-color: #ff9800;
+    --code-bg: #2b2d31; /* 乌鸦：统一使用深色背景 */
+    --code-text-color: #abb2bf;
+    --primary-color: #ff9800;
+    --primary-rgb: 255, 152, 0;
+    --primary-hover: #ffc947;
+    --shadow-sm: 0 1px 2px 0 rgba(255, 152, 0, 0.10);
+    --shadow-md: 0 4px 6px -1px rgba(255, 152, 0, 0.15), 0 2px 4px -1px rgba(255, 152, 0, 0.10);
+    --shadow-lg: 0 10px 15px -3px rgba(255, 152, 0, 0.20), 0 4px 6px -2px rgba(255, 152, 0, 0.15);
+
+    /* Custom User Bubble Colors */
+    --user-bubble-gradient-start: #ffc947;
+    --user-bubble-gradient-end: #ff9800;
+    --user-bubble-shadow-color: rgba(255, 152, 0, 0.2);
+}
+
+body[data-theme="gray"] {
+    --bg-deep: #23272f;
+    --bg-medium: #343942;
+    --bg-light: #878c95;
+    --bg-user: #6c757d;
+    --text-primary: #f8f9fa;
+    --text-secondary: #b0b5bd;
+    --accent-blue: #6c757d;
+    --accent-blue-hover: #adb5bd;
+    --border-color: #6c757d;
+    --code-bg: #2b2d31; /* 乌鸦：统一使用深色背景 */
+    --code-text-color: #abb2bf;
+    --primary-color: #6c757d;
+    --primary-rgb: 108, 117, 125;
+    --primary-hover: #adb5bd;
+    --shadow-sm: 0 1px 2px 0 rgba(108, 117, 125, 0.10);
+    --shadow-md: 0 4px 6px -1px rgba(108, 117, 125, 0.15), 0 2px 4px -1px rgba(108, 117, 125, 0.10);
+    --shadow-lg: 0 10px 15px -3px rgba(108, 117, 125, 0.20), 0 4px 6px -2px rgba(108, 117, 125, 0.15);
+
+    /* Custom User Bubble Colors */
+    --user-bubble-gradient-start: #adb5bd;
+    --user-bubble-gradient-end: #6c757d;
+    --user-bubble-shadow-color: rgba(108, 117, 125, 0.2);
+}

@@ -1,0 +1,90 @@
+/* --- Tools Menu Styles --- */
+
+/* 工具箱按钮（复用 sidebar-actions button 的基础样式，但加点料） */
+#tool-box-btn {
+    color: var(--text-primary); /* 乌鸦：改为主要文字颜色，与旁边按钮保持一致 */
+    padding: 0.4rem;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    position: relative; /* 为下拉菜单定位 */
+}
+
+#tool-box-btn:hover {
+    color: var(--text-primary);
+    background-color: var(--bg-light);
+}
+
+#tool-box-btn.active {
+    background-color: var(--bg-light);
+    color: var(--accent-blue);
+}
+
+/* 下拉菜单容器 */
+.tools-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0; /* 默认左对齐，可能需要根据父容器调整 */
+    margin-top: 8px;
+    background-color: var(--bg-medium);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    z-index: 1000;
+    min-width: 180px;
+    opacity: 0;
+    transform: translateY(-10px);
+    pointer-events: none;
+    transition: opacity 0.2s, transform 0.2s;
+    display: flex; /* 改为 flex 以便控制显隐动画 */
+    flex-direction: column;
+    padding: 4px;
+}
+
+/* 显示状态 */
+.tools-dropdown.visible {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+/* 菜单项 */
+.tool-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    color: var(--text-primary);
+    text-decoration: none;
+    border-radius: var(--radius-sm);
+    transition: background-color 0.2s;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.tool-item:hover {
+    background-color: var(--bg-light);
+    color: var(--accent-blue);
+}
+
+.tool-item svg {
+    width: 18px;
+    height: 18px;
+    opacity: 0.8;
+}
+
+/* 菜单箭头（可选） */
+.tools-dropdown::before {
+    content: '';
+    position: absolute;
+    top: -6px;
+    left: 14px; /* 根据按钮中心调整 */
+    width: 10px;
+    height: 10px;
+    background-color: var(--bg-medium);
+    border-top: 1px solid var(--border-color);
+    border-left: 1px solid var(--border-color);
+    transform: rotate(45deg);
+}

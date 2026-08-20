@@ -1,0 +1,46 @@
+{
+  "mcpTools": {
+    "fetch_source_v1": {
+      "id": "fetch_source_v1",
+      "name": "网页源码获取工具(V1)",
+      "description": "获取指定URL的网页源码，支持完整HTML、去噪HTML、Markdown格式等多种输出模式。",
+      "category": "utility",
+      "riskLevel": "read",
+      "enabled": true,
+      "sort": 70,
+      "parameters": {
+        "url": {
+          "type": "string",
+          "description": "要抓取的网页地址",
+          "required": true
+        },
+        "extractMainContent": {
+          "type": "boolean",
+          "description": "是否提取主要内容（去除导航、广告等噪音）",
+          "required": false,
+          "default": false
+        },
+        "formatAsMarkdown": {
+          "type": "boolean",
+          "description": "是否将结果格式化为Markdown",
+          "required": false,
+          "default": false
+        }
+      },
+      "endpoint": {
+        "url": "http://127.0.0.1:7521/api/crawler/fetch-source",
+        "method": "POST",
+        "headers": {
+          "Content-Type": "application/json"
+        }
+      },
+      "customTemplate": {
+        "enabled": true,
+        "htmlTemplate": "<div class=\"fetch-source-container\">\n  <h2>🌐 网页源码获取工具(V1)</h2>\n  \n  <div class=\"source-info\">\n    <div class=\"info-item\">\n      <span class=\"info-label\">请求URL：</span>\n      <span class=\"info-value\">{{url}}</span>\n    </div>\n    <div class=\"info-item\">\n      <span class=\"info-label\">提取模式：</span>\n      <span class=\"info-value\">{{#if extractMainContent}}去噪内容{{else}}完整内容{{/if}}</span>\n    </div>\n    <div class=\"info-item\">\n      <span class=\"info-label\">输出格式：</span>\n      <span class=\"info-value\">{{#if formatAsMarkdown}}Markdown{{else}}HTML{{/if}}</span>\n    </div>\n  </div>\n  \n  {{#if (eq code 200)}}\n    <div class=\"source-result\">\n      <div class=\"result-header\">\n        <h3>📄 获取结果</h3>\n        <div class=\"result-actions\">\n          <button class=\"copy-btn\" onclick=\"copySourceContent()\">复制内容</button>\n          <button class=\"download-btn\" onclick=\"downloadSourceContent()\">下载文件</button>\n        </div>\n      </div>\n      \n      <div class=\"result-content\" id=\"source-content\">\n        {{{content}}}\n      </div>\n    </div>\n  {{else}}\n    <div class=\"error-message\">\n      <h3>❌ 获取失败</h3>\n      <p>错误代码：{{code}}</p>\n      <p>错误信息：{{msg}}</p>\n    </div>\n  {{/if}}\n  \n  <div class=\"source-footer\">\n    <span class=\"api-source\">✨ 网页源码获取 API</span>\n    <span class=\"update-time\">{{new Date().toLocaleString()}}</span>\n  </div>\n</div>\n\n<script>\nfunction copySourceContent() {\n  const contentElement = document.getElementById('source-content');\n  const content = contentElement.innerText || contentElement.textContent;\n  \n  navigator.clipboard.writeText(content).then(() => {\n    alert('内容已复制到剪贴板');\n  }).catch(err => {\n    console.error('复制失败:', err);\n    alert('复制失败，请手动选择复制');\n  });\n}\n\nfunction downloadSourceContent() {\n  const contentElement = document.getElementById('source-content');\n  const content = contentElement.innerText || contentElement.textContent;\n  const url = new URL(window.location.href);\n  const urlParam = url.searchParams.get('url') || 'source';\n  const format = url.searchParams.get('formatAsMarkdown') === 'true' ? 'md' : 'html';\n  \n  const blob = new Blob([content], { type: 'text/plain' });\n  const downloadUrl = URL.createObjectURL(blob);\n  \n  const a = document.createElement('a');\n  a.href = downloadUrl;\n  a.download = `${urlParam}.${format}`;\n  document.body.appendChild(a);\n  a.click();\n  \n  // 清理\n  setTimeout(() => {\n    document.body.removeChild(a);\n    URL.revokeObjectURL(downloadUrl);\n  }, 100);\n}\n</script>\n\n<style>\n.fetch-source-container {\n  background: var(--bg-lighter);\n  border-radius: 12px;\n  padding: 24px;\n  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);\n  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;\n  margin: 16px 0;\n}\n\n.fetch-source-container h2 {\n  margin-top: 0;\n  color: var(--text-primary);\n  border-bottom: 2px solid var(--primary-color);\n  padding-bottom: 12px;\n}\n\n.source-info {\n  display: flex;\n  flex-wrap: wrap;\n  gap: 16px;\n  margin-bottom: 20px;\n  padding: 16px;\n  background: var(--bg-medium);\n  border-radius: 8px;\n  border: 1px solid var(--border-color);\n}\n\n.info-item {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n}\n\n.info-label {\n  font-weight: 500;\n  color: var(--text-secondary);\n}\n\n.info-value {\n  font-weight: 600;\n  color: var(--primary-color);\n}\n\n.source-result {\n  margin-top: 20px;\n}\n\n.result-header {\n  display: flex;\n  justify-content: space-between;\n  align-items: center;\n  margin-bottom: 16px;\n  padding-bottom: 8px;\n  border-bottom: 1px solid var(--border-color);\n}\n\n.result-header h3 {\n  margin: 0;\n  color: var(--text-primary);\n}\n\n.result-actions {\n  display: flex;\n  gap: 8px;\n}\n\n.copy-btn, .download-btn {\n  background: var(--primary-color);\n  color: white;\n  border: none;\n  padding: 6px 12px;\n  border-radius: 4px;\n  cursor: pointer;\n  font-size: 0.85em;\n  transition: background 0.3s ease;\n}\n\n.copy-btn:hover, .download-btn:hover {\n  background: var(--primary-color-hover);\n}\n\n.result-content {\n  padding: 16px;\n  background: var(--bg-darker);\n  border-radius: 8px;\n  border: 1px solid var(--border-color);\n  max-height: 500px;\n  overflow-y: auto;\n  font-family: 'Courier New', monospace;\n  white-space: pre-wrap;\n  word-break: break-word;\n  line-height: 1.5;\n}\n\n.error-message {\n  background: #fee;\n  border: 1px solid #fcc;\n  border-radius: 8px;\n  padding: 20px;\n  color: #c33;\n  margin-top: 20px;\n}\n\n.error-message h3 {\n  margin-top: 0;\n  color: #a22;\n}\n\n.source-footer {\n  margin-top: 24px;\n  padding-top: 16px;\n  border-top: 1px solid var(--border-color);\n  display: flex;\n  justify-content: space-between;\n  font-size: 0.8em;\n  color: var(--text-secondary);\n}\n\n/* 响应式设计 */\n@media (max-width: 768px) {\n  .source-info {\n    flex-direction: column;\n    gap: 8px;\n  }\n  \n  .result-header {\n    flex-direction: column;\n    align-items: flex-start;\n    gap: 12px;\n  }\n  \n  .result-actions {\n    width: 100%;\n    justify-content: flex-end;\n  }\n}\n</style>"
+      }
+    }
+  },
+  "mcpToolStates": {},
+  "exportTime": "2025-09-09T18:30:00.000Z",
+  "version": "1.0"
+}
