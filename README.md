@@ -13,6 +13,8 @@
 你可以将它连接到任何兼容 OpenAI 接口标准的 API（如 OpenAI、DeepSeek、Moonshot、智谱清言、Ollama、LocalAI、SiliconFlow 等），打造专属于你的私密、高效 AI 工作流。
 
  1.可以用做自己的知识库挂载助手。2.闲暇时刻可以与他进行角色扮演对话体验，放松一下996的人生。
+
+示例网站：https://www.axureshow.com/project/o2Ztz6D0/
 ---
 
 ## ✨ 核心亮点
