@@ -4,7 +4,7 @@
  */
 
 // 乌鸦：导入侧边栏管理器
-import { codePreviewManager } from '../code-preview-manager.js';
+import { codePreviewManager } from '../code-preview-manager.js?v=260820-1';
 
 /**
  * 乌鸦：智能 DOM 更新函数，保留未变的代码块 DOM 节点

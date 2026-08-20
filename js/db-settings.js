@@ -3,11 +3,11 @@
  * @description 数据库连接设置管理
  */
 
-import {state} from './state.js';
-import {dom} from './dom.js';
-import {openDB, DB_CONNECTIONS_STORE} from './db.js';
-import {DraggableList} from './draggable-list.js';
-import {saveAppSettings} from './utils.js'; // 乌鸦：导入保存设置函数
+import {state} from './state.js?v=260820-1';
+import {dom} from './dom.js?v=260820-1';
+import {openDB, DB_CONNECTIONS_STORE} from './db.js?v=260820-1';
+import {DraggableList} from './draggable-list.js?v=260820-1';
+import {saveAppSettings} from './utils.js?v=260820-1'; // 乌鸦：导入保存设置函数
 
 // 乌鸦：数据库连接拖拽实例
 let databaseConnectionDragInstance = null;

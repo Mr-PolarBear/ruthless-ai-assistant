@@ -3,10 +3,10 @@
  * @description Handles the main application settings modal.
  */
 
-import { dom } from '../dom.js';
-import { state } from '../state.js';
-import { renderApiEndpointsList, renderPersonaModal, renderRegexRulesList } from '../ui-populator.js';
-import { updateBubbleSettingsUI } from '../settings/bubble-settings.js';
+import { dom } from '../dom.js?v=260820-1';
+import { state } from '../state.js?v=260820-1';
+import { renderApiEndpointsList, renderPersonaModal, renderRegexRulesList } from '../ui-populator.js?v=260820-1';
+import { updateBubbleSettingsUI } from '../settings/bubble-settings.js?v=260820-1';
 
 export async function openSettingsModal() {
     dom.autoRenderCheckbox.checked = state.appSettings.autoRenderTable;
@@ -45,13 +45,13 @@ export async function openSettingsModal() {
     
     // 初始化MCP管理界面
     try {
-        const { initMCPManagement } = await import('../mcp-management.js');
+        const { initMCPManagement } = await import('../mcp-management.js?v=260820-1');
         initMCPManagement();
     } catch (err) {
         console.warn('❌ MCP管理模块加载失败:', err);
         setTimeout(async () => {
             try {
-                const { initMCPManagement } = await import('../mcp-management.js');
+                const { initMCPManagement } = await import('../mcp-management.js?v=260820-1');
                 initMCPManagement();
             } catch (retryErr) {
                 console.error('❌ MCP管理模块重试仍失败:', retryErr);

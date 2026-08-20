@@ -3,10 +3,10 @@
  * @description Functions for updating the state and appearance of various small UI components.
  */
 
-import { dom, toggleMessageActions } from './dom.js';
-import { state } from './state.js';
-import { renderHistory } from './sidebar.js'; // 乌鸦：导入会话历史渲染函数
-import { calculateConversationStats } from './utils.js';
+import { dom, toggleMessageActions } from './dom.js?v=260820-1';
+import { state } from './state.js?v=260820-1';
+import { renderHistory } from './sidebar.js?v=260820-1'; // 乌鸦：导入会话历史渲染函数
+import { calculateConversationStats } from './utils.js?v=260820-1';
 
 /**
  * Toggles the send button's appearance and state (send/stop).
@@ -172,7 +172,7 @@ export function applyTheme(theme) {
     }
     // 同步应用气泡自定义样式/退回新主题默认色
     try {
-        import('./settings/bubble-settings.js').then(m => m.applyBubbleCustomStyles());
+        import('./settings/bubble-settings.js?v=260820-1').then(m => m.applyBubbleCustomStyles());
     } catch (e) {}
 }
 

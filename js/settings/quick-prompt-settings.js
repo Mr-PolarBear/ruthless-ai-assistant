@@ -3,14 +3,14 @@
  * @description Handles Quick Prompt settings events.
  */
 
-import { dom } from '../dom.js';
-import { state } from '../state.js';
+import { dom } from '../dom.js?v=260820-1';
+import { state } from '../state.js?v=260820-1';
 import { 
     saveQuickPrompts, renderQuickPromptsList, 
     populateQuickPromptForm, resetQuickPromptForm,
     executeQuickPrompt
-} from '../quick-prompts.js';
-import { DraggableList } from '../draggable-list.js';
+} from '../quick-prompts.js?v=260820-1';
+import { DraggableList } from '../draggable-list.js?v=260820-1';
 
 let quickPromptDragInstance = null;
 

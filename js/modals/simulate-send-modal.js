@@ -3,11 +3,11 @@
  * @description 模拟发送与提示词透视模块（完全不发真实请求，完整模拟发送流水线并透视实际给模型的 Messages/JSON/Tokens）
  */
 
-import { dom } from '../dom.js';
-import { state } from '../state.js';
-import { countTokens, escapeHtml, fallbackCopyText } from '../utils.js';
-import { notify } from '../ui-updater.js';
-import { buildApiRequest, processAndFilterMessages } from '../api-common.js';
+import { dom } from '../dom.js?v=260820-1';
+import { state } from '../state.js?v=260820-1';
+import { countTokens, escapeHtml, fallbackCopyText } from '../utils.js?v=260820-1';
+import { notify } from '../ui-updater.js?v=260820-1';
+import { buildApiRequest, processAndFilterMessages } from '../api-common.js?v=260820-1';
 
 let currentSimulatedData = null;
 let currentActiveTab = 'cards';

@@ -4,9 +4,9 @@
  * @author 乌鸦
  */
 
-import { dom } from './dom.js';
-import { state } from './state.js';
-import { scrollToBottom } from './ui-updater.js';
+import { dom } from './dom.js?v=260820-1';
+import { state } from './state.js?v=260820-1';
+import { scrollToBottom } from './ui-updater.js?v=260820-1';
 
 class ScrollManager {
     constructor() {

@@ -3,29 +3,29 @@
  * @description Core rendering engine, V3 (Refactored). Facade for rendering sub-systems.
  */
 
-import { dom } from './dom.js';
-import { state } from './state.js';
-import { getAvatar } from './db.js';
-import { getChatSearchKeyword } from './chat-search.js';
-import { scrollToBottom } from './ui-updater.js';
+import { dom } from './dom.js?v=260820-1';
+import { state } from './state.js?v=260820-1';
+import { getAvatar } from './db.js?v=260820-1';
+import { getChatSearchKeyword } from './chat-search.js?v=260820-1';
+import { scrollToBottom } from './ui-updater.js?v=260820-1';
 import {
     updateAllMessagesCollapseState,
     addOrUpdateMessageFooter,
     updateMessageActions,
     updateSingleMessageCollapseState
-} from './message-manager.js';
-import { openAvatarPreview, DEFAULT_AVATAR } from './modals.js';
-import { extractThinkingFromContent, parseStreamingThinkContent, jsonToMarkdownTable, isFloorHiddenInConfig, isMessageHidden } from './utils.js';
-import CodeBlockEnhancer from './code-block-enhancer.js';
-import { regexPatterns } from './regex.js';
+} from './message-manager.js?v=260820-1';
+import { openAvatarPreview, DEFAULT_AVATAR } from './modals.js?v=260820-1';
+import { extractThinkingFromContent, parseStreamingThinkContent, jsonToMarkdownTable, isFloorHiddenInConfig, isMessageHidden } from './utils.js?v=260820-1';
+import CodeBlockEnhancer from './code-block-enhancer.js?v=260820-1';
+import { regexPatterns } from './regex.js?v=260820-1';
 
 // --- Sub-system Imports ---
-import { initSharedStyleSheets, getSharedStyleSheets, allShadowRoots } from './renderers/style-manager.js';
-import { updateDomPreservingCodeBlocks } from './renderers/stream-renderer.js';
-import { updateReasoningContainer, updateReasoningPartContent } from './renderers/reasoning-renderer.js';
-import { formatMessagePipeline, enhanceJsonCodeBlocks } from './renderers/markdown-engine.js';
+import { initSharedStyleSheets, getSharedStyleSheets, allShadowRoots } from './renderers/style-manager.js?v=260820-1';
+import { updateDomPreservingCodeBlocks } from './renderers/stream-renderer.js?v=260820-1';
+import { updateReasoningContainer, updateReasoningPartContent } from './renderers/reasoning-renderer.js?v=260820-1';
+import { formatMessagePipeline, enhanceJsonCodeBlocks } from './renderers/markdown-engine.js?v=260820-1';
 // Re-export UI populators for compatibility with main.js/settings-events.js
-export { populateApiSelector, populatePersonaSelector, renderApiEndpointsList, renderPersonaModal, renderRegexRulesList } from './ui-populator.js';
+export { populateApiSelector, populatePersonaSelector, renderApiEndpointsList, renderPersonaModal, renderRegexRulesList } from './ui-populator.js?v=260820-1';
 // Re-export markdown engine for external use if needed
 export { formatMessagePipeline };
 export { updateReasoningContainer, updateReasoningPartContent };
@@ -438,7 +438,7 @@ export async function displayMessage(message, index, highlightKeyword, visibleIn
                 // 如果消息处于折叠状态，先展开
                 const contentEl = bubble.querySelector('.message-content');
                 if (contentEl && contentEl.classList.contains('collapsible')) {
-                    import('./message-manager.js').then(module => {
+                    import('./message-manager.js?v=260820-1').then(module => {
                         module.updateSingleMessageCollapseState(bubble, false);
                     });
                 }
@@ -561,7 +561,7 @@ export async function displayMessage(message, index, highlightKeyword, visibleIn
         const isInitiallyExpanded = false;
         message.toolCalls.forEach((toolCallResult, index) => {
             if (toolCallResult && toolCallResult.success !== undefined) {
-                import('./mcp-renderer.js').then(module => {
+                import('./mcp-renderer.js?v=260820-1').then(module => {
                     module.renderToolCallResult(messageDiv, toolCallResult, index, isInitiallyExpanded);
                 });
             }
@@ -571,7 +571,7 @@ export async function displayMessage(message, index, highlightKeyword, visibleIn
     // Analysis Result rendering
     // 乌鸦：如果有 analysisRounds 元数据，按轮次交错渲染；否则退回旧逻辑兼容老数据
     if (message.analysisRounds && message.analysisRounds.length > 0) {
-        import('./mcp-renderer.js').then(async ({ renderToolCallResult }) => {
+        import('./mcp-renderer.js?v=260820-1').then(async ({ renderToolCallResult }) => {
             for (const roundData of message.analysisRounds) {
                 // 乌鸦：创建本轮分析容器
                 const analysisContainer = document.createElement('div');
@@ -637,7 +637,7 @@ export async function displayMessage(message, index, highlightKeyword, visibleIn
         });
     } else if (message.analysisResult && typeof message.analysisResult === 'string') {
         // 乌鸦：旧数据兼容——单个分析容器
-        import('./mcp-renderer.js').then(async () => {
+        import('./mcp-renderer.js?v=260820-1').then(async () => {
             let analysisContainer = messageDiv.querySelector('.analysis-result-container');
             if (!analysisContainer) {
                 const toolCallsContainer = messageDiv.querySelector('.tool-calls-container');

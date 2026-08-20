@@ -3,9 +3,9 @@
  * @description Handles World Book (memory) modal and management.
  */
 
-import { dom } from '../dom.js';
-import { state } from '../state.js';
-import { escapeHtml } from '../utils.js';
+import { dom } from '../dom.js?v=260820-1';
+import { state } from '../state.js?v=260820-1';
+import { escapeHtml } from '../utils.js?v=260820-1';
 
 // 更新已选中标签页的数量显示
 function updateSelectedCount(count) {

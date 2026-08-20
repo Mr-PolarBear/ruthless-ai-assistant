@@ -3,7 +3,7 @@
  * @description MCP模板引擎 - 支持路径表达式的数据驱动模板系统
  */
 
-import { escapeHtml } from './utils.js';
+import { escapeHtml } from './utils.js?v=260820-1';
 
 /**
  * 乌鸦：智能数据结构适配器 - 缓存对象，避免重复扫描

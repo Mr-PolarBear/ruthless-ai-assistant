@@ -3,7 +3,7 @@
  * @description Client for communicating with the Markdown Web Worker.
  */
 
-import { state } from '../state.js';
+import { state } from '../state.js?v=260820-1';
 
 class MarkdownWorkerClient {
     constructor() {

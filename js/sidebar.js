@@ -3,13 +3,13 @@
  * @description Manages the rendering and interactions of the sidebar, including the conversation history.
  */
 
-import { dom } from './dom.js';
-import { state } from './state.js';
-import { getAvatar } from './db.js';
-import { DEFAULT_AVATAR } from './modals.js';
-import { regexPatterns } from './regex.js';
-import { escapeHtml } from './utils.js';
-import { toggleConvSelection } from './batch-delete.js';
+import { dom } from './dom.js?v=260820-1';
+import { state } from './state.js?v=260820-1';
+import { getAvatar } from './db.js?v=260820-1';
+import { DEFAULT_AVATAR } from './modals.js?v=260820-1';
+import { regexPatterns } from './regex.js?v=260820-1';
+import { escapeHtml } from './utils.js?v=260820-1';
+import { toggleConvSelection } from './batch-delete.js?v=260820-1';
 
 /**
  * Renders the conversation history list in the sidebar.
@@ -314,7 +314,7 @@ async function getFirstTwoMessagesPreview(conv, maxLength = 200) {
     // 异步懒加载预留：如果 conv 对象缺失 branches，尝试从 IndexedDB 异步补充完整数据
     if (!targetConv.branches && targetConv.id) {
         try {
-            const { getConversation } = await import('./db.js');
+            const { getConversation } = await import('./db.js?v=260820-1');
             const loaded = await getConversation(targetConv.id);
             if (loaded) targetConv = loaded;
         } catch (e) {
