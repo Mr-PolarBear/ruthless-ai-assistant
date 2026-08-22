@@ -105,4 +105,12 @@ export {
     buildSimulatedPayload
 } from './modals/simulate-send-modal.js?v=260820-1';
 
+// Branch Summary Rollback Confirm Modal
+export {
+    openBranchSummaryConfirmModal,
+    closeBranchSummaryConfirmModal,
+    setupBranchSummaryConfirmModal
+} from './modals/branch-summary-confirm-modal.js?v=260820-1';
+
+
 

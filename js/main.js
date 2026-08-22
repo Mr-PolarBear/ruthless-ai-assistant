@@ -142,7 +142,10 @@ export async function handleSendMessage(options = {}) {
     }
 
     if (isBranching) {
-        if (!confirm("确定要从此消息开始新的分支吗？当前分支后续的消息将不会保留在新分支中。")) return;
+        // 若未经过分叉联动弹窗，且当前分支截取点之后确实存在会被丢弃的消息，才弹出原生确认
+        if (!options.skipBranchSummaryConfirm && activeBranch.length > (branchFromIndex + 2)) {
+            if (!confirm("确定要从此消息开始新的分支吗？当前分支后续的消息将不会保留在新分支中。")) return;
+        }
         const baseBranch = activeBranch.slice(0, branchFromIndex + 1);
         currentConv.branches.push(baseBranch);
         currentConv.activeBranchIndex = currentConv.branches.length - 1;
@@ -155,8 +158,7 @@ export async function handleSendMessage(options = {}) {
         setHideSummaryForCurrentConversation({
             hiddenFloors,
             start: hiddenFloors.length > 0 ? Math.min(...hiddenFloors) : 1,
-            end: hiddenFloors.length > 0 ? Math.max(...hiddenFloors) : 1,
-            enabled: hiddenFloors.length > 0
+            end: hiddenFloors.length > 0 ? Math.max(...hiddenFloors) : 1
         });
         renderChatMessages();
     } else {
@@ -517,8 +519,7 @@ export async function switchBranch(direction) {
             setHideSummaryForCurrentConversation({
                 hiddenFloors,
                 start: hiddenFloors.length > 0 ? Math.min(...hiddenFloors) : 1,
-                end: hiddenFloors.length > 0 ? Math.max(...hiddenFloors) : 1,
-                enabled: hiddenFloors.length > 0
+                end: hiddenFloors.length > 0 ? Math.max(...hiddenFloors) : 1
             });
 
             renderChatMessages({
@@ -528,6 +529,7 @@ export async function switchBranch(direction) {
             });
             updateBranchNavigator();
             if (window.updateHideSummaryBtnColor) window.updateHideSummaryBtnColor();
+            if (window.updateSessionTokenBadge) window.updateSessionTokenBadge();
             await saveConversation(conv.id, conv);
             await saveToLocalStorage();
         } else {
@@ -552,8 +554,7 @@ export async function switchBranchTo(targetIndex) {
             setHideSummaryForCurrentConversation({
                 hiddenFloors,
                 start: hiddenFloors.length > 0 ? Math.min(...hiddenFloors) : 1,
-                end: hiddenFloors.length > 0 ? Math.max(...hiddenFloors) : 1,
-                enabled: hiddenFloors.length > 0
+                end: hiddenFloors.length > 0 ? Math.max(...hiddenFloors) : 1
             });
 
             renderChatMessages({
@@ -563,6 +564,7 @@ export async function switchBranchTo(targetIndex) {
             });
             updateBranchNavigator();
             if (window.updateHideSummaryBtnColor) window.updateHideSummaryBtnColor();
+            if (window.updateSessionTokenBadge) window.updateSessionTokenBadge();
             await saveConversation(conv.id, conv);
             await saveToLocalStorage();
         }, 50);

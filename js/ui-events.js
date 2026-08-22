@@ -5,7 +5,7 @@
 
 import { dom } from './dom.js?v=260820-1';
 import { state } from './state.js?v=260820-1';
-import { scrollToBottom, updateScrollButtonsVisibility, applyTheme, adjustTextareaHeight } from './ui-updater.js?v=260820-1';
+import { scrollToBottom, updateScrollButtonsVisibility, applyTheme, adjustTextareaHeight, notify } from './ui-updater.js?v=260820-1';
 import { renderChatMessages } from './renderer.js?v=260820-1';
 import { saveAppSettings } from './utils.js?v=260820-1';
 import { clearAttachment } from './attachment.js?v=260820-1';
@@ -251,6 +251,9 @@ export function setupUIEvents() {
 
     // 乌鸦：更新日志弹窗事件绑定
     setupChangelogEvents();
+
+    // 开源代码仓库地址复制事件绑定
+    setupRepoLinkEvents();
 }
 
 /**
@@ -553,5 +556,24 @@ function setupChangelogEvents() {
                 targetContent.classList.add('active');
             }
         });
+    });
+}
+
+/**
+ * 绑定通用设置中开源代码仓库复制按钮事件
+ */
+function setupRepoLinkEvents() {
+    document.addEventListener('click', (e) => {
+        const btn = e.target.closest('.copy-repo-link-btn');
+        if (!btn) return;
+        const url = btn.dataset.url;
+        const name = btn.dataset.name || '仓库';
+        if (url) {
+            navigator.clipboard.writeText(url).then(() => {
+                notify.success(`${name} 地址已复制到剪贴板！`);
+            }).catch(() => {
+                notify.error('复制失败，请长按手动复制链接');
+            });
+        }
     });
 }

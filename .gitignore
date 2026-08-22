@@ -31,3 +31,4 @@ android/capacitor-cordova-android-plugins/build/
 *.tmp
 .DS_Store
 Thumbs.db
+/www/

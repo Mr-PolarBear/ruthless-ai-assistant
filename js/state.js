@@ -70,25 +70,133 @@ export let state = {
     // 批量删除选择模式状态
     batchSelectMode: false,
     selectedConvIds: new Set(),
-    isParsingFile: false // 乌鸦：文件解析中锁定标记，解析期间阻止发送和切换会话
+    isParsingFile: false, // 乌鸦：文件解析中锁定标记，解析期间阻止发送和切换会话
+    isAutoSummarizing: false, // 是否正在进行自动总结
+    autoSummarizingConvId: null // 正在进行自动总结的会话ID
 };
 
 // 如果 localStorage 中不存在，则要加载的默认正则表达式规则
 export const DEFAULT_REGEX_RULES = {
-    'regex_default_1': {
-        id: 'regex_default_1',
-        name: '禁用thinking和think发给接口',
-        find: '/<(think|thinking)\\b[^>]*>([\\s\\S]*?)<\\/\\1>\\s*/g',
-        replace: '',
-        scopes: ['request-user', 'request-assistant'],
+    'regex_default_choice_item': {
+        id: 'regex_default_choice_item',
+        name: '剧情选项_单项按钮化',
+        find: '/<c>([\\s\\S]*?)<\\/c>/g',
+        replace: '<div class="story-choice-item" data-default-text="$1" onclick="window.userDefaultClick(this.getAttribute(\'data-default-text\'))"><span class="choice-icon">👉</span><span class="choice-text">$1</span></div>',
+        scopes: ['display-user', 'display-assistant'],
         enabled: true,
-        // 乌鸦：补全缺失的字段，确保所有规则对象结构完整
+        stage: 'pre-markdown',
+        sort: 38,
+        minFloor: 0,
+        maxFloor: 0
+    },
+    'regex_default_options_box': {
+        id: 'regex_default_options_box',
+        name: '剧情选项_外层卡片化',
+        find: '/<options>([\\s\\S]*?)<\\/options>/g',
+        replace: '<div class="story-options-container"><details class="story-options-details"><summary class="story-options-summary">📖 剧情分支行动（点击展开选择）</summary><div class="story-options-body"><div class="story-choices-list">$1</div></div></details></div>',
+        scopes: ['display-user', 'display-assistant'],
+        enabled: true,
+        stage: 'pre-markdown',
+        sort: 40,
+        minFloor: 0,
+        maxFloor: 0
+    },
+    'regex_default_options_clear_old': {
+        id: 'regex_default_options_clear_old',
+        name: '选项_清空2楼之前的',
+        find: '/<options>([\\s\\S]*?)<\\/options>/g',
+        replace: '',
+        scopes: ['request-assistant'],
+        enabled: true,
+        stage: 'pre-markdown',
+        sort: 50,
+        minFloor: 0,
+        maxFloor: 2
+    },
+    'regex_default_summary_box': {
+        id: 'regex_default_summary_box',
+        name: '本章小结-折叠展示最近10层',
+        find: '/<simple>([\\s\\S]*?)<\\/simple>/g',
+        replace: '\n<simple><details><summary style="background-color: #3b82f6; color: #ffffff; padding: 5px; font-weight: bold;">小结</summary><div style="background-color: #4677c7; color: #ffffff; padding: 15px; border-radius: 0 0 5px 5px;"><p style="margin: 5px 0;">本章小结内容：</p><ul style="list-style-type: none; padding-left: 0;"><li>$1 <br> </li></ul></div></details></simple>\n',
+        scopes: ['display-user', 'display-assistant'],
+        enabled: true,
+        stage: 'pre-markdown',
+        sort: 60,
+        minFloor: 10,
+        maxFloor: 0
+    },
+    'regex_default_summary_remove_recent': {
+        id: 'regex_default_summary_remove_recent',
+        name: '本章小结_移除最近14楼不发给AI',
+        find: '/<simple>([\\s\\S]*?)<\\/simple>/g',
+        replace: '',
+        scopes: ['request-assistant'],
+        enabled: true,
+        stage: 'pre-markdown',
+        sort: 70,
+        minFloor: 14,
+        maxFloor: 0
+    },
+    'regex_default_body_remove_old': {
+        id: 'regex_default_body_remove_old',
+        name: '移除14楼之前的正文',
+        find: '/<text_play>([\\s\\S]*?)<\\/text_play>/g',
+        replace: '',
+        scopes: ['request-assistant'],
+        enabled: true,
+        stage: 'pre-markdown',
+        sort: 70,
+        minFloor: 0,
+        maxFloor: 14
+    },
+    'regex_default_disable_strikethrough': {
+        id: 'regex_default_disable_strikethrough',
+        name: '禁用删除线~',
+        find: '~',
+        replace: '\\~',
+        scopes: ['display-user', 'display-assistant'],
+        enabled: false,
         stage: 'post-markdown',
-        sort: 0,
+        sort: 75,
+        minFloor: 0,
+        maxFloor: 0
+    },
+    'regex_default_sql': {
+        id: 'regex_default_sql',
+        name: '高亮sql',
+        find: '<sql>([\\s\\S]*?)<\\/sql>',
+        replace: '<span style="color: #d55031; font-weight: bold;">$&</span>',
+        scopes: ['display-user', 'display-assistant'],
+        enabled: true,
+        stage: 'pre-markdown',
+        sort: 80,
+        minFloor: 0,
+        maxFloor: 0
+    },
+    'regex_default_highlight_numbers': {
+        id: 'regex_default_highlight_numbers',
+        name: '高亮数字',
+        find: '\\b[0-9]+\\b',
+        replace: '<span style="color: #e3955b;">$&</span>',
+        scopes: ['display-user', 'display-assistant'],
+        enabled: true,
+        stage: 'post-markdown',
+        sort: 90,
+        minFloor: 0,
+        maxFloor: 0
+    },
+    'regex_default_highlight_letters': {
+        id: 'regex_default_highlight_letters',
+        name: '高亮字母',
+        find: '\\b[A-Z]+\\b',
+        replace: '<span style="color: #4cd188;">$&</span>',
+        scopes: ['display-user', 'display-assistant'],
+        enabled: true,
+        stage: 'post-markdown',
+        sort: 95,
         minFloor: 0,
         maxFloor: 0
     }
-
 };
 
 // 附件允许的文件类型。

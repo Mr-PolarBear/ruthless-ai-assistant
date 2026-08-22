@@ -14,10 +14,12 @@ import {
     updateMessageActions, showCopyMenu, updateSingleMessageCollapseState, updateToggleButtonState
 } from './message-manager.js?v=260820-1';
 import { showFileViewer } from './attachment.js?v=260820-1';
-import { saveToLocalStorage, saveMessageAsFile } from './utils.js?v=260820-1';
+import { saveToLocalStorage, saveMessageAsFile, isMessageHidden } from './utils.js?v=260820-1';
 import { deleteConversation, saveConversation, getConversation } from './db.js?v=260820-1';
-import { openConversationAvatarModal, openQuickHideModal, openConvTitleModal, openExportConvModal } from './modals.js?v=260820-1';
-import { adjustTextareaHeight, notify } from './ui-updater.js?v=260820-1';
+import { openConversationAvatarModal, openQuickHideModal, openConvTitleModal, openExportConvModal, openBranchSummaryConfirmModal } from './modals.js?v=260820-1';
+import { adjustTextareaHeight, updateSendButtonState, notify } from './ui-updater.js?v=260820-1';
+import { getHideSummaryForConversation } from './main.js?v=260820-1';
+import { checkBranchMemoryStatus } from './summary-manager.js?v=260820-1';
 // 乌鸦：导入代码预览管理器，用于在切换会话时关闭侧边栏
 import { codePreviewManager } from './code-preview-manager.js?v=260820-1';
 import { eventBus, EVENTS } from './services/event-bus.js?v=260820-1';
@@ -29,6 +31,7 @@ import { toggleConvSelection } from './batch-delete.js?v=260820-1';
 export function setupChatEvents() {
     // Send button and message input
     setupMessageInputEvents();
+    setupChoiceActionDelegation();
 
     // Chat message actions
     if (dom.chatMessages) dom.chatMessages.addEventListener('click', handleChatMessageActions);
@@ -149,12 +152,43 @@ function handleChatMessageActions(e) {
     } else if (button.classList.contains('toggle-md-btn')) {
         handleToggleMarkdown(messageBubble, button, message);
     } else if (button.classList.contains('branch-btn')) {
-        // 乌鸦：点击重新生成时，关闭代码预览侧边栏，因为旧内容已失效
+        // 点击重新生成时，关闭代码预览侧边栏，因为旧内容已失效
         if (typeof codePreviewManager !== 'undefined') {
             codePreviewManager.close();
         }
         const branchFromIndex = message.role === 'user' ? index : index - 1;
-        handleSendMessage({isBranching: true, branchFromIndex: branchFromIndex});
+        if (branchFromIndex < 0) return;
+
+        const convId = state.currentConversationId;
+        const conv = state.conversations[convId];
+        const currentActiveBranch = conv && conv.branches ? conv.branches[conv.activeBranchIndex] : [];
+        const targetMsg = currentActiveBranch ? currentActiveBranch[branchFromIndex] : null;
+        const hideConfig = getHideSummaryForConversation(convId);
+        const branchFloor = branchFromIndex + 1;
+
+        // — 为什么这么写 —
+        // 1. 如果要分叉重发的消息本身已被标记为隐藏，拦截并提示用户先解除隐藏，避免新分支产生不可见的逻辑混乱
+        if (isMessageHidden(targetMsg, branchFloor, hideConfig)) {
+            notify.warning(`第 ${branchFloor} 楼当前处于已隐藏状态，重发前请先取消该消息的隐藏（点击右侧 👁️ 图标即可解除）`);
+            return;
+        }
+
+        // 2. 智能检测分叉重发楼层与当前长期记忆的时间线因果一致性
+        const checkResult = checkBranchMemoryStatus(convId, branchFloor);
+        if (checkResult.needPrompt) {
+            openBranchSummaryConfirmModal({
+                convId,
+                branchFromIndex,
+                checkResult,
+                onProceed: () => {
+                    handleSendMessage({ isBranching: true, branchFromIndex, skipBranchSummaryConfirm: true });
+                }
+            });
+            return;
+        }
+
+        // 无因果冲突，直接开启重发
+        handleSendMessage({ isBranching: true, branchFromIndex, skipBranchSummaryConfirm: true });
     } else if (button.classList.contains('edit-btn')) {
         enterEditMode(messageBubble, message);
     } else if (button.classList.contains('save-edit-btn')) {
@@ -450,6 +484,20 @@ async function handleDuplicateConversation(id) {
             }
         });
     }
+
+    // 4.5 复制该会话绑定的专属正则（深拷贝创建独立副本给新会话）
+    if (state.regexRules && typeof state.regexRules === 'object') {
+        Object.values(state.regexRules).forEach(rule => {
+            if (rule && rule.scope === 'session' && Array.isArray(rule.sessionIds) && rule.sessionIds.includes(id)) {
+                const newRuleId = `regex_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+                state.regexRules[newRuleId] = {
+                    ...JSON.parse(JSON.stringify(rule)),
+                    id: newRuleId,
+                    sessionIds: [newId]
+                };
+            }
+        });
+    }
     
     // 5. 保存到 IndexedDB 与内存
     state.conversations[newId] = newConv;
@@ -539,6 +587,157 @@ function setupHistoryViewTabs() {
         simpleView.style.display = 'block';
         groupedView.style.display = 'none';
     }
+}
+
+/**
+ * 弹出提示选择插入模式（覆盖、追加到底部、追加在顶部）
+ * @param {string} text - 待插入的文本
+ */
+export function promptChoiceInsertMode(text) {
+    if (!text || typeof text !== 'string') return;
+    const modal = document.getElementById('choice-insert-action-modal');
+    const preview = document.getElementById('choice-insert-preview');
+    const replaceBtn = document.getElementById('choice-act-replace');
+    const appendBottomBtn = document.getElementById('choice-act-append-bottom');
+    const appendTopBtn = document.getElementById('choice-act-append-top');
+    const closeBtn = document.getElementById('choice-insert-close-btn');
+
+    if (!modal) {
+        // 降级兜底直接填入
+        applyInsertTextToInput(text, 'replace');
+        return;
+    }
+
+    if (preview) {
+        preview.textContent = text;
+    }
+
+    const close = () => {
+        modal.classList.remove('visible');
+        modal.style.display = 'none';
+        cleanup();
+    };
+
+    const handleAction = (mode) => {
+        applyInsertTextToInput(text, mode);
+        close();
+    };
+
+    const onReplace = () => handleAction('replace');
+    const onAppendBottom = () => handleAction('append_bottom');
+    const onAppendTop = () => handleAction('append_top');
+
+    const cleanup = () => {
+        if (replaceBtn) replaceBtn.removeEventListener('click', onReplace);
+        if (appendBottomBtn) appendBottomBtn.removeEventListener('click', onAppendBottom);
+        if (appendTopBtn) appendTopBtn.removeEventListener('click', onAppendTop);
+        if (closeBtn) closeBtn.removeEventListener('click', close);
+        modal.removeEventListener('click', onModalClick);
+    };
+
+    const onModalClick = (e) => {
+        if (e.target === modal) close();
+    };
+
+    if (replaceBtn) replaceBtn.addEventListener('click', onReplace);
+    if (appendBottomBtn) appendBottomBtn.addEventListener('click', onAppendBottom);
+    if (appendTopBtn) appendTopBtn.addEventListener('click', onAppendTop);
+    if (closeBtn) closeBtn.addEventListener('click', close);
+    modal.addEventListener('click', onModalClick);
+
+    modal.style.display = 'flex';
+    modal.classList.add('visible');
+}
+
+/**
+ * 将文本按指定模式注入到输入框
+ * @param {string} text - 待插入文本
+ * @param {'replace'|'append_bottom'|'append_top'} mode - 插入模式
+ */
+export function applyInsertTextToInput(text, mode = 'replace') {
+    const textarea = dom.messageInput || document.getElementById('message-input');
+    if (!textarea) return;
+
+    const current = textarea.value.trim();
+    if (mode === 'append_bottom') {
+        textarea.value = current ? `${current}\n${text}` : text;
+    } else if (mode === 'append_top') {
+        textarea.value = current ? `${text}\n${current}` : text;
+    } else {
+        textarea.value = text;
+    }
+
+    // 触发自适应高度
+    adjustTextareaHeight();
+    // 触发发送按钮激活状态
+    updateSendButtonState();
+
+    // 聚焦输入框并将光标移至末尾
+    textarea.focus();
+    const len = textarea.value.length;
+    textarea.setSelectionRange(len, len);
+
+    // 顺滑平顺滚动至输入框可视区域
+    textarea.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+/**
+ * 全局提供的文本快速填入输入框方法（供正则生成的 HTML/JS 或按钮直接调用）
+ * @param {string} text - 要插入到输入框的文本
+ * @param {'replace'|'append_bottom'|'append_top'|null} [mode=null] - 插入模式，不传则弹出模式选择弹窗
+ */
+export function userDefaultClick(text, mode = null) {
+    if (text === undefined || text === null) return;
+    const content = typeof text === 'string' ? text : String(text);
+    if (!content) return;
+
+    if (mode) {
+        applyInsertTextToInput(content, mode);
+    } else {
+        promptChoiceInsertMode(content);
+    }
+}
+
+// 挂载至全局 window 对象，确保内联 onclick 或外部正则脚本能直接访问
+if (typeof window !== 'undefined') {
+    window.userDefaultClick = userDefaultClick;
+    window.promptChoiceInsertMode = promptChoiceInsertMode;
+}
+
+/**
+ * 设置针对剧情选项等快速填入卡片的全局点击事件委托代理
+ * （规避 DOMPurify 剥离内联 onclick，即便不关闭 XSS 防护也能 100% 触发）
+ */
+function setupChoiceActionDelegation() {
+    document.addEventListener('click', (e) => {
+        // 支持 Shadow DOM 内部穿透事件 target 获取
+        const path = (e.composedPath && e.composedPath()) || [];
+        let target = path[0] || e.target;
+        if (!target) return;
+
+        // 如果点击的是 details 的 summary 展开收起，则不拦截
+        if (target.tagName === 'SUMMARY' || target.closest('summary')) return;
+
+        let choiceElem = null;
+        for (const el of path) {
+            if (el.nodeType === 1 && (el.matches('.story-choice-item, .user-default-click-btn, [data-default-text]'))) {
+                choiceElem = el;
+                break;
+            }
+        }
+        if (!choiceElem && target.closest) {
+            choiceElem = target.closest('.story-choice-item, .user-default-click-btn, [data-default-text]');
+        }
+
+        if (choiceElem) {
+            const defaultText = choiceElem.getAttribute('data-default-text') || choiceElem.textContent.trim();
+            if (defaultText) {
+                e.preventDefault();
+                e.stopPropagation();
+                userDefaultClick(defaultText);
+            }
+        }
+    });
 }
 
 

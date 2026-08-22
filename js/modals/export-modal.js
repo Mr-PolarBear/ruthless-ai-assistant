@@ -679,6 +679,19 @@ export async function executeExportConversation() {
                 convToExport.hideSummary = state.hideSummary[conversation.id];
             }
 
+            // 附带当前会话专属正则规则
+            const sessionRegex = [];
+            if (state.regexRules && typeof state.regexRules === 'object') {
+                Object.values(state.regexRules).forEach(rule => {
+                    if (rule && rule.scope === 'session' && Array.isArray(rule.sessionIds) && rule.sessionIds.map(String).includes(String(conversation.id))) {
+                        sessionRegex.push(JSON.parse(JSON.stringify(rule)));
+                    }
+                });
+            }
+            if (sessionRegex.length > 0) {
+                convToExport.sessionRegexRules = sessionRegex;
+            }
+
             const jsonString = JSON.stringify(convToExport, null, 2);
             const fileName = `${sanitizedTitle}-${dateStr}_${timeStr}.json`;
             downloadBlob(jsonString, fileName, 'application/json;charset=utf-8');

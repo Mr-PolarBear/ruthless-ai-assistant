@@ -11,6 +11,8 @@ import { openSettingsModal, renderApiEndpointsList, renderPersonaModal, renderRe
 import { populateApiSelector, populatePersonaSelector } from './renderer.js?v=260820-1';
 import { updateWorldBookButton } from './ui-updater.js?v=260820-1';
 import { saveConversation, getConversation, getAllConversationIds, deleteConversation } from './db.js?v=260820-1';
+import { formatMemoryForApi, normalizeHideSummaryConfig } from './summary-manager.js?v=260820-1';
+import { showBatchConflictResolutionDialog } from './modals/import-conflict-modal.js?v=260820-1';
 
 // --- Utility Functions ---
 
@@ -165,26 +167,41 @@ export async function loadFromLocalStorage() {
         const savedRulesRaw = localStorage.getItem('ai-chat-regex-rules-v1');
         const savedRules = savedRulesRaw ? JSON.parse(savedRulesRaw) : {};
 
-        // 乌鸦：使用最稳妥的手动合并/补全字段的办法，替代之前的自动合并逻辑
-        const finalRules = { ...DEFAULT_REGEX_RULES }; // 从默认规则开始
+        // 自动清理淘汰已废弃的旧版本单一默认规则 regex_default_1
+        if (savedRules && savedRules['regex_default_1'] && !DEFAULT_REGEX_RULES['regex_default_1']) {
+            delete savedRules['regex_default_1'];
+        }
 
+        // 1. 深度拷贝一份最新的内置默认规则作为基准（内容强制同步最新版，仅保留用户的启停开关状态）
+        const finalRules = {};
+        for (const [defId, defRule] of Object.entries(DEFAULT_REGEX_RULES)) {
+            finalRules[defId] = { ...defRule };
+            if (savedRules && savedRules[defId] && savedRules[defId].enabled !== undefined) {
+                finalRules[defId].enabled = savedRules[defId].enabled;
+            }
+        }
+
+        // 2. 加载用户的自定义全局规则（非默认规则）
         for (const id in savedRules) {
             if (Object.prototype.hasOwnProperty.call(savedRules, id)) {
-                const savedRule = savedRules[id];
-                const defaultRule = DEFAULT_REGEX_RULES[id] || {};
+                if (DEFAULT_REGEX_RULES && DEFAULT_REGEX_RULES[id]) continue; // 默认规则已在上方同步
 
-                // 确保所有字段都存在，以用户保存的为准
+                const savedRule = savedRules[id];
+                if (!savedRule) continue;
+
                 finalRules[id] = {
-                    id: savedRule.id || defaultRule.id || id,
-                    name: savedRule.name || defaultRule.name || '',
-                    find: savedRule.find || defaultRule.find || '',
-                    replace: savedRule.replace !== undefined ? savedRule.replace : (defaultRule.replace !== undefined ? defaultRule.replace : ''),
-                    scopes: savedRule.scopes || defaultRule.scopes || [],
-                    enabled: savedRule.enabled !== undefined ? savedRule.enabled : (defaultRule.enabled !== undefined ? defaultRule.enabled : true),
-                    stage: savedRule.stage || defaultRule.stage || 'post-markdown',
-                    sort: savedRule.sort || defaultRule.sort || 0,
-                    minFloor: savedRule.minFloor || defaultRule.minFloor || 0,
-                    maxFloor: savedRule.maxFloor || defaultRule.maxFloor || 0,
+                    id: savedRule.id || id,
+                    name: savedRule.name || '',
+                    find: savedRule.find || '',
+                    replace: savedRule.replace !== undefined ? savedRule.replace : '',
+                    scopes: savedRule.scopes || ['display-user', 'display-assistant'],
+                    enabled: savedRule.enabled !== undefined ? savedRule.enabled : true,
+                    stage: savedRule.stage || 'post-markdown',
+                    sort: savedRule.sort || 0,
+                    minFloor: savedRule.minFloor || 0,
+                    maxFloor: savedRule.maxFloor || 0,
+                    scope: savedRule.scope || 'global',
+                    sessionIds: Array.isArray(savedRule.sessionIds) ? savedRule.sessionIds : []
                 };
             }
         }
@@ -192,7 +209,7 @@ export async function loadFromLocalStorage() {
         state.regexRules = finalRules;
 
     } catch (e) {
-        state.regexRules = DEFAULT_REGEX_RULES;
+        state.regexRules = { ...DEFAULT_REGEX_RULES };
         console.error("Failed to load regex rules, loading defaults:", e);
     }
 
@@ -439,11 +456,21 @@ export function saveMessageAsFile(message) {
  * Exports the current app configuration to a JSON file.
  */
 export function exportConfig() {
+    const defaultRuleKeys = Object.keys(DEFAULT_REGEX_RULES || {});
+    const customGlobalRules = {};
+    if (state.regexRules && typeof state.regexRules === 'object') {
+        for (const [id, rule] of Object.entries(state.regexRules)) {
+            if (!defaultRuleKeys.includes(id) && (rule.scope === 'global' || !rule.scope)) {
+                customGlobalRules[id] = JSON.parse(JSON.stringify(rule));
+            }
+        }
+    }
+
     const configToExport = {
         apiEndpoints: state.apiEndpoints,
         personas: state.personas,
         worldBook: state.worldBook, // 添加备忘录
-        regexRules: state.regexRules,
+        regexRules: customGlobalRules,
         appSettings: state.appSettings,
         quickPrompts: state.quickPrompts || [], // 补充快捷提示
         mcpSettings: state.mcpSettings || {},   // 补充MCP全局设置
@@ -516,6 +543,18 @@ export async function exportConversation(conversationId) {
         convToExport.hideSummary = JSON.parse(JSON.stringify(state.hideSummary[conversationId]));
     }
 
+    // 打包该会话绑定的专属正则 (sessionRegexRules 机制)
+    const sessionRegex = [];
+    if (state.regexRules && typeof state.regexRules === 'object') {
+        Object.values(state.regexRules).forEach(rule => {
+            if (!rule) return;
+            if (rule.scope === 'session' && Array.isArray(rule.sessionIds) && rule.sessionIds.map(String).includes(String(conversationId))) {
+                sessionRegex.push(JSON.parse(JSON.stringify(rule)));
+            }
+        });
+    }
+    convToExport.sessionRegexRules = sessionRegex;
+
     const configString = JSON.stringify(convToExport, null, 2);
     const blob = new Blob([configString], { type: "application/json;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -533,7 +572,7 @@ export async function exportConversation(conversationId) {
 }
 
 /**
- * 导出所有会话到单个JSON文件（完整打包所有会话、备忘录与隐藏总结）
+ * 导出所有会话到单个JSON文件（完整打包所有会话、备忘录与隐藏总结及会话专属正则）
  */
 export async function exportAllConversations() {
     let conversations = {};
@@ -557,12 +596,23 @@ export async function exportAllConversations() {
         return;
     }
 
+    // 提取所有会话级专属正则并打包
+    const sessionRegex = {};
+    if (state.regexRules && typeof state.regexRules === 'object') {
+        Object.entries(state.regexRules).forEach(([id, rule]) => {
+            if (rule && rule.scope === 'session') {
+                sessionRegex[id] = JSON.parse(JSON.stringify(rule));
+            }
+        });
+    }
+
     const conversationsToExport = {
         version: '1.0',
         exportedAt: new Date().toISOString(),
         conversations: conversations,
         worldBook: state.worldBook ? JSON.parse(JSON.stringify(state.worldBook)) : {},
-        hideSummary: state.hideSummary ? JSON.parse(JSON.stringify(state.hideSummary)) : {}
+        hideSummary: state.hideSummary ? JSON.parse(JSON.stringify(state.hideSummary)) : {},
+        sessionRegexRules: sessionRegex
     };
 
     // 记录最新全量备份时间戳
@@ -586,10 +636,10 @@ export async function exportAllConversations() {
  * Imports an app configuration from a JSON string.
  * @param {string} jsonString - The JSON string of the configuration.
  */
-export function importConfig(jsonString) {
+export async function importConfig(jsonString) {
     if (!jsonString) {
         alert('请粘贴配置内容到文本框中。');
-        return;
+        return false;
     }
 
     try {
@@ -611,41 +661,146 @@ export function importConfig(jsonString) {
             throw new Error("无效的配置格式，未找到可导入的配置项。");
         }
 
-        let importCount = 0;
         const now = new Date();
         const timestamp = `-${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}-${now.getHours().toString().padStart(2, '0')}${now.getMinutes().toString().padStart(2, '0')}${now.getSeconds().toString().padStart(2, '0')}`;
 
-        const importItems = (source, target, prefix) => {
-            for (const [, item] of Object.entries(source)) {
-                let newName = item.name;
-                if (Object.values(target).some(existing => existing.name === newName)) {
-                    newName += timestamp;
+        // 冲突预检收集
+        const conflictItems = [];
+        const nonConflictItems = [];
+        const defaultRuleKeys = Object.keys(DEFAULT_REGEX_RULES || {});
+
+        // 1. 扫描 API 端点冲突
+        if (hasApis) {
+            for (const [id, item] of Object.entries(importedConfig.apiEndpoints)) {
+                if (!item) continue;
+                const ruleId = item.id || id;
+                const entry = { key: `api_${ruleId}`, category: 'api', id: ruleId, name: item.name || '未命名API', item, target: state.apiEndpoints, prefix: 'api' };
+                if (state.apiEndpoints && state.apiEndpoints[ruleId]) {
+                    conflictItems.push(entry);
+                } else {
+                    nonConflictItems.push(entry);
                 }
-                const newId = `${prefix}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-                target[newId] = { ...item, id: newId, name: newName };
-                importCount++;
             }
+        }
+
+        // 2. 扫描自定义全局正则冲突（自动剔除系统默认规则）
+        if (hasRegex) {
+            for (const [id, item] of Object.entries(importedConfig.regexRules)) {
+                if (!item) continue;
+                const ruleId = item.id || id;
+                // 系统默认规则直接跳过
+                if (defaultRuleKeys.includes(ruleId)) {
+                    console.log(`[Import Config] 正则规则 ID (${ruleId}) 属于系统默认规则，已自动跳过。`);
+                    continue;
+                }
+                const entry = { key: `regex_${ruleId}`, category: 'regex', id: ruleId, name: item.name || '未命名规则', item, target: state.regexRules, prefix: 'regex' };
+                if (state.regexRules && state.regexRules[ruleId]) {
+                    conflictItems.push(entry);
+                } else {
+                    nonConflictItems.push(entry);
+                }
+            }
+        }
+
+        // 3. 扫描角色预设冲突
+        if (hasPersonas) {
+            for (const [id, item] of Object.entries(importedConfig.personas)) {
+                if (!item) continue;
+                const ruleId = item.id || id;
+                const entry = { key: `persona_${ruleId}`, category: 'persona', id: ruleId, name: item.name || '未命名角色', item, target: state.personas, prefix: 'persona' };
+                if (state.personas && state.personas[ruleId]) {
+                    conflictItems.push(entry);
+                } else {
+                    nonConflictItems.push(entry);
+                }
+            }
+        }
+
+        // 4. 扫描世界书 / 备忘录冲突
+        if (hasWorldBook) {
+            for (const [id, item] of Object.entries(importedConfig.worldBook)) {
+                if (!item) continue;
+                const ruleId = item.id || id;
+                const entry = { key: `wb_${ruleId}`, category: 'worldBook', id: ruleId, name: item.name || '未命名备忘录', item, target: state.worldBook, prefix: 'wb' };
+                if (state.worldBook && state.worldBook[ruleId]) {
+                    conflictItems.push(entry);
+                } else {
+                    nonConflictItems.push(entry);
+                }
+            }
+        }
+
+        // 如果存在冲突项，弹出集中式批量决策面板
+        let decisions = {};
+        if (conflictItems.length > 0) {
+            decisions = await showBatchConflictResolutionDialog(conflictItems);
+            if (decisions === null) {
+                // 用户取消导入
+                return false;
+            }
+        }
+
+        let importCount = 0;
+        let skippedCount = 0;
+
+        // 规整导入项字段（确保正则 rules 的 scope 与 sessionIds 格式标准）
+        const normalizeImportedItem = (entry, newId, newName) => {
+            const base = { ...entry.item, id: newId, name: newName };
+            if (entry.category === 'regex') {
+                base.scope = base.scope || 'global';
+                base.sessionIds = Array.isArray(base.sessionIds) ? base.sessionIds : [];
+            }
+            return base;
         };
 
-        if (hasApis) importItems(importedConfig.apiEndpoints, state.apiEndpoints, 'api');
-        if (hasPersonas) importItems(importedConfig.personas, state.personas, 'persona');
-        if (hasRegex) importItems(importedConfig.regexRules, state.regexRules, 'regex');
-        if (hasWorldBook) importItems(importedConfig.worldBook, state.worldBook, 'wb');
+        // 执行冲突项的写入决策
+        conflictItems.forEach(entry => {
+            const decision = decisions[entry.key] || 'keep_both';
+            if (decision === 'overwrite') {
+                // 覆盖写入现有 ID
+                entry.target[entry.id] = normalizeImportedItem(entry, entry.id, entry.name);
+                importCount++;
+            } else if (decision === 'keep_both') {
+                // 都保留：分配新唯一 ID，重名则追加时间戳
+                let newName = entry.name;
+                if (Object.values(entry.target).some(existing => existing.name === newName)) {
+                    newName += timestamp;
+                }
+                const newId = `${entry.prefix}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                entry.target[newId] = normalizeImportedItem(entry, newId, newName);
+                importCount++;
+            } else {
+                // skip 跳过
+                skippedCount++;
+            }
+        });
 
+        // 执行无冲突项的直接导入（保持原 ID 稳定性）
+        nonConflictItems.forEach(entry => {
+            let newName = entry.name;
+            if (Object.values(entry.target).some(existing => existing.name === newName && existing.id !== entry.id)) {
+                newName += timestamp;
+            }
+            entry.target[entry.id] = normalizeImportedItem(entry, entry.id, newName);
+            importCount++;
+        });
+
+        // 处理快捷提示词
         if (hasQuickPrompts) {
             state.quickPrompts = importedConfig.quickPrompts;
             importCount += importedConfig.quickPrompts.length;
         }
 
+        // 处理 MCP 配置
         if (hasMcpSettings) {
             state.mcpSettings = { ...state.mcpSettings, ...importedConfig.mcpSettings };
             importCount++;
         }
-
         if (importedConfig.mcpCustomTools && typeof importedConfig.mcpCustomTools === 'object') {
             state.mcpCustomTools = { ...state.mcpCustomTools, ...importedConfig.mcpCustomTools };
         }
 
+        // 处理应用设置与外观
         if (importedConfig.appSettings) {
             state.appSettings = { ...state.appSettings, ...importedConfig.appSettings };
             saveAppSettings();
@@ -670,7 +825,8 @@ export function importConfig(jsonString) {
             dom.personaSelector.disabled = false;
         }
 
-        alert(`成功导入 ${importCount} 个项目！`);
+        const skipMsg = skippedCount > 0 ? ` (已跳过 ${skippedCount} 项)` : '';
+        alert(`成功导入 ${importCount} 个项目！${skipMsg}`);
         return true;
 
     } catch (e) {
@@ -694,6 +850,7 @@ export async function importConversations(conversationsToImport, bundleMetadata 
     let importedCount = 0;
     let lastImportedId = null;
     let hasWorldBookUpdated = false;
+    let hasRegexUpdated = false;
     const timestamp = new Date().toISOString();
     const batchSize = 10;
 
@@ -736,6 +893,7 @@ export async function importConversations(conversationsToImport, bundleMetadata 
         // 清理会话中挂载的临时附属属性，保持数据纯净
         delete newConversation.relatedWorldBook;
         delete newConversation.hideSummary;
+        delete newConversation.sessionRegexRules;
 
         // 2. 恢复并映射局部关联的备忘录 (Smart Bundle 联动)
         // A. 从单会话携带的 relatedWorldBook 恢复
@@ -775,11 +933,48 @@ export async function importConversations(conversationsToImport, bundleMetadata 
             });
         }
 
-        // 3. 恢复隐藏与总结配置及历史版本 (hideSummary 联动)
+        // 3. 恢复隐藏与总结配置及历史版本 (hideSummary 联动，自动标准化为 3 种模式数据结构)
         if (conv.hideSummary && typeof conv.hideSummary === 'object') {
-            state.hideSummary[newId] = JSON.parse(JSON.stringify(conv.hideSummary));
+            state.hideSummary[newId] = normalizeHideSummaryConfig(conv.hideSummary);
         } else if (bundleMetadata.hideSummary && bundleMetadata.hideSummary[oldConvId]) {
-            state.hideSummary[newId] = JSON.parse(JSON.stringify(bundleMetadata.hideSummary[oldConvId]));
+            state.hideSummary[newId] = normalizeHideSummaryConfig(bundleMetadata.hideSummary[oldConvId]);
+        }
+
+        // 4. 恢复并映射该会话绑定的专属正则 (sessionRegexRules 联动)
+        const importedRuleSignatures = new Set();
+        // A. 从单会话携带的 sessionRegexRules 恢复
+        if (Array.isArray(conv.sessionRegexRules) && conv.sessionRegexRules.length > 0) {
+            conv.sessionRegexRules.forEach(rule => {
+                if (!rule || !rule.name) return;
+                const sig = `${rule.name}__${rule.find}`;
+                importedRuleSignatures.add(sig);
+                const newRuleId = `regex_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+                state.regexRules[newRuleId] = {
+                    ...JSON.parse(JSON.stringify(rule)),
+                    id: newRuleId,
+                    scope: 'session',
+                    sessionIds: [newId]
+                };
+                hasRegexUpdated = true;
+            });
+        }
+        // B. 从全量 bundleMetadata.sessionRegexRules 中映射旧 ID 到新 ID
+        if (bundleMetadata.sessionRegexRules && typeof bundleMetadata.sessionRegexRules === 'object') {
+            Object.values(bundleMetadata.sessionRegexRules).forEach(rule => {
+                if (rule && Array.isArray(rule.sessionIds) && rule.sessionIds.includes(oldConvId)) {
+                    const sig = `${rule.name}__${rule.find}`;
+                    if (importedRuleSignatures.has(sig)) return; // 避免重复导入
+                    importedRuleSignatures.add(sig);
+                    const newRuleId = `regex_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+                    state.regexRules[newRuleId] = {
+                        ...JSON.parse(JSON.stringify(rule)),
+                        id: newRuleId,
+                        scope: 'session',
+                        sessionIds: [newId]
+                    };
+                    hasRegexUpdated = true;
+                }
+            });
         }
 
         state.conversations[newId] = newConversation;
@@ -796,6 +991,10 @@ export async function importConversations(conversationsToImport, bundleMetadata 
         if (window.updateWorldBookButton) {
             window.updateWorldBookButton();
         }
+    }
+
+    if (hasRegexUpdated) {
+        renderRegexRulesList();
     }
 
     await saveToLocalStorage();
@@ -876,26 +1075,24 @@ export function countTokens(text) {
 }
 
 /**
- * 判断指定楼层在隐藏配置下是否被隐藏（支持离散楼层与传统连续区间）
+/**
+ * 判断指定楼层在隐藏配置下是否被隐藏（支持离散楼层列表）
  * @param {number} floor - 楼层编号 (1-indexed)
  * @param {object} hideConfig - 隐藏配置对象
  * @returns {boolean} 是否被隐藏
  */
 export function isFloorHiddenInConfig(floor, hideConfig) {
-    if (!hideConfig || !hideConfig.enabled) return false;
-    // 1. 优先检查离散多楼层列表 hiddenFloors
+    if (!hideConfig) return false;
+    // 检查离散多楼层列表 hiddenFloors
     if (Array.isArray(hideConfig.hiddenFloors)) {
         return hideConfig.hiddenFloors.includes(floor);
     }
-    // 2. 兼容传统连续区间 start ~ end
-    const start = Number(hideConfig.start) || 1;
-    const end = Number(hideConfig.end) || start;
-    return floor >= start && floor <= end;
+    return false;
 }
 
 /**
  * 判断指定消息在当前配置下是否被隐藏
- * 优先读取消息自身的 hidden 字段；若未显式设置，则回退检查 hideConfig 中的规则
+ * 优先读取消息自身的 hidden 字段；若未显式设置，则回退检查 hideConfig 中的 hiddenFloors 规则
  * @param {object} message - 消息对象
  * @param {number} floor - 楼层编号 (1-indexed)
  * @param {object} hideConfig - 隐藏配置对象
@@ -903,10 +1100,12 @@ export function isFloorHiddenInConfig(floor, hideConfig) {
  */
 export function isMessageHidden(message, floor, hideConfig) {
     // — 为什么这么写 —
-    // 1. 优先以消息对象自身的 hidden 属性为准。
+    // 1. 优先以消息对象自身的 hidden 属性为准（精确到每条消息，支持单楼层/区间隐藏）。
     //    当用户在某一节点重新生成或创建新分支时，新生成的消息对象 hidden 默认为 undefined，
     //    绝不会错误复用/继承旧分支被丢弃节点遗留的隐藏状态。
-    // 2. 若 message.hidden 未定义（如老数据），则回退使用 hideConfig 配置进行向下兼容。
+    // 2. 若 message.hidden 未显式定义为布尔值，则回退检查 hideConfig.hiddenFloors 集合。
+    // 3. 记忆总结注入开关 (hideConfig.enabled) 仅用于控制长期记忆是否注入给大模型上下文，
+    //    绝不作为“是否隐藏楼层”的判定依据，彻底防止开启记忆注入时导致可见楼层误被标记为已隐藏。
     if (message && typeof message.hidden === 'boolean') {
         return message.hidden;
     }
@@ -1125,10 +1324,12 @@ export function calculateConversationStats(conversation, hideSummaryConfig) {
         actualSentEstimatedTokens += item.tokenCount;
     });
 
-    if (hideSummaryConfig && hideSummaryConfig.enabled && hideSummaryConfig.summary && hideSummaryConfig.summary.trim()) {
-        const memoryPrompt = '本条消息属于对历史对话内容的长期记忆总结，你必须阅读后作为上下文参考再进行回答：' + hideSummaryConfig.summary.trim();
-        actualSentCharacters += memoryPrompt.length;
-        actualSentEstimatedTokens += countTokens(memoryPrompt);
+    if (hideSummaryConfig && hideSummaryConfig.enabled) {
+        const memoryPrompt = formatMemoryForApi(hideSummaryConfig);
+        if (memoryPrompt && memoryPrompt.trim()) {
+            actualSentCharacters += memoryPrompt.length;
+            actualSentEstimatedTokens += countTokens(memoryPrompt);
+        }
     }
 
     return {

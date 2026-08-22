@@ -21,5 +21,11 @@ export const regexPatterns = {
   codeBlock: /```[\s\S]*?```/g,
 
   // 乌鸦：新增，用于清理AI返回的、被额外```包裹的“套娃”代码块
-  nestedCodeBlock: /^\s*`{3,}\s*\n(```[\s\S]*?```)\s*\n`{3,}\s*$/
+  nestedCodeBlock: /^\s*`{3,}\s*\n(```[\s\S]*?```)\s*\n`{3,}\s*$/,
+
+  // 模式3（角色扮演双表记忆）：用于匹配与提取 Markdown 表格各行及表头
+  markdownTableRow: /^\|(.+)\|$/gm,
+  markdownTableSeparator: /^\|(?:\s*:?-+:?\s*\|)+$/,
+  eventHistoryHeader: /#{1,4}\s*历史记录表/i,
+  characterInfoHeader: /#{1,4}\s*最新角色信息表/i
 };

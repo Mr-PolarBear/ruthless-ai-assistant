@@ -1,7 +1,8 @@
 import { state } from './state.js?v=260820-1';
 import { getSelectedToolsDescription } from './mcp-tools-selector.js?v=260820-1';
-import { parseRegex } from './regex-engine.js?v=260820-1';
+import { parseRegex, getActiveRegexRules } from './regex-engine.js?v=260820-1';
 import { isFloorHiddenInConfig, isMessageHidden } from './utils.js?v=260820-1';
+import { formatMemoryForApi } from './summary-manager.js?v=260820-1';
 
 /**
  * 处理单条消息的内容，包括文本和附件
@@ -65,8 +66,8 @@ export function processMessageContent(message, index) {
 }
 
 /**
- * 根据隐藏与总结配置过滤消息
- * @param {Array} allMessages - 所有消息
+ * 根据隐藏与总结配置过滤消息，并自适应注入 3 种模式的长期记忆
+ * @param {Array} allMessages - 所有消息数组
  * @param {Object} hideSummaryConfig - 隐藏与总结配置
  * @param {Array} activeBranch - 当前活跃分支
  * @returns {Array} 过滤后的消息数组
@@ -77,18 +78,21 @@ export function filterMessagesByHideSummary(allMessages, hideSummaryConfig, acti
 
     // — 为什么这么写 —
     // 1. 过滤掉所有被标记隐藏的消息（基于每条消息自身 hidden 属性及配置）
-    // 2. 若开启了记忆总结且存在总结文本，直接作为 system 记忆注入到可见消息之前，实现真正的上下文滚动压缩
+    // 2. 若开启了记忆总结，根据当前模式 (递归 / 列表拼接 / 角色扮演双表) 动态生成 system 记忆注入到可见消息之前
     const visibleMessages = allMessages.filter(msg => {
         const originalMsg = activeBranch && activeBranch[msg._idx - 1];
         return !isMessageHidden(originalMsg, msg._idx, hideSummaryConfigLocal);
     });
 
-    if (hideSummaryConfigLocal && hideSummaryConfigLocal.enabled && hideSummaryConfigLocal.summary && hideSummaryConfigLocal.summary.trim()) {
-        const summaryMessage = {
-            role: 'system',
-            content: '本条消息属于对历史对话内容的长期记忆总结，你必须阅读后作为上下文参考再进行回答：' + hideSummaryConfigLocal.summary.trim()
-        };
-        return [summaryMessage, ...visibleMessages];
+    if (hideSummaryConfigLocal && hideSummaryConfigLocal.enabled) {
+        const memoryContent = formatMemoryForApi(hideSummaryConfigLocal);
+        if (memoryContent && memoryContent.trim()) {
+            const summaryMessage = {
+                role: 'system',
+                content: memoryContent.trim()
+            };
+            return [summaryMessage, ...visibleMessages];
+        }
     }
 
     return visibleMessages;
@@ -257,11 +261,12 @@ export function assembleSystemMessages(chatHistoryMessages, currentConv, apiEndp
 /**
  * Applies active regex rules to message content for requests.
  * @param {Array<object>} messages - The array of message objects, which are the final, visible messages.
+ * @param {string} [convId] - 会话ID（默认读取当前会话）
  * @returns {Array<object>} The modified messages array.
  */
-export function applyRequestRegex(messages) {
-    // 乌鸦：获取所有启用的规则
-    const activeRules = Object.values(state.regexRules).filter(rule => rule.enabled);
+export function applyRequestRegex(messages, convId = state.currentConversationId) {
+    // 乌鸦：获取针对当前会话生效的所有启用的规则
+    const activeRules = getActiveRegexRules(convId);
     if (activeRules.length === 0) {
         return messages; // 如果没有启用规则，直接返回原消息数组
     }

@@ -217,6 +217,8 @@ export function initDom() {
 
     // Import/Export elements
     dom.exportConfigBtn = document.getElementById('export-config-btn');
+    dom.exportConfigModal = document.getElementById('export-config-modal');
+    dom.importConflictModal = document.getElementById('import-conflict-modal');
     dom.importConfigTextarea = document.getElementById('import-config-textarea');
     dom.importConfigBtn = document.getElementById('import-config-btn');
     dom.uploadConfigBtn = document.getElementById('upload-config-btn');
@@ -266,7 +268,40 @@ export function initDom() {
     dom.hideSummaryHiddenTokens = document.getElementById('hide-summary-hidden-tokens');
     dom.hideSummaryTotalTokens = document.getElementById('hide-summary-total-tokens');
     dom.hideSummaryHiddenFloorsText = document.getElementById('hide-summary-hidden-floors-text');
+    dom.hideSummaryUnhiddenFloorsRow = document.getElementById('hide-summary-unhidden-floors-row');
+    dom.hideSummaryUnhiddenFloorsText = document.getElementById('hide-summary-unhidden-floors-text');
     dom.hideSummaryEnable = document.getElementById('hide-summary-enable');
+
+    // 记忆模式相关 DOM 引用 (3 种模式)
+    dom.summaryModeTabs = document.getElementById('summary-mode-tabs');
+    dom.summaryModeTabsBtns = document.querySelectorAll('.summary-mode-tab');
+    dom.hideSummaryPromptLabel = document.getElementById('hide-summary-prompt-label');
+    dom.hideSummaryResetPromptBtn = document.getElementById('hide-summary-reset-prompt-btn');
+
+    // 3 种模式对应的内容视图容器
+    dom.summaryModeRecursiveView = document.getElementById('summary-mode-recursive-view');
+    dom.summaryModeAppendView = document.getElementById('summary-mode-append-view');
+    dom.summaryModeTableView = document.getElementById('summary-mode-table-view');
+
+    // 模式 2 (卡片流) DOM 引用
+    dom.summaryAppendCardsList = document.getElementById('summary-append-cards-list');
+    dom.summaryAppendCount = document.getElementById('summary-append-count');
+    dom.summaryAppendAddBtn = document.getElementById('summary-append-add-btn');
+
+    // 模式 3 (双表格) DOM 引用
+    dom.summaryTableSubtabs = document.querySelectorAll('.summary-table-subtab');
+    dom.summaryTableHistoryWrapper = document.getElementById('summary-table-history-wrapper');
+    dom.summaryTableCharacterWrapper = document.getElementById('summary-table-character-wrapper');
+    dom.summaryTableHistoryTbody = document.getElementById('summary-table-history-tbody');
+    dom.summaryTableCharacterTbody = document.getElementById('summary-table-character-tbody');
+    dom.summaryTableAddRowBtn = document.getElementById('summary-table-add-row-btn');
+    dom.summaryTableRawToggleBtn = document.getElementById('summary-table-raw-toggle-btn');
+    dom.summaryTableExpandBtn = document.getElementById('summary-table-expand-btn');
+    dom.summaryTableRowLinesSelect = document.getElementById('summary-table-row-lines-select');
+    dom.summaryTableGridContainer = document.getElementById('summary-table-grid-container');
+    dom.summaryTableRawWrapper = document.getElementById('summary-table-raw-wrapper');
+    dom.summaryTableRawTextarea = document.getElementById('summary-table-raw-textarea');
+
     dom.autoSummaryEnable = document.getElementById('auto-summary-enable');
     dom.autoSummaryOptions = document.getElementById('auto-summary-options');
     dom.autoSummaryTypeFloors = document.getElementById('auto-summary-type-floors');
@@ -488,6 +523,18 @@ export function initDom() {
     dom.exportOptionsGroup = document.getElementById('export-options-group');
     dom.exportConvConfirmBtn = document.getElementById('export-conv-confirm-btn');
     dom.exportConvCancelBtn = document.getElementById('export-conv-cancel-btn');
+
+    // 分叉重发与记忆回滚联动提醒弹窗
+    dom.branchSummaryConfirmModal = document.getElementById('branch-summary-confirm-modal');
+    dom.branchSummaryConfirmCloseBtn = document.getElementById('branch-summary-confirm-close-btn');
+    dom.branchSummaryTargetFloor = document.getElementById('branch-summary-target-floor');
+    dom.branchSummaryCurrentFloor = document.getElementById('branch-summary-current-floor');
+    dom.branchSummaryConfirmDesc = document.getElementById('branch-summary-confirm-desc');
+    dom.branchSummaryRollbackBtn = document.getElementById('branch-summary-rollback-btn');
+    dom.branchSummaryRollbackTitle = document.getElementById('branch-summary-rollback-title');
+    dom.branchSummaryRollbackSubtitle = document.getElementById('branch-summary-rollback-subtitle');
+    dom.branchSummaryKeepBtn = document.getElementById('branch-summary-keep-btn');
+    dom.branchSummaryCancelBtn = document.getElementById('branch-summary-cancel-btn');
 }
 
 

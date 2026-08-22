@@ -4,10 +4,35 @@
  * 乌鸦：这是最终的、借鉴了SillyTavern经验的双引擎正则处理器。
  */
 
-import { state } from './state.js?v=260820-1';
+import { state, DEFAULT_REGEX_RULES } from './state.js?v=260820-1';
 import { regexPatterns } from './regex.js?v=260820-1';
 
 // --- 内部辅助函数 ---
+
+/**
+ * 获取当前会话生效的所有启用的正则规则（系统默认 + 全局启用 + 当前会话专属启用）
+ * @param {string} [currentConvId] - 会话ID（默认读取 state.currentConversationId）
+ * @returns {Array<object>} 生效规则数组
+ */
+export function getActiveRegexRules(currentConvId = state.currentConversationId) {
+    if (!state.regexRules || typeof state.regexRules !== 'object') return [];
+    return Object.values(state.regexRules).filter(rule => {
+        if (!rule || !rule.enabled) return false;
+        // 系统默认规则始终对所有会话生效
+        if (DEFAULT_REGEX_RULES && Object.prototype.hasOwnProperty.call(DEFAULT_REGEX_RULES, rule.id)) {
+            return true;
+        }
+        // 全局规则对所有会话生效
+        if (rule.scope === 'global' || !rule.scope) {
+            return true;
+        }
+        // 会话专属规则仅对绑定了当前会话 ID 的会话生效
+        if (rule.scope === 'session') {
+            return Boolean(currentConvId && Array.isArray(rule.sessionIds) && rule.sessionIds.map(String).includes(String(currentConvId)));
+        }
+        return false;
+    });
+}
 
 /**
  * 乌鸦：新增的智能正则表达式解析器
@@ -43,24 +68,11 @@ function createNodeFromHTML(htmlString) {
 
 export function applyPreMarkdownRules(text, role, messageIndex, totalVisibleMessages) {
     try {
-        // 乌鸦：【重构】thinkTag 规则已由 api.js 层面处理，思考内容渲染到独立区域
-        // 不再将 <think> 标签转换为 <details>，保留注释记录历史变更
-        // const thinkTagRule = {
-        //     find: regexPatterns.thinkTag.source,
-        //     flags: regexPatterns.thinkTag.flags,
-        //     replace: (match, tag, innerContent) => {
-        //         const trimmed = innerContent.trim();
-        //         return trimmed ? `<details class="collapsible">...</details>` : '';
-        //     }
-        // };
-        // let textAfterThinking = text.replace(...);
-        
         // 乌鸦：直接使用原始文本，不处理 thinkTag
         let textAfterThinking = text;
 
         const scope = `display-${role}`;
-        const activeRules = Object.values(state.regexRules).filter(rule =>
-            rule.enabled &&
+        const activeRules = getActiveRegexRules(state.currentConversationId).filter(rule =>
             (rule.stage === 'pre-markdown') &&
             rule.scopes.includes(scope)
         );
@@ -141,8 +153,7 @@ export function applyPreMarkdownRules(text, role, messageIndex, totalVisibleMess
 export function applyPostMarkdownRules(html, role, messageIndex, totalVisibleMessages) {
     try {
         const scope = `display-${role}`;
-        const activeRules = Object.values(state.regexRules).filter(rule =>
-            rule.enabled &&
+        const activeRules = getActiveRegexRules(state.currentConversationId).filter(rule =>
             (!rule.stage || rule.stage === 'post-markdown') &&
             rule.scopes.includes(scope)
         );
