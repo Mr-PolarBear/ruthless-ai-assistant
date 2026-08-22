@@ -3,12 +3,12 @@
  * @description 专职负责修改会话标题的弹窗交互与保存逻辑
  */
 
-import { dom } from '../dom.js?v=260820-1';
-import { state } from '../state.js?v=260820-1';
-import { renderHistory } from '../sidebar.js?v=260820-1';
-import { saveConversation } from '../db.js?v=260820-1';
-import { saveToLocalStorage } from '../utils.js?v=260820-1';
-import { notify } from '../ui-updater.js?v=260820-1';
+import { dom } from '../dom.js?v=260823';
+import { state } from '../state.js?v=260823';
+import { renderHistory } from '../sidebar.js?v=260823';
+import { saveConversation } from '../db.js?v=260823';
+import { saveToLocalStorage } from '../utils.js?v=260823';
+import { notify } from '../ui-updater.js?v=260823';
 
 let currentEditingConvId = null;
 

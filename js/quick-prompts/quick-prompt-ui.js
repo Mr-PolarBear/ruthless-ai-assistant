@@ -3,9 +3,9 @@
  * @description 专职负责快捷提示列表、表单联动与聊天区菜单的渲染与交互
  */
 
-import { dom } from '../dom.js?v=260820-1';
-import { state } from '../state.js?v=260820-1';
-import { escapeHtml } from '../utils.js?v=260820-1';
+import { dom } from '../dom.js?v=260823';
+import { state } from '../state.js?v=260823';
+import { escapeHtml } from '../utils.js?v=260823';
 
 /**
  * 渲染设置弹窗中的快捷提示列表
@@ -159,7 +159,7 @@ export function openQuickPromptManagement() {
         dom.quickPromptMenu.style.display = 'none';
     }
     
-    import('../modals.js?v=260820-1').then(module => {
+    import('../modals.js?v=260823').then(module => {
         module.openSettingsModal();
         setTimeout(() => {
             const quickPromptTab = document.querySelector('[data-tab="quick-prompts-settings"]');

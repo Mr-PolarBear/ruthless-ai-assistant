@@ -3,9 +3,9 @@
  * @description 专职负责用户气泡颜色自定义与气泡最大宽度设置
  */
 
-import { dom } from '../dom.js?v=260820-1';
-import { state } from '../state.js?v=260820-1';
-import { saveAppSettings } from '../utils.js?v=260820-1';
+import { dom } from '../dom.js?v=260823';
+import { state } from '../state.js?v=260823';
+import { saveAppSettings } from '../utils.js?v=260823';
 
 /**
  * 将十六进制颜色转换为稍微加深的暗色（用于生成平滑立体渐变）

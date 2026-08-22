@@ -11,9 +11,9 @@
  * - 通过 initFloorJump() 导出初始化入口
  */
 
-import { state } from './state.js?v=260820-1';
-import { dom } from './dom.js?v=260820-1';
-import { scrollManager } from './scroll-manager.js?v=260820-1';
+import { state } from './state.js?v=260823';
+import { dom } from './dom.js?v=260823';
+import { scrollManager } from './scroll-manager.js?v=260823';
 
 /**
  * 楼层快速跳转管理器

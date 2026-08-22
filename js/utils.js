@@ -3,16 +3,16 @@
  * @description Contains utility and helper functions for various tasks.
  */
 
-import { state, DEFAULT_REGEX_RULES } from './state.js?v=260820-1';
-import { regexPatterns } from './regex.js?v=260820-1';
-import { dom } from './dom.js?v=260820-1';
+import { state, DEFAULT_REGEX_RULES } from './state.js?v=260823';
+import { regexPatterns } from './regex.js?v=260823';
+import { dom } from './dom.js?v=260823';
 // 导入所需的 UI 函数
-import { openSettingsModal, renderApiEndpointsList, renderPersonaModal, renderRegexRulesList, renderWorldBookList } from './modals.js?v=260820-1';
-import { populateApiSelector, populatePersonaSelector } from './renderer.js?v=260820-1';
-import { updateWorldBookButton } from './ui-updater.js?v=260820-1';
-import { saveConversation, getConversation, getAllConversationIds, deleteConversation } from './db.js?v=260820-1';
-import { formatMemoryForApi, normalizeHideSummaryConfig } from './summary-manager.js?v=260820-1';
-import { showBatchConflictResolutionDialog } from './modals/import-conflict-modal.js?v=260820-1';
+import { openSettingsModal, renderApiEndpointsList, renderPersonaModal, renderRegexRulesList, renderWorldBookList } from './modals.js?v=260823';
+import { populateApiSelector, populatePersonaSelector } from './renderer.js?v=260823';
+import { updateWorldBookButton } from './ui-updater.js?v=260823';
+import { saveConversation, getConversation, getAllConversationIds, deleteConversation } from './db.js?v=260823';
+import { formatMemoryForApi, normalizeHideSummaryConfig } from './summary-manager.js?v=260823';
+import { showBatchConflictResolutionDialog } from './modals/import-conflict-modal.js?v=260823';
 
 // --- Utility Functions ---
 
@@ -805,7 +805,7 @@ export async function importConfig(jsonString) {
             state.appSettings = { ...state.appSettings, ...importedConfig.appSettings };
             saveAppSettings();
             // 实时刷新气泡颜色与宽度样式
-            import('./settings/bubble-settings.js?v=260820-1').then(module => {
+            import('./settings/bubble-settings.js?v=260823').then(module => {
                 if (module.applyBubbleCustomStyles) module.applyBubbleCustomStyles();
                 if (module.updateBubbleSettingsUI) module.updateBubbleSettingsUI();
             }).catch(err => console.warn('刷新气泡样式失败:', err));

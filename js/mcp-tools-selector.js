@@ -3,10 +3,10 @@
  * @description MCP工具选择器 - 用户界面交互
  */
 
-import { state } from './state.js?v=260820-1';
-import { dom } from './dom.js?v=260820-1';
-import { DEFAULT_TOOLS } from './mcp-tools-registry.js?v=260820-1';
-import { saveToLocalStorage } from './utils.js?v=260820-1';
+import { state } from './state.js?v=260823';
+import { dom } from './dom.js?v=260823';
+import { DEFAULT_TOOLS } from './mcp-tools-registry.js?v=260823';
+import { saveToLocalStorage } from './utils.js?v=260823';
 
 /**
  * 乌鸦：初始化MCP工具选择器
@@ -369,7 +369,7 @@ function openMCPManagement() {
     hideMCPToolsMenu();
 
     // 乌鸦：打开设置模态框并切换到MCP管理选项卡
-    import('./modals.js?v=260820-1').then(module => {
+    import('./modals.js?v=260823').then(module => {
         module.openSettingsModal();
         // 乌鸦：切换到MCP管理选项卡（需要先创建这个选项卡）
         setTimeout(() => {

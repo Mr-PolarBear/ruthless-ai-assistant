@@ -3,9 +3,9 @@
  * @description MCP核心模块 - 处理工具调用的核心逻辑
  */
 
-import { state } from './state.js?v=260820-1';
-import { MCPToolsRegistry, RISK_LEVELS, DEFAULT_TOOLS } from './mcp-tools-registry.js?v=260820-1';
-import { escapeHtml } from './utils.js?v=260820-1';
+import { state } from './state.js?v=260823';
+import { MCPToolsRegistry, RISK_LEVELS, DEFAULT_TOOLS } from './mcp-tools-registry.js?v=260823';
+import { escapeHtml } from './utils.js?v=260823';
 
 // 乌鸦：初始化工具注册表
 const toolsRegistry = new MCPToolsRegistry();

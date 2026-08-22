@@ -3,12 +3,12 @@
  * @description Handles UI interactions and state management for individual messages.
  */
 
-import {dom} from './dom.js?v=260820-1';
-import {state} from './state.js?v=260820-1';
-import {extractJsonArrayString, copyTextToClipboard, countTokens, escapeHtml} from './utils.js?v=260820-1';
-import {openMessageEditModal} from './modals.js?v=260820-1';
-import {regexPatterns} from './regex.js?v=260820-1';
-import {notify} from './ui-updater.js?v=260820-1';
+import {dom} from './dom.js?v=260823';
+import {state} from './state.js?v=260823';
+import {extractJsonArrayString, copyTextToClipboard, countTokens, escapeHtml} from './utils.js?v=260823';
+import {openMessageEditModal} from './modals.js?v=260823';
+import {regexPatterns} from './regex.js?v=260823';
+import {notify} from './ui-updater.js?v=260823';
 
 // ===== NEW: Copy Menu Logic =====
 
@@ -527,7 +527,7 @@ export async function switchMessageVersion(message, targetIdx, bubbleIndex) {
     message.activeVersionIndex = targetIdx;
     message.content = message.versions[targetIdx].content;
 
-    const { saveConversation } = await import('./db.js?v=260820-1');
+    const { saveConversation } = await import('./db.js?v=260823');
     const conv = state.conversations[state.currentConversationId];
     if (conv) {
         saveConversation(conv.id, conv);
@@ -537,7 +537,7 @@ export async function switchMessageVersion(message, targetIdx, bubbleIndex) {
     if (messageElement) {
         const contentEl = messageElement.querySelector('.message-content');
         if (contentEl) {
-            const { formatMessagePipeline, renderFormattedContent } = await import('./renderer.js?v=260820-1');
+            const { formatMessagePipeline, renderFormattedContent } = await import('./renderer.js?v=260823');
             const formattedHtml = await formatMessagePipeline(message.content, message.role);
             renderFormattedContent(contentEl, formattedHtml);
             addOrUpdateMessageFooter(messageElement, message);

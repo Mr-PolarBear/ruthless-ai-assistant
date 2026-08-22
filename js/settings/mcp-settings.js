@@ -3,9 +3,9 @@
  * @description Handles MCP settings events.
  */
 
-import { state } from '../state.js?v=260820-1';
-import { saveToLocalStorage } from '../utils.js?v=260820-1';
-import { notify } from '../ui-updater.js?v=260820-1';
+import { state } from '../state.js?v=260823';
+import { saveToLocalStorage } from '../utils.js?v=260823';
+import { notify } from '../ui-updater.js?v=260823';
 
 export function setupMCPEvents() {
     const mcpSettingsSaveBtn = document.getElementById('mcp-settings-save-btn');
