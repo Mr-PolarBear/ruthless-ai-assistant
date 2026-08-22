@@ -133,8 +133,8 @@ export function buildSimulatedPayload() {
         if (msg.role === 'system') {
             systemCount++;
             roleClass = 'role-system';
-            if (textContent.includes('长期记忆总结')) {
-                sourceTag = '长期记忆总结';
+            if (textContent.includes('长期记忆总结') || textContent.includes('长期记忆摘要集') || textContent.includes('长期记忆结构化表格')) {
+                sourceTag = '长期记忆注入';
             } else if (state.appSettings && state.appSettings.mergeWorldBook && textContent.includes('---')) {
                 sourceTag = '合并系统上下文 (人设/备忘录/总结)';
             } else if (state.currentPersona && textContent.includes(state.currentPersona.prompt || '___')) {

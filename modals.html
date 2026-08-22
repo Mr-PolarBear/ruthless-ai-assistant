@@ -19,6 +19,34 @@
         </div>
         <div class="modal-body">
             <div id="general-settings" class="tab-content active">
+                <!-- PROJECT_REPO_LINKS_START -->
+                <div class="form-group repo-links-container" style="margin-bottom: 1.25rem; padding: 0.85rem 1rem; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--bg-light);">
+                    <label style="font-weight: 600; margin-bottom: 0.6rem; display: flex; align-items: center; gap: 8px; color: var(--text-primary);">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--primary-color);"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"></path><path d="M9 18c-4.51 2-5-2-7-2"></path></svg>
+                        开源代码仓库
+                    </label>
+                    <div style="display: flex; flex-direction: column; gap: 0.6rem;">
+                        <div class="repo-link-item" style="display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.5rem 0.75rem; background: var(--bg-medium); border: 1px solid var(--border-color); border-radius: var(--radius-sm); flex-wrap: wrap;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem; min-width: 0; flex: 1;">
+                                <span style="font-weight: 500; font-size: 0.9rem; color: var(--text-primary); white-space: nowrap;">GitHub 地址：</span>
+                                <a href="https://github.com/Mr-PolarBear/ruthless-ai-assistant.git" target="_blank" rel="noopener noreferrer" style="color: var(--accent-blue); text-decoration: none; word-break: break-all; font-size: 0.85rem; font-family: var(--font-mono, monospace);">https://github.com/Mr-PolarBear/ruthless-ai-assistant.git</a>
+                            </div>
+                            <div style="display: flex; gap: 0.5rem; flex-shrink: 0;">
+                                <button type="button" class="action-button copy-repo-link-btn" data-url="https://github.com/Mr-PolarBear/ruthless-ai-assistant.git" data-name="GitHub" style="padding: 4px 10px; font-size: 0.8rem;">复制链接</button>
+                            </div>
+                        </div>
+                        <div class="repo-link-item" style="display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.5rem 0.75rem; background: var(--bg-medium); border: 1px solid var(--border-color); border-radius: var(--radius-sm); flex-wrap: wrap;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem; min-width: 0; flex: 1;">
+                                <span style="font-weight: 500; font-size: 0.9rem; color: var(--text-primary); white-space: nowrap;">Gitee 地址：</span>
+                                <a href="https://gitee.com/Mr-PolarBear/ruthless-ai-assistant2026.git" target="_blank" rel="noopener noreferrer" style="color: var(--accent-blue); text-decoration: none; word-break: break-all; font-size: 0.85rem; font-family: var(--font-mono, monospace);">https://gitee.com/Mr-PolarBear/ruthless-ai-assistant2026.git</a>
+                            </div>
+                            <div style="display: flex; gap: 0.5rem; flex-shrink: 0;">
+                                <button type="button" class="action-button copy-repo-link-btn" data-url="https://gitee.com/Mr-PolarBear/ruthless-ai-assistant2026.git" data-name="Gitee" style="padding: 4px 10px; font-size: 0.8rem;">复制链接</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- PROJECT_REPO_LINKS_END -->
                 <div class="form-group-grid-2">
                     <div class="form-group">
                         <label for="user-avatar-input">用户头像</label>
@@ -309,96 +337,129 @@
                 </div>
             </div>
             <div id="regex-settings" class="tab-content">
-                <p class="settings-hint">按规则顺序，对符合作用域的消息进行查找和替换。</p>
-                <div id="regex-rule-list"></div>
-                <div class="modal-section">
-                    <div class="regex-form-container">
-                        <h3 id="regex-form-title">添加/编辑规则</h3>
-                        <input type="hidden" id="regex-id-input">
-                        <div class="form-group">
-                            <label for="regex-name-input">规则名称</label>
-                            <input type="text" id="regex-name-input" placeholder="例如：去除思考过程">
-                        </div>
-                        <div class="form-group">
-                            <label for="regex-find-input">查找内容 (正则表达式)</label>
-                            <textarea id="regex-find-input" rows="3"
-                                placeholder="例如：<(think|thinking)\b[^>]*>[\s\S]*?</\1>"></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label for="regex-replace-input">替换内容</label>
-                            <textarea id="regex-replace-input" rows="2" placeholder="例如：(留空表示删除)"></textarea>
-                        </div>
+                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 0.5rem;">
+                    <p class="settings-hint" style="margin: 0;">按规则顺序，对符合作用域的消息进行查找和替换。</p>
+                    <div class="regex-collapse-controls" style="display: flex; gap: 6px;">
+                        <button type="button" id="regex-collapse-all-btn" class="secondary-button" style="padding: 3px 9px; font-size: 0.8em;">全部折叠</button>
+                        <button type="button" id="regex-expand-all-btn" class="secondary-button" style="padding: 3px 9px; font-size: 0.8em;">全部展开</button>
+                    </div>
+                </div>
+                <div class="regex-settings-layout">
+                    <!-- 左侧：规则列表 -->
+                    <div class="regex-settings-left">
+                        <div id="regex-rule-list"></div>
+                    </div>
+                    <!-- 右侧：规则编辑与新增表单 -->
+                    <div class="regex-settings-right">
+                        <div class="regex-form-container">
+                            <h3 id="regex-form-title">添加/编辑规则</h3>
+                            <div id="regex-default-readonly-hint" style="display: none; padding: 10px 14px; margin-bottom: 14px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.35); border-radius: var(--radius-md); color: #ef4444; font-size: 0.86em; line-height: 1.55; font-weight: 500;">
+                                ⚠️ 系统默认规则不可直接修改。如需定制，请点击左侧列表中对应项的“复制”按钮，将其复制到“自定义全局规则”区进行修改，并在此关闭本默认规则。
+                            </div>
+                            <input type="hidden" id="regex-id-input">
 
-                        <hr class="form-divider">
+                            <div class="form-group" id="regex-scope-type-group">
+                                <label>规则归属 / 生效范围</label>
+                                <div style="display: flex; gap: 16px; margin-top: 6px; align-items: center; flex-wrap: wrap;">
+                                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.9em;">
+                                        <input type="radio" name="regex-scope-type" id="regex-scope-type-global" value="global" checked>
+                                        <span>🌐 全局规则 <small style="color: var(--text-tertiary);">(所有会话通用)</small></span>
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.9em;">
+                                        <input type="radio" name="regex-scope-type" id="regex-scope-type-session" value="session">
+                                        <span>💬 当前会话专属 <small style="color: var(--text-tertiary);">(仅对当前会话生效)</small></span>
+                                    </label>
+                                </div>
+                                <div id="regex-current-session-hint" class="settings-hint" style="margin-top: 5px; font-size: 0.82em; color: var(--accent-blue); display: none;">
+                                    📌 当前绑定会话：<span id="regex-current-session-name" style="font-weight: 600;">未选择会话</span>
+                                </div>
+                            </div>
 
-                        <div class="form-group">
-                            <label for="regex-test-input">测试文本</label>
-                            <textarea id="regex-test-input" rows="4" placeholder="在此输入待测试的文本..."></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label>校验结果</label>
-                            <pre id="regex-test-result" class="regex-test-result-area"></pre>
-                        </div>
+                            <div class="form-group">
+                                <label for="regex-name-input">规则名称</label>
+                                <input type="text" id="regex-name-input" placeholder="例如：去除思考过程">
+                            </div>
+                            <div class="form-group">
+                                <label for="regex-find-input">查找内容 (正则表达式)</label>
+                                <textarea id="regex-find-input" rows="3"
+                                    placeholder="例如：<(think|thinking)\b[^>]*>[\s\S]*?</\1>"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label for="regex-replace-input">替换内容</label>
+                                <textarea id="regex-replace-input" rows="2" placeholder="例如：(留空表示删除)"></textarea>
+                            </div>
 
-                        <hr class="form-divider">
-                        <div class="form-group">
-                            <label>作用域</label>
-                            <div class="form-group-checkbox-grid">
-                                <div class="form-group-checkbox">
-                                    <input type="checkbox" id="regex-scope-req-user" value="request-user">
-                                    <label for="regex-scope-req-user">请求时-用户</label>
-                                </div>
-                                <div class="form-group-checkbox">
-                                    <input type="checkbox" id="regex-scope-req-assistant" value="request-assistant">
-                                    <label for="regex-scope-req-assistant">请求时-AI</label>
-                                </div>
-                                <div class="form-group-checkbox">
-                                    <input type="checkbox" id="regex-scope-display-user" value="display-user">
-                                    <label for="regex-scope-display-user">展示时-用户</label>
-                                </div>
-                                <div class="form-group-checkbox">
-                                    <input type="checkbox" id="regex-scope-display-assistant" value="display-assistant">
-                                    <label for="regex-scope-display-assistant">展示时-AI</label>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="form-group-grid-2">
+                            <hr class="form-divider">
+
                             <div class="form-group">
-                                <label for="regex-stage-select">执行阶段</label>
-                                <select id="regex-stage-select">
-                                    <option value="post-markdown">渲染后 (安全，作用域为"请求时"按排序号进行过滤)</option>
-                                    <option value="pre-markdown">渲染前 (高风险)</option>
-                                </select>
+                                <label for="regex-test-input">测试文本</label>
+                                <textarea id="regex-test-input" rows="3" placeholder="在此输入待测试的文本..."></textarea>
                             </div>
                             <div class="form-group">
-                                <label for="regex-sort-input">排序 (小号优先)</label>
-                                <input type="number" id="regex-sort-input" value="0" placeholder="例如: 0">
+                                <label>校验结果</label>
+                                <pre id="regex-test-result" class="regex-test-result-area"></pre>
                             </div>
-                        </div>
-                        <div class="form-group-grid-2">
+
+                            <hr class="form-divider">
                             <div class="form-group">
-                                <label for="regex-min-floor-input">最小生效楼层 (数量限制)</label>
-                                <input type="number" id="regex-min-floor-input" min="0" placeholder="例: 10 (影响最新的10条)">
+                                <label>作用域</label>
+                                <div class="form-group-checkbox-grid">
+                                    <div class="form-group-checkbox">
+                                        <input type="checkbox" id="regex-scope-req-user" value="request-user">
+                                        <label for="regex-scope-req-user">请求时-用户</label>
+                                    </div>
+                                    <div class="form-group-checkbox">
+                                        <input type="checkbox" id="regex-scope-req-assistant" value="request-assistant">
+                                        <label for="regex-scope-req-assistant">请求时-AI</label>
+                                    </div>
+                                    <div class="form-group-checkbox">
+                                        <input type="checkbox" id="regex-scope-display-user" value="display-user">
+                                        <label for="regex-scope-display-user">展示时-用户</label>
+                                    </div>
+                                    <div class="form-group-checkbox">
+                                        <input type="checkbox" id="regex-scope-display-assistant" value="display-assistant">
+                                        <label for="regex-scope-display-assistant">展示时-AI</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group-grid-2">
+                                <div class="form-group">
+                                    <label for="regex-stage-select">执行阶段</label>
+                                    <select id="regex-stage-select">
+                                        <option value="post-markdown">渲染后 (安全，作用域为"请求时"按排序号进行过滤)</option>
+                                        <option value="pre-markdown">渲染前 (高风险)</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="regex-sort-input">排序 (小号优先)</label>
+                                    <input type="number" id="regex-sort-input" value="0" placeholder="例如: 0">
+                                </div>
+                            </div>
+                            <div class="form-group-grid-2">
+                                <div class="form-group">
+                                    <label for="regex-min-floor-input">最小生效楼层 (数量限制)</label>
+                                    <input type="number" id="regex-min-floor-input" min="0" placeholder="例: 10 (影响最新的10条)">
+                                </div>
+                                <div class="form-group">
+                                    <label for="regex-max-floor-input">最大生效楼层 (起始点)</label>
+                                    <input type="number" id="regex-max-floor-input" min="0" placeholder="例: 5 (从倒数第6条开始)">
+                                </div>
                             </div>
                             <div class="form-group">
-                                <label for="regex-max-floor-input">最大生效楼层 (起始点)</label>
-                                <input type="number" id="regex-max-floor-input" min="0" placeholder="例: 5 (从倒数第6条开始)">
+                                <p id="regex-floor-summary" class="settings-hint"
+                                    style="margin-top: -10px; min-height: 1.2em;"></p>
                             </div>
-                        </div>
-                        <div class="form-group">
-                            <p id="regex-floor-summary" class="settings-hint"
-                                style="margin-top: -10px; min-height: 1.2em;"></p>
-                        </div>
-                        <div class="form-group-toggle">
-                            <label for="regex-enabled-toggle">是否启用</label>
-                            <label class="theme-switch">
-                                <input type="checkbox" id="regex-enabled-toggle" checked>
-                                <span class="slider round"></span>
-                            </label>
-                        </div>
-                        <div class="modal-actions">
-                            <button id="regex-cancel-btn" class="cancel-button" style="display: none;">取消编辑</button>
-                            <button id="regex-save-btn">保存规则</button>
+                            <div class="form-group-toggle">
+                                <label for="regex-enabled-toggle">是否启用</label>
+                                <label class="theme-switch">
+                                    <input type="checkbox" id="regex-enabled-toggle" checked>
+                                    <span class="slider round"></span>
+                                </label>
+                            </div>
+                            <div class="modal-actions">
+                                <button id="regex-cancel-btn" class="cancel-button" style="display: none;">取消编辑</button>
+                                <button id="regex-save-btn">保存规则</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1108,12 +1169,12 @@
 
 <!-- Hide & Summary Modal (Refactored to Conversation Memory & Smart Summary) -->
 <div id="hide-summary-modal" class="modal-overlay" style="display:none;">
-    <div class="modal-content" style="max-width: 520px;">
+    <div class="modal-content" style="max-height: 90vh; display: flex; flex-direction: column;">
         <div class="modal-header">
             <h2>会话记忆与智能总结</h2>
             <button class="modal-close-btn" title="关闭">&times;</button>
         </div>
-        <div class="modal-body">
+        <div class="modal-body" style="flex: 1; overflow-y: auto;">
             <!-- 当前分支 Token 状态概览 -->
             <div id="hide-summary-token-overview" class="hide-summary-token-overview">
                 <span>实际发送: <strong id="hide-summary-actual-tokens">0</strong> Tokens</span>
@@ -1123,17 +1184,33 @@
 
             <!-- 当前已隐藏楼层明细展示 -->
             <div class="hide-summary-floors-banner">
-                <span class="floors-banner-label">当前已隐藏楼层：</span>
-                <strong id="hide-summary-hidden-floors-text" class="floors-banner-value">无隐藏楼层</strong>
+                <div class="floors-banner-main-row">
+                    <span class="floors-banner-label">当前已隐藏楼层：</span>
+                    <strong id="hide-summary-hidden-floors-text" class="floors-banner-value">无隐藏楼层</strong>
+                </div>
+                <div id="hide-summary-unhidden-floors-row" class="floors-banner-unhidden-row" style="display: none;">
+                    <span class="unhidden-row-label">⚠️ 区间内未隐藏：</span>
+                    <div id="hide-summary-unhidden-floors-text" class="unhidden-row-scroll-content"></div>
+                </div>
             </div>
 
             <!-- 记忆总结总开关 -->
-            <div class="form-group-toggle" style="margin-bottom: 12px;">
+            <div class="form-group-toggle hide-summary-enable-row" style="margin-bottom: 10px;">
                 <label for="hide-summary-enable" style="font-weight: 600;">启用记忆总结注入</label>
                 <label class="theme-switch">
                     <input type="checkbox" id="hide-summary-enable">
                     <span class="slider round"></span>
                 </label>
+                <span class="hide-summary-switch-tip">⚠️ 如进行总结方式切换，切记检查隐藏楼层是否正确？如首次总结应该放开所有隐藏楼层，避免遗漏。</span>
+            </div>
+
+            <!-- 记忆模式选择器 (3 种模式) -->
+            <div class="summary-mode-selector-wrapper">
+                <div class="summary-mode-tabs" id="summary-mode-tabs">
+                    <button type="button" class="summary-mode-tab active" data-mode="recursive" title="递归滚动：全量融合，不限字数，每次将前序记忆与新对话合并总结">🔄 递归滚动</button>
+                    <button type="button" class="summary-mode-tab" data-mode="append" title="列表拼接：增量追加，仅提炼新楼层，以卡片流形式不断拼接">📑 列表拼接</button>
+                    <button type="button" class="summary-mode-tab" data-mode="table" title="跑团双表：专为角色扮演设计，维护历史记录表与角色信息表">⚔️ 跑团双表</button>
+                </div>
             </div>
 
             <!-- 自动总结设置面板 -->
@@ -1178,9 +1255,16 @@
                 </div>
             </div>
 
-            <!-- 总结提示词 -->
+            <!-- 总结提示词 (支持每种模式独立定制 + 恢复默认提示词) -->
             <div class="form-group" style="margin-top: 10px;">
-                <label for="hide-summary-prompt" style="font-weight: 600; font-size: 13px;">总结提示词 (不限字数)</label>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                    <label for="hide-summary-prompt" style="font-weight: 600; font-size: 13px; margin: 0;">
+                        <span id="hide-summary-prompt-label">总结提示词 (当前模式专属)</span>
+                    </label>
+                    <button id="hide-summary-reset-prompt-btn" type="button" class="summary-aux-btn" title="恢复当前模式官方默认提示词">
+                        🔄 恢复默认提示词
+                    </button>
+                </div>
                 <textarea id="hide-summary-prompt" rows="3" placeholder="请输入总结提示词..."></textarea>
                 <div id="hide-summary-prompt-char-counter" class="char-counter">0 字</div>
             </div>
@@ -1202,21 +1286,105 @@
                 <button id="hide-summary-start-btn" style="width: 100%;">针对当前可见消息立即总结</button>
             </div>
 
-            <!-- 总结结果展示与编辑 -->
-            <div class="form-group">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                    <label for="hide-summary-result" style="font-weight: 600; font-size: 13px; margin: 0;">当前记忆总结内容</label>
+            <!-- 记忆内容展示与编辑区（根据模式自适应） -->
+            <div class="form-group" style="margin-bottom: 10px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <label style="font-weight: 600; font-size: 13px; margin: 0;">
+                        <span id="summary-content-section-title">当前记忆内容</span>
+                    </label>
                     <button id="hide-summary-history-btn" type="button" class="summary-history-btn" title="查看历史总结版本与回滚">
                         📜 历史版本 (<span id="hide-summary-history-count">0</span>)
                     </button>
                 </div>
-                <textarea id="hide-summary-result" rows="4" placeholder="总结结果将在此显示，也可手动编辑..."></textarea>
-                <div id="hide-summary-result-char-counter" class="char-counter">0 字</div>
+
+                <!-- 模式 1 视图：单段大文本框 (递归滚动记忆) -->
+                <div id="summary-mode-recursive-view" class="summary-mode-view">
+                    <textarea id="hide-summary-result" rows="4" placeholder="总结结果将在此显示，也可手动编辑..."></textarea>
+                    <div id="hide-summary-result-char-counter" class="char-counter">0 字</div>
+                </div>
+
+                <!-- 模式 2 视图：卡片流列表 (列表拼接记忆) -->
+                <div id="summary-mode-append-view" class="summary-mode-view" style="display: none;">
+                    <div class="summary-append-toolbar">
+                        <span style="font-size: 12px; color: var(--text-secondary);">共 <strong id="summary-append-count">0</strong> 个记忆片段 (发送时按序拼接)</span>
+                        <button type="button" id="summary-append-add-btn" class="summary-aux-btn primary">➕ 新增片段</button>
+                    </div>
+                    <div id="summary-append-cards-list" class="summary-append-cards-list">
+                        <div class="summary-append-empty">暂无记忆片段，可点击【立即总结】或手动【新增片段】</div>
+                    </div>
+                </div>
+
+                <!-- 模式 3 视图：角色扮演双表格 (跑团双表记忆) -->
+                <div id="summary-mode-table-view" class="summary-mode-view" style="display: none;">
+                    <div class="summary-table-header-bar">
+                        <div class="summary-table-subtabs">
+                            <button type="button" class="summary-table-subtab active" data-table="history">📜 历史记录表</button>
+                            <button type="button" class="summary-table-subtab" data-table="character">👤 角色信息表</button>
+                        </div>
+                        <div class="summary-table-actions">
+                            <div class="summary-table-row-lines-wrapper" title="设置单元格默认展示行数">
+                                <span class="summary-table-row-lines-label">行高:</span>
+                                <select id="summary-table-row-lines-select" class="summary-table-row-lines-select">
+                                    <option value="1">1 行</option>
+                                    <option value="2">2 行</option>
+                                    <option value="3" selected>3 行</option>
+                                    <option value="4">4 行</option>
+                                    <option value="6">6 行</option>
+                                </select>
+                            </div>
+                            <button type="button" id="summary-table-add-row-btn" class="summary-aux-btn primary">➕ 添加行</button>
+                            <button type="button" id="summary-table-raw-toggle-btn" class="summary-aux-btn" title="切换表格视图与 Markdown 源码">📝 源码模式</button>
+                            <button type="button" id="summary-table-expand-btn" class="summary-aux-btn" title="放大/还原表格编辑窗口">⛶ 放大编辑</button>
+                        </div>
+                    </div>
+
+                    <!-- 可视化表格容器 -->
+                    <div id="summary-table-grid-container" class="summary-table-grid-container">
+                        <!-- 表 1：历史记录表 -->
+                        <div id="summary-table-history-wrapper" class="summary-table-wrapper">
+                            <table class="summary-data-table" id="summary-table-history">
+                                <thead>
+                                    <tr>
+                                        <th>时间</th>
+                                        <th>地点</th>
+                                        <th>涉及角色</th>
+                                        <th>事件</th>
+                                        <th>涉及物品</th>
+                                        <th style="text-align:center;">操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="summary-table-history-tbody"></tbody>
+                            </table>
+                        </div>
+
+                        <!-- 表 2：角色信息表 -->
+                        <div id="summary-table-character-wrapper" class="summary-table-wrapper" style="display: none;">
+                            <table class="summary-data-table" id="summary-table-character">
+                                <thead>
+                                    <tr>
+                                        <th>姓名</th>
+                                        <th>简介</th>
+                                        <th>最新状态说明</th>
+                                        <th>持有关键道具</th>
+                                        <th style="text-align:center;">操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="summary-table-character-tbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Markdown 源码编辑模式 (可自由切入切出) -->
+                    <div id="summary-table-raw-wrapper" style="display: none;">
+                        <textarea id="summary-table-raw-textarea" rows="6" placeholder="### 历史记录表&#10;| 时间 | 地点 | 涉及角色 | 事件 | 涉及物品 |&#10;...&#10;&#10;### 最新角色信息表&#10;| 姓名 | 简介 | 最新状态说明 | 持有关键道具 |&#10;..."></textarea>
+                    </div>
+                </div>
             </div>
 
+            <!-- 操作按钮 -->
             <div class="form-group" style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
-                <button id="hide-summary-save-btn" style="flex: 1;">保存总结记忆</button>
-                <button id="hide-summary-clear-btn" class="cancel-button" style="flex: 1;">清空总结</button>
+                <button id="hide-summary-save-btn" style="flex: 1;">保存记忆配置与内容</button>
+                <button id="hide-summary-clear-btn" class="cancel-button" style="flex: 1;">清空当前记忆</button>
             </div>
 
             <hr style="border: 0.3px solid var(--border-color, #ccc); margin: 12px 0 10px 0;">
@@ -1282,6 +1450,49 @@
                 <button id="summary-rollback-text-only-btn" class="secondary-button" title="仅将总结内容恢复为该版本，保留当前分支现有的楼层隐藏">仅恢复总结文本</button>
                 <button id="summary-rollback-full-btn" class="primary-button" title="将总结内容与当时的楼层隐藏状态一并恢复">同步恢复楼层隐藏与总结</button>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Branch Summary Confirm Modal (分叉重发与记忆回滚联动提醒弹窗) -->
+<div id="branch-summary-confirm-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-content branch-summary-confirm-content" style="max-width: 500px; padding: 18px 20px;">
+        <div class="modal-header" style="margin-bottom: 12px;">
+            <h2 style="font-size: 16px; display: flex; align-items: center; gap: 6px;">
+                <span>⚠️</span> 重发历史对话与记忆联动
+            </h2>
+            <button class="modal-close-btn" id="branch-summary-confirm-close-btn" title="关闭">&times;</button>
+        </div>
+        <div class="modal-body" style="padding: 0;">
+            <div class="branch-summary-notice-box">
+                <p id="branch-summary-confirm-desc" style="font-size: 13px; line-height: 1.6; margin: 0 0 8px 0; color: var(--text-primary);">
+                    检测到您正在从 <strong>第 <span id="branch-summary-target-floor">30</span> 楼</strong> 开始重发。当前记忆库中包含了后续已废弃的剧情内容（于第 <span id="branch-summary-current-floor">40</span> 楼提炼生成）。
+                </p>
+                <p style="font-size: 12px; color: var(--text-secondary); margin: 0;">
+                    为了避免后续废弃剧情对新分支造成干扰，推荐同步恢复当时的记忆状态：
+                </p>
+            </div>
+            
+            <div class="branch-summary-action-list">
+                <button type="button" id="branch-summary-rollback-btn" class="branch-summary-action-card primary-recommend">
+                    <div class="card-icon-wrapper">✨</div>
+                    <div class="card-text-wrapper">
+                        <strong id="branch-summary-rollback-title" class="card-title">一键恢复至匹配历史记忆并重发</strong>
+                        <span id="branch-summary-rollback-subtitle" class="card-subtitle">自动恢复至该楼层时刻的记忆快照，干净无污染</span>
+                    </div>
+                </button>
+
+                <button type="button" id="branch-summary-keep-btn" class="branch-summary-action-card secondary-keep">
+                    <div class="card-icon-wrapper">📦</div>
+                    <div class="card-text-wrapper">
+                        <strong class="card-title">保持当前记忆直接重发</strong>
+                        <span class="card-subtitle">不修改当前记忆内容，直接开启新分支</span>
+                    </div>
+                </button>
+            </div>
+        </div>
+        <div class="modal-actions" style="display: flex; justify-content: flex-end; margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--border-color, #e1e4e8);">
+            <button id="branch-summary-cancel-btn" class="cancel-button" style="padding: 6px 16px;">取消重发</button>
         </div>
     </div>
 </div>
@@ -1597,6 +1808,26 @@
         <div class="modal-body" style="max-height: 65vh; overflow-y: auto;">
             <!-- 更新日志标签内容 -->
             <div id="changelog-content" class="changelog-tab-content active">
+                <!-- v2.9.0 -->
+                <div class="changelog-version">
+                    <div class="changelog-version-header">
+                        <span class="changelog-version-tag">v2.9.0</span>
+                        <span class="changelog-version-date">2026-08-22</span>
+                    </div>
+                    <ul class="changelog-list">
+                        <li class="changelog-item feat">【记忆体系】重构「会话记忆与智能总结」3 种独立记忆模式（🔄递归滚动记忆 / 📑列表拼接卡片流 / ⚔️跑团TRPG结构化双表），支持双向源码与表格视图切换，彻底突破大模型上下文限制；</li>
+                        <li class="changelog-item feat">【自动总结与实时同步】新增后台自动静默总结（按楼层/Token阈值触发），弹窗内置永久流式监听器实现打字机实时展示提炼进度，完成后全景无感刷新；</li>
+                        <li class="changelog-item feat">【多会话状态隔离】后台自动总结与编辑锁定状态实现多会话物理隔离，切换到其他会话不误锁输入框，流式文本 100% 防串台；</li>
+                        <li class="changelog-item feat">【智能区间压缩】当前隐藏楼层横幅升级智能双模算法：全连续自动压缩、大面积隐藏+少量空洞时展开两行式覆盖跨度与未隐藏胶囊横向滚动条、离散多段紧凑合并；</li>
+                        <li class="changelog-item feat">【分叉因果回滚】快照记录最大楼层元数据，分叉重发自动进行智能因果判定并弹出联动回滚确认弹窗，彻底杜绝 AI 携带未来记忆产生因果颠倒幻觉；新增被隐藏消息误重发拦截；</li>
+                        <li class="changelog-item feat">【会话专属正则】全新三段式规则架构：支持创建会话专属正则（仅对当前会话生效）、自定义全局正则与系统内置默认规则，支持全部分组一键折叠/展开；</li>
+                        <li class="changelog-item feat">【跨会话深拷贝复制】规则操作栏复制功能全面升级为二选一决策（复制为全局副本 vs 复制到指定会话），会话选择器默认勾选当前会话并支持批量分发，所有复制均为独立深拷贝；</li>
+                        <li class="changelog-item feat">【系统默认规则保护】内置默认规则支持每次刷新强制同步最新预设，开启只读防护与红色警示提示，禁止直接修改并引导复制到自定义区；</li>
+                        <li class="changelog-item feat">【剧情选项卡片化与智能插入】内置高颜值原色折叠卡片渲染剧情分支选项，点击选项唤起决策弹窗（覆盖输入框 / 追加到底部 / 追加在顶部）；</li>
+                        <li class="changelog-item feat">【导入导出全链路精准分流】单会话导出与全量备份完整打包会话专属正则；导入会话时自动还原并精准映射到新会话；系统全局配置导出严格隔离排除会话专属正则；</li>
+                        <li class="changelog-item feat">【会话克隆同步】侧边栏克隆会话时，自动深拷贝其绑定的所有专属正则给新会话副本。</li>
+                    </ul>
+                </div>
                 <!-- v2.8.6 -->
                 <div class="changelog-version">
                     <div class="changelog-version-header">
@@ -1902,13 +2133,17 @@
                 </div>
             </div>
             <div class="quick-hide-range-bar">
-                <span class="range-label">区间快捷隐藏：</span>
-                <div class="range-controls">
-                    <span>第</span>
-                    <input type="number" id="quick-hide-range-start" min="1" class="quick-hide-range-input" value="1">
-                    <span>至</span>
-                    <input type="number" id="quick-hide-range-end" min="1" class="quick-hide-range-input">
-                    <span>楼</span>
+                <div class="quick-hide-range-row">
+                    <span class="range-label">区间快捷隐藏：</span>
+                    <div class="range-controls">
+                        <span>第</span>
+                        <input type="number" id="quick-hide-range-start" min="1" class="quick-hide-range-input" value="1" placeholder="起始">
+                        <span>至</span>
+                        <input type="number" id="quick-hide-range-end" min="1" class="quick-hide-range-input" placeholder="结束">
+                        <span>楼</span>
+                    </div>
+                </div>
+                <div class="quick-hide-range-action-row">
                     <button id="quick-hide-range-btn" class="quick-hide-range-btn" title="将指定范围内的楼层加入隐藏（不影响已有隐藏楼层）">隐藏此区间</button>
                 </div>
             </div>
@@ -2102,6 +2337,214 @@
         <div class="modal-actions">
             <button id="export-conv-cancel-btn" class="cancel-button modal-close-btn">取消</button>
             <button id="export-conv-confirm-btn">立即导出</button>
+        </div>
+    </div>
+</div>
+
+<!-- 配置导出多选弹窗 -->
+<div id="export-config-modal" class="modal-overlay">
+    <div class="modal-content" style="max-width: 540px; width: 95%;">
+        <div class="modal-header">
+            <h3>导出配置</h3>
+            <button class="modal-close-btn" id="export-config-modal-close-btn">&times;</button>
+        </div>
+        <div class="modal-body" style="padding: 1.25rem 2rem;">
+            <p class="settings-hint" style="margin-bottom: 1rem;">请选择需要导出的配置模块（已默认全选）：</p>
+            
+            <div style="display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 12px;">
+                <button type="button" id="export-config-select-all" class="secondary-button" style="padding: 3px 10px; font-size: 0.82em;">全选</button>
+                <button type="button" id="export-config-deselect-all" class="secondary-button" style="padding: 3px 10px; font-size: 0.82em;">全不选</button>
+            </div>
+
+            <div class="export-config-options-list" style="display: flex; flex-direction: column; gap: 10px;">
+                <label class="export-config-item" style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: var(--radius-md); background: var(--bg-surface); cursor: pointer; border: 1px solid var(--border-color);">
+                    <input type="checkbox" id="export-opt-api" value="apiEndpoints" checked>
+                    <div>
+                        <div style="font-weight: 500;">API 端点设置</div>
+                        <div class="settings-hint" style="margin: 0; font-size: 0.8em;">接口地址、模型名及密钥配置</div>
+                    </div>
+                </label>
+
+                <label class="export-config-item" style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: var(--radius-md); background: var(--bg-surface); cursor: pointer; border: 1px solid var(--border-color);">
+                    <input type="checkbox" id="export-opt-regex" value="regexRules" checked>
+                    <div>
+                        <div style="font-weight: 500;">自定义全局正则规则</div>
+                        <div class="settings-hint" style="margin: 0; font-size: 0.8em;">仅导出自定义规则，自动排除系统默认规则</div>
+                    </div>
+                </label>
+
+                <label class="export-config-item" style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: var(--radius-md); background: var(--bg-surface); cursor: pointer; border: 1px solid var(--border-color);">
+                    <input type="checkbox" id="export-opt-personas" value="personas" checked>
+                    <div>
+                        <div style="font-weight: 500;">角色设定预设</div>
+                        <div class="settings-hint" style="margin: 0; font-size: 0.8em;">自定义系统 Prompt 角色库</div>
+                    </div>
+                </label>
+
+                <label class="export-config-item" style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: var(--radius-md); background: var(--bg-surface); cursor: pointer; border: 1px solid var(--border-color);">
+                    <input type="checkbox" id="export-opt-worldbook" value="worldBook" checked>
+                    <div>
+                        <div style="font-weight: 500;">世界书 / 备忘录</div>
+                        <div class="settings-hint" style="margin: 0; font-size: 0.8em;">全局与局部备忘条目及设定</div>
+                    </div>
+                </label>
+
+                <label class="export-config-item" style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: var(--radius-md); background: var(--bg-surface); cursor: pointer; border: 1px solid var(--border-color);">
+                    <input type="checkbox" id="export-opt-quickprompts" value="quickPrompts" checked>
+                    <div>
+                        <div style="font-weight: 500;">快捷提示词</div>
+                        <div class="settings-hint" style="margin: 0; font-size: 0.8em;">快捷指令、模板与分类</div>
+                    </div>
+                </label>
+
+                <label class="export-config-item" style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: var(--radius-md); background: var(--bg-surface); cursor: pointer; border: 1px solid var(--border-color);">
+                    <input type="checkbox" id="export-opt-mcp" value="mcp" checked>
+                    <div>
+                        <div style="font-weight: 500;">MCP 工具箱与配置</div>
+                        <div class="settings-hint" style="margin: 0; font-size: 0.8em;">MCP全局设置与自定义工具</div>
+                    </div>
+                </label>
+
+                <label class="export-config-item" style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: var(--radius-md); background: var(--bg-surface); cursor: pointer; border: 1px solid var(--border-color);">
+                    <input type="checkbox" id="export-opt-appsettings" value="appSettings" checked>
+                    <div>
+                        <div style="font-weight: 500;">应用外观与模型参数设置</div>
+                        <div class="settings-hint" style="margin: 0; font-size: 0.8em;">主题、气泡、流式与模型默认参数</div>
+                    </div>
+                </label>
+            </div>
+        </div>
+        <div class="modal-actions" style="padding: 1rem 2rem 1.5rem 2rem;">
+            <button id="export-config-cancel-btn" class="cancel-button">取消</button>
+            <button id="export-config-confirm-btn">确认导出</button>
+        </div>
+    </div>
+</div>
+
+<!-- 导入配置冲突批量处理弹窗 -->
+<div id="import-conflict-modal" class="modal-overlay" style="z-index: 2100;">
+    <div class="modal-content" style="max-width: 680px; width: 95%; max-height: 85vh; display: flex; flex-direction: column;">
+        <div class="modal-header">
+            <h3 style="color: var(--accent-orange, #f59e0b); display: flex; align-items: center; gap: 8px;">
+                <span>⚠️ 导入项目冲突</span>
+                <span id="import-conflict-count-badge" class="scope-badge" style="font-size: 0.75em; background: rgba(245, 158, 11, 0.15); color: var(--accent-orange, #f59e0b); font-weight: normal;">共 0 项</span>
+            </h3>
+            <button class="modal-close-btn" id="import-conflict-close-btn">&times;</button>
+        </div>
+        
+        <!-- 批量快捷操作栏 -->
+        <div style="padding: 10px 2rem; background: var(--bg-surface); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+            <span class="settings-hint" style="margin: 0; font-size: 0.85em;">以下导入项与本地现有条目 ID 重复，请指定处理策略：</span>
+            <div style="display: flex; gap: 6px;">
+                <button type="button" id="import-conflict-batch-overwrite" class="secondary-button" style="padding: 3px 9px; font-size: 0.8em;">全部覆盖</button>
+                <button type="button" id="import-conflict-batch-keep" class="secondary-button" style="padding: 3px 9px; font-size: 0.8em;">全部都保留</button>
+                <button type="button" id="import-conflict-batch-skip" class="secondary-button" style="padding: 3px 9px; font-size: 0.8em;">全部跳过</button>
+            </div>
+        </div>
+
+        <div class="modal-body" style="padding: 1rem 2rem; overflow-y: auto; flex: 1;">
+            <div id="import-conflict-items-container" class="import-conflict-list" style="display: flex; flex-direction: column; gap: 10px;">
+                <!-- 动态填充各冲突项 -->
+            </div>
+        </div>
+
+        <div class="modal-actions" style="padding: 0.85rem 2rem; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 10px;">
+            <button id="import-conflict-cancel-btn" class="cancel-button">取消导入</button>
+            <button id="import-conflict-confirm-btn">确认执行导入</button>
+        </div>
+    </div>
+</div>
+
+<!-- 剧情选项点击插入模式决策弹窗 -->
+<div id="choice-insert-action-modal" class="modal-overlay" style="z-index: 2200; display: none;">
+    <div class="modal-content" style="max-width: 440px; width: 90%; border-radius: var(--radius-lg); box-shadow: var(--shadow-lg);">
+        <div class="modal-header" style="padding: 1rem 1.25rem 0.5rem 1.25rem;">
+            <h3 style="display: flex; align-items: center; gap: 8px; font-size: 1.05em; color: var(--accent-blue);">
+                <span>⚡ 插入剧情选项到输入框</span>
+            </h3>
+            <button class="modal-close-btn" id="choice-insert-close-btn">&times;</button>
+        </div>
+        <div class="modal-body" style="padding: 0.75rem 1.25rem 1.25rem 1.25rem;">
+            <div id="choice-insert-preview" style="padding: 8px 12px; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-sm); font-size: 0.88em; color: var(--text-secondary); max-height: 80px; overflow-y: auto; line-height: 1.5; margin-bottom: 1rem;"></div>
+            <p class="settings-hint" style="margin-bottom: 8px; font-size: 0.82em;">请选择插入方式：</p>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                <button type="button" id="choice-act-replace" class="action-sheet-btn primary">
+                    <span class="btn-icon">📝</span>
+                    <span class="btn-text"><strong>覆盖输入框</strong> <small style="opacity:0.75; font-weight:normal;">(清空现有内容并填入)</small></span>
+                </button>
+                <button type="button" id="choice-act-append-bottom" class="action-sheet-btn">
+                    <span class="btn-icon">⬇️</span>
+                    <span class="btn-text"><strong>追加到底部</strong> <small style="opacity:0.75; font-weight:normal;">(新起一行拼在末尾)</small></span>
+                </button>
+                <button type="button" id="choice-act-append-top" class="action-sheet-btn">
+                    <span class="btn-icon">⬆️</span>
+                    <span class="btn-text"><strong>追加在顶部</strong> <small style="opacity:0.75; font-weight:normal;">(新起一行插在最前)</small></span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 全局规则复制分流选择弹窗 -->
+<div id="regex-copy-choice-modal" class="modal-overlay" style="z-index: 2210; display: none;">
+    <div class="modal-content" style="max-width: 420px; width: 90%; border-radius: var(--radius-lg); box-shadow: var(--shadow-lg);">
+        <div class="modal-header" style="padding: 1rem 1.25rem 0.5rem 1.25rem;">
+            <h3 style="display: flex; align-items: center; gap: 8px; font-size: 1.05em; color: var(--accent-blue);">
+                <span>📋 复制正则表达式</span>
+            </h3>
+            <button class="modal-close-btn" id="regex-copy-choice-close-btn">&times;</button>
+        </div>
+        <div class="modal-body" style="padding: 0.75rem 1.25rem 1.25rem 1.25rem;">
+            <div id="regex-copy-choice-rule-name" style="padding: 8px 12px; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-sm); font-size: 0.9em; font-weight: 600; color: var(--text-primary); margin-bottom: 1rem;"></div>
+            <p class="settings-hint" style="margin-bottom: 8px; font-size: 0.84em;">请选择复制目标：</p>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                <button type="button" id="regex-copy-choice-global-btn" class="action-sheet-btn primary">
+                    <span class="btn-icon">🌐</span>
+                    <span class="btn-text"><strong>复制为【全局规则副本】</strong> <small style="opacity:0.75; font-weight:normal;">(在全局规则区新建一条)</small></span>
+                </button>
+                <button type="button" id="regex-copy-choice-session-btn" class="action-sheet-btn">
+                    <span class="btn-icon">💬</span>
+                    <span class="btn-text"><strong>复制到【指定会话】</strong> <small style="opacity:0.75; font-weight:normal;">(选择会话并挂载为专属正则)</small></span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 复制正则到指定会话弹窗 -->
+<div id="regex-copy-to-session-modal" class="modal-overlay" style="z-index: 2220; display: none;">
+    <div class="modal-content" style="max-width: 520px; width: 92%; max-height: 80vh; display: flex; flex-direction: column; border-radius: var(--radius-lg); box-shadow: var(--shadow-lg);">
+        <div class="modal-header" style="padding: 1rem 1.5rem 0.6rem 1.5rem;">
+            <h3 style="display: flex; align-items: center; gap: 8px; font-size: 1.1em; color: var(--accent-blue);">
+                <span>🚀 复制规则到指定会话</span>
+            </h3>
+            <button class="modal-close-btn" id="regex-copy-session-close-btn">&times;</button>
+        </div>
+        
+        <!-- 搜索与快捷工具栏 -->
+        <div style="padding: 0.5rem 1.5rem; background: var(--bg-surface); border-bottom: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px;">
+            <div id="regex-copy-session-rule-info" style="font-size: 0.88em; color: var(--text-secondary);">
+                待复制规则：<strong id="regex-copy-session-target-name" style="color: var(--text-primary);">--</strong>
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <input type="text" id="regex-copy-session-search" placeholder="搜索会话名称..." style="flex: 1; padding: 6px 10px; font-size: 0.85em; border: 1px solid var(--border-color); border-radius: var(--radius-sm); background: var(--bg-surface); color: var(--text-primary);">
+                <button type="button" id="regex-copy-session-select-all" class="secondary-button" style="padding: 5px 9px; font-size: 0.8em; white-space: nowrap;">全选</button>
+                <button type="button" id="regex-copy-session-clear-all" class="secondary-button" style="padding: 5px 9px; font-size: 0.8em; white-space: nowrap;">清空</button>
+            </div>
+        </div>
+
+        <div class="modal-body" style="padding: 1rem 1.5rem; overflow-y: auto; flex: 1;">
+            <div id="regex-copy-session-list" style="display: flex; flex-direction: column; gap: 6px;">
+                <!-- 动态填充会话复选框列表 -->
+            </div>
+        </div>
+
+        <div class="modal-actions" style="padding: 0.85rem 1.5rem; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+            <span id="regex-copy-session-selected-count" style="font-size: 0.85em; color: var(--text-secondary);">已选择 0 个会话</span>
+            <div style="display: flex; gap: 8px;">
+                <button id="regex-copy-session-cancel-btn" class="cancel-button">取消</button>
+                <button id="regex-copy-session-confirm-btn" class="primary-button">确认复制</button>
+            </div>
         </div>
     </div>
 </div>

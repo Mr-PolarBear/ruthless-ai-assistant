@@ -7,6 +7,7 @@ import { dom, toggleMessageActions } from './dom.js?v=260820-1';
 import { state } from './state.js?v=260820-1';
 import { renderHistory } from './sidebar.js?v=260820-1'; // 乌鸦：导入会话历史渲染函数
 import { calculateConversationStats } from './utils.js?v=260820-1';
+import { renderRegexRulesList } from './ui-populator.js?v=260820-1';
 
 /**
  * Toggles the send button's appearance and state (send/stop).
@@ -31,9 +32,10 @@ export function updateSummaryEditorLockState() {
 
     const isChatGenerating = dom.sendButton && dom.sendButton.classList.contains('stop');
     const isSummaryGenerating = dom.hideSummaryStartBtn && dom.hideSummaryStartBtn.dataset.summarizing === '1';
-    const isAutoSummarizing = !!state.isAutoSummarizing;
+    // 仅当自动总结属于当前正处于活动状态的会话时才锁定当前编辑框
+    const isAutoSummarizingCurrentConv = !!state.isAutoSummarizing && (state.autoSummarizingConvId === state.currentConversationId);
 
-    const shouldLock = isChatGenerating || isSummaryGenerating || isAutoSummarizing;
+    const shouldLock = isChatGenerating || isSummaryGenerating || isAutoSummarizingCurrentConv;
 
     if (shouldLock) {
         dom.hideSummaryResult.readOnly = true;
@@ -86,6 +88,9 @@ export function updateAllDynamicUI() {
     updateHideSummaryBtnColor();
     updateSessionTokenBadge(); // 乌鸦：同步刷新当前会话总 Token 数徽章
     updateInputPlaceholder(); // 乌鸦：根据当前发送快捷键设置同步输入框占位提示
+    if (dom.regexRuleList) {
+        renderRegexRulesList(); // 乌鸦：同步刷新当前会话专属正则列表
+    }
     renderHistory(); // 乌鸦：最后刷新会话列表，确保spinner状态正确
 }
 
@@ -204,10 +209,25 @@ export function updateHideSummaryBtnColor() {
     if (convId && state.hideSummary && state.hideSummary[convId]) {
         const summaryConfig = state.hideSummary[convId];
         // — 为什么这么写 —
-        // 只有当该会话确实开启了记忆总结且存在有效总结文本，或者确实存在被标记隐藏的楼层时，
+        // 只有当该会话确实开启了记忆总结且对应模式存在有效记忆内容（递归文本/卡片列表/双表格），或者确实存在被标记隐藏的楼层时，
         // 顶栏总结按钮才高亮激活为绿色。绝不能在未开启或内容全为空的会话中误激活，彻底杜绝串台视觉误导。
-        const hasSummaryContent = !!(summaryConfig.enabled && summaryConfig.summary && summaryConfig.summary.trim());
-        const hasHiddenFloors = !!(summaryConfig.enabled && Array.isArray(summaryConfig.hiddenFloors) && summaryConfig.hiddenFloors.length > 0);
+        const mode = summaryConfig.memoryMode || 'recursive';
+        let hasMemoryData = false;
+        if (mode === 'recursive') {
+            hasMemoryData = !!(summaryConfig.summary && summaryConfig.summary.trim());
+        } else if (mode === 'append') {
+            hasMemoryData = !!(Array.isArray(summaryConfig.summaryList) && summaryConfig.summaryList.length > 0);
+        } else if (mode === 'table') {
+            const evts = summaryConfig.tableData?.eventHistory;
+            const chars = summaryConfig.tableData?.characterInfo;
+            hasMemoryData = (Array.isArray(evts) && evts.length > 0) || (Array.isArray(chars) && chars.length > 0);
+        }
+
+        const conv = state.conversations[convId];
+        const activeBranch = conv && conv.branches ? conv.branches[conv.activeBranchIndex] : [];
+        const hasHiddenFloorsInBranch = !!(activeBranch && activeBranch.some(m => m.hidden));
+        const hasSummaryContent = !!(summaryConfig.enabled && hasMemoryData);
+        const hasHiddenFloors = (Array.isArray(summaryConfig.hiddenFloors) && summaryConfig.hiddenFloors.length > 0) || hasHiddenFloorsInBranch;
         if (hasSummaryContent || hasHiddenFloors) {
             isHideEnabled = true;
         }
@@ -221,6 +241,19 @@ export function updateHideSummaryBtnColor() {
         dom.hideSummaryBtn.classList.add('active-hide-summary');
     } else {
         dom.hideSummaryBtn.classList.remove('active-hide-summary');
+    }
+
+    // 检查是否正在进行后台自动总结或手动总结（仅当总结归属于当前驻留会话时才转圈）
+    const isAutoSummarizingCurrent = !!(state.isAutoSummarizing && state.autoSummarizingConvId === convId);
+    const isManualSummarizingCurrent = !!(window._hideSummaryAbort && state.currentConversationId === convId);
+    const isSpinning = isAutoSummarizingCurrent || isManualSummarizingCurrent;
+
+    if (isSpinning) {
+        dom.hideSummaryBtn.classList.add('summarizing-spinning');
+        dom.hideSummaryBtn.setAttribute('title', '🔄 正在进行记忆总结中...');
+    } else {
+        dom.hideSummaryBtn.classList.remove('summarizing-spinning');
+        dom.hideSummaryBtn.setAttribute('title', '隐藏与总结');
     }
 
     // 乌鸦：更新隐藏/总结按钮上的发送限制楼层数角标

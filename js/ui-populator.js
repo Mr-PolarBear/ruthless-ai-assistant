@@ -138,16 +138,33 @@ export function renderPersonaModal() {
 }
 
 export function renderRegexRulesList() {
+    if (!dom.regexRuleList) return;
+
+    // 保留当前各分组的折叠状态
+    const prevDefaultDetails = dom.regexRuleList.querySelector('#regex-default-group');
+    const prevCustomDetails = dom.regexRuleList.querySelector('#regex-custom-group');
+    const prevSessionDetails = dom.regexRuleList.querySelector('#regex-session-group');
+    const isDefaultOpen = prevDefaultDetails ? prevDefaultDetails.open : true;
+    const isCustomOpen = prevCustomDetails ? prevCustomDetails.open : true;
+    const isSessionOpen = prevSessionDetails ? prevSessionDetails.open : true;
+
     dom.regexRuleList.innerHTML = '';
     const allRules = Object.values(state.regexRules).sort((a, b) => (a.sort || 0) - (b.sort || 0));
     const defaultRuleKeys = Object.keys(DEFAULT_REGEX_RULES);
+    const currentConvId = state.currentConversationId;
+    const currentConv = currentConvId ? state.conversations[currentConvId] : null;
+    const currentConvTitle = currentConv ? (currentConv.title || '当前会话') : '未选择会话';
 
+    // 1. 系统默认规则
     const defaultRules = allRules.filter(rule => defaultRuleKeys.includes(rule.id));
-    const customRules = allRules.filter(rule => !defaultRuleKeys.includes(rule.id));
-
-    let html = '';
+    // 2. 自定义全局规则 (scope === 'global' 或未设置)
+    const customGlobalRules = allRules.filter(rule => !defaultRuleKeys.includes(rule.id) && (rule.scope === 'global' || !rule.scope));
+    // 3. 当前会话专属规则 (scope === 'session' 且关联了当前会话)
+    const currentSessionRules = allRules.filter(rule => !defaultRuleKeys.includes(rule.id) && rule.scope === 'session' && Array.isArray(rule.sessionIds) && rule.sessionIds.map(String).includes(String(currentConvId)));
 
     const renderRule = (rule) => {
+        const isDefaultRule = defaultRuleKeys.includes(rule.id);
+        const isSessionRule = rule.scope === 'session';
         const scopeTranslations = {
             'request-user': '请求-用户',
             'request-assistant': '请求-AI',
@@ -162,6 +179,9 @@ export function renderRegexRulesList() {
         const scopesHTML = rule.scopes.map(scope => `<span class="scope-badge">${scopeTranslations[scope] || scope}</span>`).join('');
         const stageHTML = `<span class="scope-badge stage-badge-${rule.stage || 'post-markdown'}">${stageTranslations[rule.stage || 'post-markdown']}</span>`;
         const sortHTML = `<span class="scope-badge sort-badge">排序: ${rule.sort || 0}</span>`;
+        const scopeTypeBadge = isSessionRule 
+            ? `<span class="scope-badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3);">💬 会话专属</span>` 
+            : (isDefaultRule ? '' : `<span class="scope-badge" style="background: rgba(59, 130, 246, 0.12); color: var(--accent-blue);">🌐 全局</span>`);
 
         const checkedAttribute = rule.enabled ? 'checked' : '';
         const ruleNameDiv = document.createElement('div');
@@ -172,45 +192,91 @@ export function renderRegexRulesList() {
         rulePatternDiv.className = 'regex-rule-item-pattern';
         rulePatternDiv.textContent = `查找: ${rule.find}`;
 
+        // 系统默认规则禁止删除：仅对自定义规则渲染删除按钮
+        const deleteButtonHTML = isDefaultRule ? '' : `
+            <button class="action-btn delete regex-delete-btn" data-id="${rule.id}" title="删除">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+            </button>
+        `;
+
         return `
-            <div class="regex-rule-item" draggable="true">
+            <div class="regex-rule-item" draggable="${!isDefaultRule}">
                 <div class="regex-rule-item-details">
                     ${ruleNameDiv.outerHTML}
                     ${rulePatternDiv.outerHTML}
-                    <div class="scope-badges">${sortHTML}${stageHTML}${scopesHTML}</div>
+                    <div class="scope-badges">${scopeTypeBadge}${sortHTML}${stageHTML}${scopesHTML}</div>
                 </div>
                 <div class="regex-rule-item-actions action-btn-group">
                     <label class="theme-switch small regex-toggle-switch" title="启用/禁用" style="margin-top: 5px;">
                         <input type="checkbox" data-id="${rule.id}" ${checkedAttribute}>
                         <span class="slider round"></span>
                     </label>
-                    <button class="action-btn edit regex-edit-btn" data-id="${rule.id}" title="编辑">
+                    <button class="action-btn edit regex-edit-btn" data-id="${rule.id}" title="${isDefaultRule ? '查看规则' : '编辑'}">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                     </button>
-                    <button class="action-btn copy regex-copy-btn" data-id="${rule.id}" title="复制表达式">
+                    <button class="action-btn copy regex-copy-btn" data-id="${rule.id}" title="复制规则">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
                     </button>
-                    <button class="action-btn delete regex-delete-btn" data-id="${rule.id}" title="删除">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-                    </button>
+                    ${deleteButtonHTML}
                 </div>
             </div>
         `;
     };
 
-    html += '<div class="regex-rule-header">系统默认规则</div>';
-    if (defaultRules.length > 0) {
-        html += defaultRules.map(renderRule).join('');
-    } else {
-        html += `<div class="regex-rule-empty-message">无</div>`;
-    }
+    const defaultContentHTML = defaultRules.length > 0
+        ? defaultRules.map(renderRule).join('')
+        : `<div class="regex-rule-empty-message">无系统默认规则</div>`;
 
-    html += '<div class="regex-rule-header">自定义规则<span class="drag-sort-hint">当前列表支持拖拽排序</span></div>';
-    if (customRules.length > 0) {
-        html += customRules.map(renderRule).join('');
-    } else {
-        html += `<div class="regex-rule-empty-message">无</div>`;
-    }
+    const customGlobalContentHTML = customGlobalRules.length > 0
+        ? customGlobalRules.map(renderRule).join('')
+        : `<div class="regex-rule-empty-message">无自定义全局规则</div>`;
 
-    dom.regexRuleList.innerHTML = html;
+    const currentSessionContentHTML = currentConvId
+        ? (currentSessionRules.length > 0 
+            ? currentSessionRules.map(renderRule).join('') 
+            : `<div class="regex-rule-empty-message">当前会话暂无专属正则规则，可新建并归属于此会话</div>`)
+        : `<div class="regex-rule-empty-message">未选择任何会话</div>`;
+
+    dom.regexRuleList.innerHTML = `
+        <details id="regex-default-group" class="regex-group-details" ${isDefaultOpen ? 'open' : ''}>
+            <summary class="regex-rule-header">
+                <div class="regex-header-title">
+                    <span class="regex-collapse-icon">▼</span>
+                    <span>系统默认规则</span>
+                    <span class="regex-count-badge">${defaultRules.length}</span>
+                </div>
+            </summary>
+            <div class="regex-group-content">
+                ${defaultContentHTML}
+            </div>
+        </details>
+
+        <details id="regex-custom-group" class="regex-group-details" ${isCustomOpen ? 'open' : ''}>
+            <summary class="regex-rule-header">
+                <div class="regex-header-title">
+                    <span class="regex-collapse-icon">▼</span>
+                    <span>自定义全局规则</span>
+                    <span class="regex-count-badge">${customGlobalRules.length}</span>
+                </div>
+                <span class="drag-sort-hint">支持拖拽排序</span>
+            </summary>
+            <div class="regex-group-content">
+                ${customGlobalContentHTML}
+            </div>
+        </details>
+
+        <details id="regex-session-group" class="regex-group-details" ${isSessionOpen ? 'open' : ''}>
+            <summary class="regex-rule-header" style="border-left-color: #10b981;">
+                <div class="regex-header-title">
+                    <span class="regex-collapse-icon">▼</span>
+                    <span>当前会话专属规则</span>
+                    <span class="session-name-tag" style="font-size: 0.78em; color: #10b981; background: rgba(16, 185, 129, 0.12); padding: 1px 7px; border-radius: 4px; font-weight: normal; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">[${currentConvTitle}]</span>
+                    <span class="regex-count-badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981;">${currentSessionRules.length}</span>
+                </div>
+            </summary>
+            <div class="regex-group-content">
+                ${currentSessionContentHTML}
+            </div>
+        </details>
+    `;
 }

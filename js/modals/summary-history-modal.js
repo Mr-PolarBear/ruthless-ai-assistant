@@ -5,6 +5,7 @@ import { notify } from '../ui-updater.js?v=260820-1';
 import { saveConversation } from '../db.js?v=260820-1';
 import { getHideSummaryForConversation, setHideSummaryForConversation, getHideSummaryForCurrentConversation, setHideSummaryForCurrentConversation } from '../main.js?v=260820-1';
 import { renderChatMessages } from '../renderer.js?v=260820-1';
+import { formatHiddenFloorsBannerInfo } from '../summary-manager.js?v=260820-1';
 
 let pendingRollbackVersion = null;
 
@@ -21,21 +22,13 @@ export function updateHideSummaryHistoryCount() {
 }
 
 /**
- * 格式化隐藏楼层为友好展示文本
+ * 格式化隐藏楼层为友好展示文本 (复用智能区间压缩算法)
  * @param {number[]} floors - 楼层数组
  * @returns {string} 友好文本
  */
 function formatHiddenFloorsText(floors) {
-    if (!Array.isArray(floors) || floors.length === 0) {
-        return '全部可见 (无隐藏)';
-    }
-    const sorted = [...floors].sort((a, b) => a - b);
-    const min = sorted[0];
-    const max = sorted[sorted.length - 1];
-    if (min === max) {
-        return `第 ${min} 楼 (共 1 楼)`;
-    }
-    return `第 ${min} ~ ${max} 楼 (共 ${sorted.length} 楼)`;
+    const info = formatHiddenFloorsBannerInfo(floors);
+    return info.mainText;
 }
 
 /**
@@ -63,11 +56,12 @@ export function renderSummaryHistoryList() {
         const sourceName = item.source || '手动保存';
         const summaryText = item.summary || '';
         const isLongText = summaryText.length > 80 || summaryText.includes('\n');
+        const modeName = item.mode === 'append' ? '📑 列表拼接' : (item.mode === 'table' ? '⚔️ 跑团双表' : '🔄 递归滚动');
 
         itemEl.innerHTML = `
             <div class="summary-history-item-header">
                 <span class="summary-history-time">⏱️ ${escapeHtml(item.time || '未知时间')}</span>
-                <span class="summary-history-source-badge">${escapeHtml(sourceName)} · ${item.charCount || summaryText.length} 字</span>
+                <span class="summary-history-source-badge">${escapeHtml(modeName)} · ${escapeHtml(sourceName)} · ${item.charCount || summaryText.length} 字</span>
             </div>
             <div class="summary-history-floors-tag">
                 <span>📌 当时隐藏楼层:</span>
@@ -77,7 +71,7 @@ export function renderSummaryHistoryList() {
             <div class="summary-history-preview-footer">
                 ${isLongText ? `<button type="button" class="summary-history-toggle-btn" data-index="${index}">👁️ 查看全部</button>` : '<span></span>'}
                 <div class="summary-history-item-actions">
-                    <button type="button" class="summary-history-copy-btn" data-index="${index}" title="复制此版本总结全文">📋 复制</button>
+                    <button type="button" class="summary-history-copy-btn" data-index="${index}" title="复制此版本记忆全文">📋 复制</button>
                     <button type="button" class="summary-history-rollback-btn" data-index="${index}">🔄 回滚</button>
                     <button type="button" class="summary-history-delete-btn" data-index="${index}">🗑️ 删除</button>
                 </div>
@@ -222,24 +216,38 @@ async function executeRollback(restoreFloors) {
         if (window.updateSessionTokenBadge) window.updateSessionTokenBadge();
     }
 
-    // 2. 恢复总结输入框文本与配置
+    // 2. 恢复模式与对应记忆数据结构
+    if (version.mode) {
+        config.memoryMode = version.mode;
+    }
     config.summary = version.summary || '';
+    if (version.summaryList) {
+        config.summaryList = JSON.parse(JSON.stringify(version.summaryList));
+    }
+    if (version.tableData) {
+        config.tableData = JSON.parse(JSON.stringify(version.tableData));
+    }
+
     setHideSummaryForConversation(convId, config);
     await saveToLocalStorage();
 
     if (convId === state.currentConversationId) {
-        if (dom.hideSummaryResult) {
+        if (window.updateHideSummaryBtnColor) window.updateHideSummaryBtnColor();
+        if (window.updateSessionTokenBadge) window.updateSessionTokenBadge();
+        if (window.refreshHideSummaryModalViews) {
+            window.refreshHideSummaryModalViews();
+        } else if (dom.hideSummaryResult) {
             dom.hideSummaryResult.value = config.summary;
-        }
-        if (dom.hideSummaryResultCharCounter) {
-            dom.hideSummaryResultCharCounter.textContent = `${config.summary.length} 字`;
+            if (dom.hideSummaryResultCharCounter) {
+                dom.hideSummaryResultCharCounter.textContent = `${config.summary.length} 字`;
+            }
         }
     }
 
     closeSummaryRollbackConfirmModal();
     closeSummaryHistoryModal();
 
-    notify.success(restoreFloors ? '已同步恢复历史总结与隐藏楼层状态' : '已恢复历史总结内容 (楼层状态保持不变)');
+    notify.success(restoreFloors ? '已同步恢复历史记忆与隐藏楼层状态' : '已恢复历史记忆内容 (楼层状态保持不变)');
 }
 
 /**

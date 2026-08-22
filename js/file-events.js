@@ -21,6 +21,8 @@ import { renderHistory } from './sidebar.js?v=260820-1';
 import { isDocumentFile, parseDocumentFile, getDocumentType, MAX_DOCUMENT_SIZE_BYTES } from './services/file-parser.js?v=260820-1';
 // 乌鸦：导入通知与弹窗组件
 import { notify, showErrorDialog } from './ui-updater.js?v=260820-1';
+// 导入配置导出多选弹窗
+import { openExportConfigModal, setupExportConfigModalEvents } from './modals/export-config-modal.js?v=260820-1';
 
 /**
  * Sets up file-related event listeners
@@ -267,8 +269,10 @@ function setupMessageEditAttachmentEvents() {
  * Sets up export related events
  */
 function setupExportEvents() {
+    setupExportConfigModalEvents();
+
     if (dom.exportConfigBtn) {
-        dom.exportConfigBtn.addEventListener('click', exportConfig);
+        dom.exportConfigBtn.addEventListener('click', openExportConfigModal);
     }
     
     if (dom.exportAllConversationsBtn) {

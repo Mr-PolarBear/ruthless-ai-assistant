@@ -254,3 +254,129 @@ tr:nth-child(even) {
     transform: translateY(-1px);
     box-shadow: 0 2px 6px rgba(0,0,0,0.1);
 }
+
+/* ==========================================================================
+   剧情分支选项与交互圆角卡片 (Shadow DOM 原色高级卡片美学)
+   ========================================================================== */
+.story-options-container {
+    margin: 14px 0;
+    border: 1px solid #cbd5e1;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    overflow: hidden;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
+    transition: box-shadow 0.2s ease;
+}
+
+.story-options-summary {
+    background: linear-gradient(90deg, #2563eb 0%, #3b82f6 100%);
+    color: #ffffff;
+    padding: 10px 16px;
+    font-weight: 600;
+    cursor: pointer;
+    user-select: none;
+    font-size: 0.94em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    letter-spacing: 0.3px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    border: none;
+    transition: filter 0.15s ease;
+}
+
+.story-options-summary:hover {
+    filter: brightness(1.08);
+}
+
+.story-options-body {
+    padding: 12px 14px;
+    background: #f1f5f9;
+}
+
+.story-choices-list {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+}
+
+.story-choice-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 14px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-left: 3.5px solid #2563eb;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+    user-select: none;
+    line-height: 1.55;
+    font-size: 0.92em;
+    color: #1e293b;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    position: relative;
+}
+
+.story-choice-item:hover {
+    background: linear-gradient(90deg, #eff6ff 0%, #ffffff 100%);
+    border-color: #3b82f6;
+    border-left-color: #1d4ed8;
+    transform: translateX(4px);
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.15);
+}
+
+.story-choice-item:active {
+    transform: translateX(2px) scale(0.99);
+}
+
+.story-choice-item .choice-icon {
+    font-size: 1.15em;
+    color: #2563eb;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+.story-choice-item .choice-text {
+    flex: 1;
+    word-break: break-word;
+}
+
+/* 暗色主题原色卡片适配 */
+[data-theme="dark"] .story-options-container {
+    background: linear-gradient(135deg, #111827 0%, #1e293b 100%);
+    border-color: #334155;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.45);
+}
+
+[data-theme="dark"] .story-options-summary {
+    background: linear-gradient(90deg, #1e40af 0%, #1d4ed8 100%);
+    color: #f8fafc;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] .story-options-body {
+    padding: 12px 14px;
+    background: #0f172a;
+}
+
+[data-theme="dark"] .story-choice-item {
+    background: #1e293b;
+    border-color: #334155;
+    border-left: 3.5px solid #60a5fa;
+    color: #e2e8f0;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .story-choice-item:hover {
+    background: linear-gradient(90deg, #1e293b 0%, #293548 100%);
+    border-color: #60a5fa;
+    border-left-color: #93c5fd;
+    transform: translateX(4px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.55);
+}
+
+[data-theme="dark"] .story-choice-item .choice-icon {
+    color: #60a5fa;
+}

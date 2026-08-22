@@ -109,6 +109,41 @@ body[data-theme="dark"] #hide-summary-btn.active-hide-summary svg {
     stroke: #63b3ed !important;
 }
 
+/* 总结进行中：转圈呼吸动画 */
+@keyframes summary-icon-spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+#hide-summary-btn.summarizing-spinning {
+    background: rgba(0, 123, 255, 0.15) !important;
+    border-color: var(--accent-blue, #007bff) !important;
+    box-shadow: 0 0 8px rgba(0, 123, 255, 0.35) !important;
+    cursor: wait !important;
+}
+
+#hide-summary-btn.summarizing-spinning svg {
+    animation: summary-icon-spin 1.2s linear infinite !important;
+    color: var(--accent-blue, #007bff) !important;
+    stroke: var(--accent-blue, #007bff) !important;
+    transform-origin: center center;
+}
+
+body[data-theme="dark"] #hide-summary-btn.summarizing-spinning {
+    background: rgba(88, 166, 255, 0.22) !important;
+    border-color: #58a6ff !important;
+    box-shadow: 0 0 10px rgba(88, 166, 255, 0.4) !important;
+}
+
+body[data-theme="dark"] #hide-summary-btn.summarizing-spinning svg {
+    color: #58a6ff !important;
+    stroke: #58a6ff !important;
+}
+
 /* 乌鸦：发送限制楼层数角标样式 */
 .hide-summary-limit-badge {
     position: absolute;

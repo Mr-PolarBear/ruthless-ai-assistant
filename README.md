@@ -10,9 +10,11 @@
 
 **智能摸鱼 (Ruthless AI Assistant)** 是一个运行在浏览器中的开源 AI 对话工作台(参考自SillyTavern)。它不依赖任何专有后端，所有数据（会话记录、API 密钥、角色配置、世界书知识库）均存储在浏览器本地（IndexedDB + LocalStorage）。
 
-你可以将它连接到任何兼容 OpenAI 接口标准的 API（如 OpenAI、DeepSeek、Moonshot、智谱清言、Ollama、LocalAI、SiliconFlow 等），打造专属于你的私密、高效 AI 工作流。
+你可以将它连接到任何兼容 OpenAI 接口标准的 API（如 OpenAI、DeepSeek、Moonshot、智谱、kimi、minimax、gemini、Ollama、LocalAI、SiliconFlow 等支持openAI规范的大模型），打造专属于你的私密、高效 AI 工作流。
 
- 1.可以用做自己的知识库挂载助手。2.闲暇时刻可以与他进行角色扮演对话体验，放松一下996的人生。
+ 1.可以用做个人的知识库挂载问答助手。
+ 
+2.可以进行超长记忆(500楼以上)的角色扮演对话/文本创作体验。
 
 示例网站：https://www.axureshow.com/project/o2Ztz6D0/
 ---
@@ -20,6 +22,7 @@
 ## ✨ 核心亮点
 
 - 🔒 **本地优先，隐私安全**：所有数据均在浏览器本地 IndexedDB 存储，绝不向第三方服务器上传聊天记录与配置，支持完全纯离线/内网部署。
+- 🧠 **智能记忆与超长上下文总结**：创新内置 3 种独立记忆模式（🔄 **递归滚动记忆**、📑 **卡片流拼接记忆**、⚔️ **跑团 TRPG 结构化双表**），支持按楼层/Token 阈值后台自动静默提炼总结、实时流式打字机同步、被总结历史楼层智能压缩隐藏、快照版本树管理与分叉重发时的时间线因果智能回滚，彻底突破大模型上下文窗口限制，畅享 500 楼+ 无损长线剧情创作与深度角色扮演。
 - 🎨 **高度可定制 UI**：内置 9 套精美主题色系、深浅色模式自动适配，支持消息气泡样式、字体大小、代码主题自由微调。
 - ⚡ **高性能渲染引擎**：Web Worker 独立线程异步解析 Markdown，配合智能滚动跟随与流式 SSE 逐字平滑输出。
 - 🛠️ **全功能 MCP 工具箱**：可视化配置 HTTP API 工具调用（天气、新闻、网络抓取、藏头诗等），支持 ECharts 图表与 Mermaid 流程图结构化渲染。
@@ -33,7 +36,7 @@
 
 ### 方式一：双击启动（Windows 用户）
 
-双击项目根目录下的 `启动智能摸鱼.bat` 或 `start.bat`，脚本将自动探测环境（Node.js / Python / PowerShell 原生服务）并在浏览器中打开。
+双击项目根目录下的 `start.bat`，脚本将自动探测环境（Node.js / Python / PowerShell 原生服务）并在浏览器中打开。
 
 ### 方式二：使用任意静态 HTTP 服务器
 
@@ -86,6 +89,18 @@ ruthless-ai-assistant/
 
 本项目基于 [MIT License](LICENSE) 开源，版权所有 (c) 2026 Mr-PolarBear。详情请参阅 [LICENSE](LICENSE) 文件。
 
+---
 
-github地址：https://github.com/Mr-PolarBear/ruthless-ai-assistant.git
-gitee地址： https://gitee.com/Mr-PolarBear/ruthless-ai-assistant2026.git
+## 🛡️ 免责与合规声明
+
+1. **学习与研究用途**：本项目为开源的前端技术探索项目，仅供个人学习、大模型接口对接研究与技术交流使用。
+2. **零数据收集与隐私保障**：本项目为 100% 纯前端本地应用，无任何自建后端服务，**绝不收集、上传、分析或留存任何用户的聊天记录、API Key、角色设定或敏感隐私数据**。所有数据全生命周期均安全存储在用户的浏览器本地（IndexedDB / LocalStorage）中。
+3. **合法合规使用**：使用本项目时，请务必严格遵守所在国家/地区的法律法规以及所连接大模型服务商的使用规范与服务条款（Terms of Service），**严禁将本项目用于任何违法犯罪、网络黑灰产、虚假信息传播、侵犯他人权益或违背公序良俗的操作与用途**。
+4. **免责条款**：用户因使用本项目、接入第三方 API 接口或生成/传播内容所产生的一切后果与法律责任，均由使用者本人自行承担，本项目开发者及贡献者不承担任何直接或连带责任。
+
+---
+
+## 🔗 官方开源仓库地址
+
+- **GitHub 地址**：[https://github.com/Mr-PolarBear/ruthless-ai-assistant.git](https://github.com/Mr-PolarBear/ruthless-ai-assistant.git)
+- **Gitee 地址**：[https://gitee.com/Mr-PolarBear/ruthless-ai-assistant2026.git](https://gitee.com/Mr-PolarBear/ruthless-ai-assistant2026.git)

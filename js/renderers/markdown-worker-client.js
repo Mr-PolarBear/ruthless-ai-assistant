@@ -4,6 +4,7 @@
  */
 
 import { state } from '../state.js?v=260820-1';
+import { getActiveRegexRules } from '../regex-engine.js?v=260820-1';
 
 class MarkdownWorkerClient {
     constructor() {
@@ -94,8 +95,8 @@ class MarkdownWorkerClient {
                 disableXssProtection: state.appSettings.disableXssProtection
             };
 
-            // Pass regex rules (snapshot)
-            const regexRules = state.regexRules;
+            // Pass regex rules (snapshot for current conversation)
+            const regexRules = getActiveRegexRules(state.currentConversationId);
 
             this.worker.postMessage({
                 id,

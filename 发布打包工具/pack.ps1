@@ -1,4 +1,4 @@
-﻿# ======================================================================
+# ======================================================================
 # 智能摸鱼 (Ruthless AI) - 发布压缩包打包工具 (支持内网离线版 / 外网 CDN 加速版 / 密码加密保护)
 # ======================================================================
 
@@ -419,6 +419,16 @@ if ($isCdn) {
     }
 } else {
     Write-Host "[2/3] 内网离线模式：保留全部本地库与内置字体文件..." -ForegroundColor Green
+
+    # 内网离线版专属处理：移除开源代码仓库地址（GitHub/Gitee）
+    $tempModals = Join-Path $tempDir "modals.html"
+    if (Test-Path $tempModals) {
+        $modalsHtml = [System.IO.File]::ReadAllText($tempModals, [System.Text.Encoding]::UTF8)
+        # 移除带注释标记的开源代码仓库区块
+        $modalsHtml = $modalsHtml -replace '(?s)<!--\s*PROJECT_REPO_LINKS_START\s*-->.*?<!--\s*PROJECT_REPO_LINKS_END\s*-->\r?\n?', ''
+        [System.IO.File]::WriteAllText($tempModals, $modalsHtml, $utf8NoBom)
+        Write-Host "      ✅ 已按内网离线版规范隐藏/移除开源代码仓库地址 (GitHub/Gitee)" -ForegroundColor Gray
+    }
 }
 
 Write-Host "[3/3] 正在压缩打包为 ZIP 文件..." -ForegroundColor Green
