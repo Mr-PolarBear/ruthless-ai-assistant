@@ -4,9 +4,9 @@
  * 遵循高内聚、低耦合设计，提供分别导出会话/配置、一键全量备份与30天延期提醒。
  */
 
-import { getAllConversationIds } from '../db.js?v=260820-1';
-import { exportAllConversations, exportConfig } from '../utils.js?v=260820-1';
-import { notify } from '../ui-updater.js?v=260820-1';
+import { getAllConversationIds } from '../db.js?v=260823';
+import { exportAllConversations, exportConfig } from '../utils.js?v=260823';
+import { notify } from '../ui-updater.js?v=260823';
 
 const STORAGE_KEYS = {
     LAST_BACKUP_TIME: 'last_full_backup_time',

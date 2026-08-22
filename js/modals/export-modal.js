@@ -4,12 +4,12 @@
  * 遵循高内聚、低耦合设计，避免在 utils.js 或 chat-events.js 中堆砌代码。
  */
 
-import { dom } from '../dom.js?v=260820-1';
-import { state } from '../state.js?v=260820-1';
-import { getConversation } from '../db.js?v=260820-1';
-import { regexPatterns } from '../regex.js?v=260820-1';
-import { notify } from '../ui-updater.js?v=260820-1';
-import { extractThinkingFromContent } from '../utils.js?v=260820-1';
+import { dom } from '../dom.js?v=260823';
+import { state } from '../state.js?v=260823';
+import { getConversation } from '../db.js?v=260823';
+import { regexPatterns } from '../regex.js?v=260823';
+import { notify } from '../ui-updater.js?v=260823';
+import { extractThinkingFromContent } from '../utils.js?v=260823';
 
 /** 当前正在准备导出的会话ID */
 let currentExportConvId = null;

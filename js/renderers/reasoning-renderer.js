@@ -3,9 +3,9 @@
  * @description Handles rendering of reasoning/thinking content blocks.
  */
 
-import { scrollToBottom } from '../ui-updater.js?v=260820-1';
+import { scrollToBottom } from '../ui-updater.js?v=260823';
 // 乌鸦：导入滚动管理器，避免跳转后被强制拉到底部
-import { scrollManager } from '../scroll-manager.js?v=260820-1';
+import { scrollManager } from '../scroll-manager.js?v=260823';
 
 /**
  * 来源标注文案映射

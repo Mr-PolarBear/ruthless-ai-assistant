@@ -4,9 +4,9 @@
  * 支持自由多选导出 API、自定义全局正则（自动剔除系统默认规则）、角色预设、世界书、快捷提示词、MCP工具与应用设置。
  */
 
-import { dom } from '../dom.js?v=260820-1';
-import { state, DEFAULT_REGEX_RULES } from '../state.js?v=260820-1';
-import { notify } from '../ui-updater.js?v=260820-1';
+import { dom } from '../dom.js?v=260823';
+import { state, DEFAULT_REGEX_RULES } from '../state.js?v=260823';
+import { notify } from '../ui-updater.js?v=260823';
 
 /**
  * 打开配置导出多选弹窗

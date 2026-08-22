@@ -1,7 +1,7 @@
 // chat-search.js
 // 聊天消息搜索功能
-import { renderChatMessages } from './renderer.js?v=260820-1';
-import { dom } from './dom.js?v=260820-1'; // 乌鸦：导入dom模块以获取聊天消息容器的引用
+import { renderChatMessages } from './renderer.js?v=260823';
+import { dom } from './dom.js?v=260823'; // 乌鸦：导入dom模块以获取聊天消息容器的引用
 
 let lastSearchKeyword = '';
 let searchResults = [];

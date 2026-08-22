@@ -5,7 +5,7 @@
  * 提供一键【全部覆盖】、【全部都保留】、【全部跳过】、逐项微调以及【👁️ 预览对比】功能。
  */
 
-import { escapeHtml } from '../utils.js?v=260820-1';
+import { escapeHtml } from '../utils.js?v=260823';
 
 /**
  * 分类元信息映射表（类型名称与徽章样式）

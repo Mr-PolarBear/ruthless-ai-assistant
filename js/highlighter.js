@@ -4,7 +4,7 @@
  * 乌鸦：这是最终修正版的高亮模块，负责所有内置的（非用户定义的）美化功能。
  */
 
-import { regexPatterns } from './regex.js?v=260820-1';
+import { regexPatterns } from './regex.js?v=260823';
 
 /**
  * A robust function to apply a single type of regex-based formatting to all text nodes within a container.

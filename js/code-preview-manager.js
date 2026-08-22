@@ -3,13 +3,13 @@
  * @description 管理代码预览侧边栏的显示、隐藏和内容渲染。
  */
 
-import { dom } from './dom.js?v=260820-1';
-import { state } from './state.js?v=260820-1'; // 乌鸦：引入 state 以访问设置和状态
-import { jsonToMarkdownTable } from './utils.js?v=260820-1';
+import { dom } from './dom.js?v=260823';
+import { state } from './state.js?v=260823'; // 乌鸦：引入 state 以访问设置和状态
+import { jsonToMarkdownTable } from './utils.js?v=260823';
 // 乌鸦：引入增强器以复用点击处理逻辑
-import CodeBlockEnhancer from './code-block-enhancer.js?v=260820-1';
+import CodeBlockEnhancer from './code-block-enhancer.js?v=260823';
 // 乌鸦：引入事件总线
-import { eventBus, EVENTS } from './services/event-bus.js?v=260820-1';
+import { eventBus, EVENTS } from './services/event-bus.js?v=260823';
 
 class CodePreviewManager {
     constructor() {
