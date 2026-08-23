@@ -7,12 +7,12 @@
  * 3. 亦提供【保持当前记忆直接重发】与【取消】选项，完全保障用户的知情权与自主选择权。
  */
 
-import { dom } from '../dom.js?v=260823';
-import { state } from '../state.js?v=260823';
-import { saveToLocalStorage } from '../utils.js?v=260823';
-import { notify } from '../ui-updater.js?v=260823';
-import { getHideSummaryForConversation, setHideSummaryForConversation } from '../main.js?v=260823';
-import { normalizeHideSummaryConfig } from '../summary-manager.js?v=260823';
+import { dom } from '../dom.js?v=260824';
+import { state } from '../state.js?v=260824';
+import { saveToLocalStorage } from '../utils.js?v=260824';
+import { notify } from '../ui-updater.js?v=260824';
+import { getHideSummaryForConversation, setHideSummaryForConversation } from '../main.js?v=260824';
+import { normalizeHideSummaryConfig } from '../summary-manager.js?v=260824';
 
 let currentModalState = {
     convId: null,

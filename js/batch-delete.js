@@ -1,9 +1,9 @@
-import { dom } from './dom.js?v=260823';
-import { state } from './state.js?v=260823';
-import { deleteConversation } from './db.js?v=260823';
-import { saveToLocalStorage } from './utils.js?v=260823';
-import { renderHistory } from './sidebar.js?v=260823';
-import { notify } from './ui-updater.js?v=260823';
+import { dom } from './dom.js?v=260824';
+import { state } from './state.js?v=260824';
+import { deleteConversation } from './db.js?v=260824';
+import { saveToLocalStorage } from './utils.js?v=260824';
+import { renderHistory } from './sidebar.js?v=260824';
+import { notify } from './ui-updater.js?v=260824';
 
 export function initBatchDelete() {
     if (dom.batchDeleteBtn) {
@@ -149,7 +149,7 @@ async function handleBatchDelete() {
         state.currentConversationId = null;
         const remainingIds = Object.keys(state.conversations);
         if (remainingIds.length > 0) {
-            const { switchToConversation } = await import('./main.js?v=260823');
+            const { switchToConversation } = await import('./main.js?v=260824');
             switchToConversation(remainingIds[0]);
         }
     }

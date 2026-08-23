@@ -3,8 +3,8 @@
  * @description Handles API endpoint editing and management modals.
  */
 
-import { dom } from '../dom.js?v=260823';
-import { state, API_PRESETS } from '../state.js?v=260823';
+import { dom } from '../dom.js?v=260824';
+import { state, API_PRESETS } from '../state.js?v=260824';
 
 export function openApiEditModal() {
     renderApiEditPresetButtons();

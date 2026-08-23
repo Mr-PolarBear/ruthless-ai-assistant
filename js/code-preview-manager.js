@@ -3,13 +3,13 @@
  * @description 管理代码预览侧边栏的显示、隐藏和内容渲染。
  */
 
-import { dom } from './dom.js?v=260823';
-import { state } from './state.js?v=260823'; // 乌鸦：引入 state 以访问设置和状态
-import { jsonToMarkdownTable } from './utils.js?v=260823';
+import { dom } from './dom.js?v=260824';
+import { state } from './state.js?v=260824'; // 乌鸦：引入 state 以访问设置和状态
+import { jsonToMarkdownTable } from './utils.js?v=260824';
 // 乌鸦：引入增强器以复用点击处理逻辑
-import CodeBlockEnhancer from './code-block-enhancer.js?v=260823';
+import CodeBlockEnhancer from './code-block-enhancer.js?v=260824';
 // 乌鸦：引入事件总线
-import { eventBus, EVENTS } from './services/event-bus.js?v=260823';
+import { eventBus, EVENTS } from './services/event-bus.js?v=260824';
 
 class CodePreviewManager {
     constructor() {
@@ -627,6 +627,12 @@ class CodePreviewManager {
         const cloneCode = clone.querySelector('code');
 
         if (!originalCode || !cloneCode) return;
+
+        // 乌鸦：先停止可能存在的旧观察器，防止多代码块切换时旧 observer 持续空转泄漏
+        if (this.observer) {
+            this.observer.disconnect();
+            this.observer = null;
+        }
 
         // 创建新的观察器
         this.observer = new MutationObserver(() => {

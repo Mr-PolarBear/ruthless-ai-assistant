@@ -3,16 +3,16 @@
  * @description Handles avatar management, cropping, and preview.
  */
 
-import { dom } from '../dom.js?v=260823';
-import { state } from '../state.js?v=260823';
-import { getAvatar } from '../db.js?v=260823';
+import { dom } from '../dom.js?v=260824';
+import { state } from '../state.js?v=260824';
+import { getAvatar } from '../db.js?v=260824';
 import { 
     DEFAULT_AVATAR, 
     avatarCropper, setAvatarCropper,
     convAvatarCropper, setConvAvatarCropper,
     currentFullAvatarUrl, setCurrentFullAvatarUrl,
     setCurrentConversationIdForAvatar
-} from './base.js?v=260823';
+} from './base.js?v=260824';
 
 export function setupUserAvatarUI() {
     if (state.appSettings.userAvatar && state.appSettings.userAvatar.type === 'indexeddb') {

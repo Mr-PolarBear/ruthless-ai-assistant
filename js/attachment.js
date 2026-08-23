@@ -3,11 +3,11 @@
  * @description Manages UI for file attachments, including previews and viewers.
  */
 
-import { dom } from './dom.js?v=260823';
-import { state } from './state.js?v=260823';
-import { escapeHtml } from './utils.js?v=260823';
+import { dom } from './dom.js?v=260824';
+import { state } from './state.js?v=260824';
+import { escapeHtml } from './utils.js?v=260824';
 // 乌鸦：导入文档类型和图标方法
-import { getDocumentIcon } from './services/file-parser.js?v=260823';
+import { getDocumentIcon } from './services/file-parser.js?v=260824';
 
 // ======================== 乌鸦：统一风格 SVG 图标常量 ========================
 
@@ -363,12 +363,28 @@ export function openDocumentEditor(idx, filesArray, refreshCallback) {
         charCountEl.textContent = `${textarea.value.length}字`;
     });
     
+    // 乌鸦：统一编辑器关闭函数，必须同步注销 document keydown 监听器以释放闭包
+    const closeEditor = () => {
+        document.removeEventListener('keydown', escHandler);
+        if (overlay.parentNode) {
+            overlay.remove();
+        }
+    };
+
+    // 乌鸦：ESC 键关闭
+    const escHandler = (e) => {
+        if (e.key === 'Escape') {
+            closeEditor();
+        }
+    };
+    document.addEventListener('keydown', escHandler);
+
     // 乌鸦：保存按钮 — 将编辑后的内容写回附件
     document.getElementById('doc-editor-save').addEventListener('click', () => {
         const newContent = textarea.value;
         filesArray[idx].content = newContent;
         filesArray[idx].charCount = newContent.length;
-        overlay.remove();
+        closeEditor();
         
         // 乌鸦：刷新预览
         if (typeof refreshCallback === 'function') {
@@ -377,7 +393,6 @@ export function openDocumentEditor(idx, filesArray, refreshCallback) {
     });
     
     // 乌鸦：取消/关闭按钮
-    const closeEditor = () => overlay.remove();
     document.getElementById('doc-editor-cancel').addEventListener('click', closeEditor);
     document.getElementById('doc-editor-close').addEventListener('click', closeEditor);
     
@@ -385,13 +400,4 @@ export function openDocumentEditor(idx, filesArray, refreshCallback) {
     overlay.addEventListener('click', (e) => {
         if (e.target === overlay) closeEditor();
     });
-    
-    // 乌鸦：ESC 键关闭
-    const escHandler = (e) => {
-        if (e.key === 'Escape') {
-            closeEditor();
-            document.removeEventListener('keydown', escHandler);
-        }
-    };
-    document.addEventListener('keydown', escHandler);
 }

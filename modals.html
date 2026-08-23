@@ -1808,6 +1808,23 @@
         <div class="modal-body" style="max-height: 65vh; overflow-y: auto;">
             <!-- 更新日志标签内容 -->
             <div id="changelog-content" class="changelog-tab-content active">
+                <!-- v2.9.1 -->
+                <div class="changelog-version">
+                    <div class="changelog-version-header">
+                        <span class="changelog-version-tag">v2.9.1</span>
+                        <span class="changelog-version-date">2026-08-23</span>
+                    </div>
+                    <ul class="changelog-list">
+                        <li class="changelog-item fix">【内存管理】侧边栏会话头像统一收敛接入全局 `avatarUrlCache` 缓存体系，切换会话时自动释放 Blob URL，彻底根除频繁切换会话时的内存泄漏隐患；</li>
+                        <li class="changelog-item fix">【内存管理】附件文档编辑器全面重构退出生命周期，覆盖保存、取消、关闭按钮、遮罩点击与 ESC 键 5 种退出路径，100% 自动注销 `document` 键盘监听器，杜绝大文本闭包残留；</li>
+                        <li class="changelog-item fix">【内存管理】消息复制菜单与 MCP 数组选择菜单重构退出清理机制，单例防重与点击内部选项时同步解绑全局捕获阶段监听器，杜绝脱落 DOM 驻留；</li>
+                        <li class="changelog-item fix">【观察器管理】代码预览侧边栏实时同步在建立新 `MutationObserver` 前严密执行 `disconnect`，杜绝多代码块切换时旧观察器在后台空转；</li>
+                        <li class="changelog-item fix">【观察器管理】ECharts 图表渲染引擎强化实例生命周期管理，重新生成图表前主动销毁旧图表实例与 `ResizeObserver`，防止 Canvas 内存膨胀；</li>
+                        <li class="changelog-item opt">【性能优化】滚动管理器 `ScrollManager` 的 `ResizeObserver` 改为稳定直连 `chatMessages` 主容器，彻底防止会话切换清空 DOM 导致的观察点脱落隐患；</li>
+                        <li class="changelog-item opt">【性能优化】流式打字渲染管线移除每 100ms 动态 import 失效代码的冗余调用，消除高频微任务与 Promise 调度开销；</li>
+                        <li class="changelog-item opt">【性能优化】消息长列表渲染引擎引入 `DocumentFragment` 内存片段批量构建，单次挂载消除长对话（500 楼+）初始加载时的主线程微重排抖动。</li>
+                    </ul>
+                </div>
                 <!-- v2.9.0 -->
                 <div class="changelog-version">
                     <div class="changelog-version-header">

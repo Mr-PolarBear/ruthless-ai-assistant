@@ -3,12 +3,12 @@
  * @description MCP工具调用的UI渲染模块
  */
 
-import { escapeHtml } from './utils.js?v=260823';
-import { state } from './state.js?v=260823';
-import { DEFAULT_TOOLS } from './mcp-tools-registry.js?v=260823';
-import { processTemplate, preprocessApiData } from './mcp-template-engine.js?v=260823';
-import { jsonToMarkdownTable } from './utils.js?v=260823';
-import { scrollManager } from './scroll-manager.js?v=260823';
+import { escapeHtml } from './utils.js?v=260824';
+import { state } from './state.js?v=260824';
+import { DEFAULT_TOOLS } from './mcp-tools-registry.js?v=260824';
+import { processTemplate, preprocessApiData } from './mcp-template-engine.js?v=260824';
+import { jsonToMarkdownTable } from './utils.js?v=260824';
+import { scrollManager } from './scroll-manager.js?v=260824';
 
 /**
  * 乌鸦：安全的DOM替换工具函数
@@ -627,8 +627,8 @@ function showArrayFieldSelector(arrayFields, jsonData, tableView, button) {
             const tableHtml = renderArrayAsTable(field.data, field.label);
             tableView.innerHTML = tableHtml || '<p style="color: var(--text-error);">无法渲染数组数据。</p>';
 
-            // 乌鸦：关闭菜单
-            menu.remove();
+            // 乌鸦：关闭菜单并注销全局监听器
+            cleanupMenu();
 
             // 乌鸦：显示表格视图
             tableView.style.display = 'block';
@@ -639,6 +639,14 @@ function showArrayFieldSelector(arrayFields, jsonData, tableView, button) {
 
         menu.appendChild(option);
     });
+
+    // 乌鸦：统一清理函数
+    const cleanupMenu = () => {
+        document.removeEventListener('click', clickOutsideHandler, true);
+        if (menu.parentNode) {
+            menu.remove();
+        }
+    };
 
     // 乌鸦：定位菜单
     document.body.appendChild(menu);
@@ -663,8 +671,7 @@ function showArrayFieldSelector(arrayFields, jsonData, tableView, button) {
     // 乌鸦：点击菜单外部时关闭
     const clickOutsideHandler = (event) => {
         if (!menu.contains(event.target) && event.target !== button) {
-            menu.remove();
-            document.removeEventListener('click', clickOutsideHandler, true);
+            cleanupMenu();
         }
     };
     setTimeout(() => {
@@ -901,7 +908,7 @@ function handleToolRetry(messageElement, toolName, callIndex) {
         }
 
         // 乌鸦：重新执行工具调用
-        import('./mcp-core.js?v=260823').then(async (mcpCore) => {
+        import('./mcp-core.js?v=260824').then(async (mcpCore) => {
             try {
                 //    console.log(`乌鸦：开始重试工具 ${toolName}，参数:`, tool.lastCallParams);
                 const result = await mcpCore.mcpExecutor.callTool(
@@ -1744,15 +1751,31 @@ function renderEChartsInContainer(wrapper) {
             throw new Error('配置项无效');
         }
 
+        // 乌鸦：如果已有图表实例或观察器，先释放旧资源
+        if (chartDiv._echartsInstance) {
+            try {
+                chartDiv._echartsInstance.dispose();
+            } catch (_) {}
+            chartDiv._echartsInstance = null;
+        }
+        if (wrapper._echartsResizeObserver) {
+            wrapper._echartsResizeObserver.disconnect();
+            wrapper._echartsResizeObserver = null;
+        }
+
         // 乌鸦：初始化 ECharts，根据主题选择配色
         const chart = window.echarts.init(chartDiv, state.theme === 'dark' ? 'dark' : undefined);
         chart.setOption(option);
+        chartDiv._echartsInstance = chart;
 
         // 乌鸦：响应式调整
         const resizeObserver = new ResizeObserver(() => {
-            chart.resize();
+            if (chart && !chart.isDisposed()) {
+                chart.resize();
+            }
         });
         resizeObserver.observe(wrapper);
+        wrapper._echartsResizeObserver = resizeObserver;
 
         // 乌鸦：绑定按钮
         const downloadBtn = wrapper.querySelector('.download-chart-btn');

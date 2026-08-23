@@ -4,9 +4,9 @@
  * @author 乌鸦
  */
 
-import { dom } from './dom.js?v=260823';
-import { state } from './state.js?v=260823';
-import { scrollToBottom } from './ui-updater.js?v=260823';
+import { dom } from './dom.js?v=260824';
+import { state } from './state.js?v=260824';
+import { scrollToBottom } from './ui-updater.js?v=260824';
 
 class ScrollManager {
     constructor() {
@@ -104,10 +104,8 @@ class ScrollManager {
             wasAtBottom = this.isNearBottom(10);
         });
 
-        // 观察聊天容器的直接子元素（包含所有消息的主内容区）
-        // 这样可以监听到消息增加、代码块展开、图片加载等所有引起高度变化的事件
-        const contentWrapper = dom.chatMessages.firstElementChild || dom.chatMessages;
-        this.resizeObserver.observe(contentWrapper);
+        // 乌鸦：直接观察聊天消息主容器本身，避免因观察首个子元素而在会话切换 innerHTML='' 时发生脱落
+        this.resizeObserver.observe(dom.chatMessages);
         
         let lastScrollTop = dom.chatMessages.scrollTop;
         dom.chatMessages.addEventListener('scroll', () => {
