@@ -3,12 +3,12 @@
  * @description Handles UI interactions and state management for individual messages.
  */
 
-import {dom} from './dom.js?v=260823';
-import {state} from './state.js?v=260823';
-import {extractJsonArrayString, copyTextToClipboard, countTokens, escapeHtml} from './utils.js?v=260823';
-import {openMessageEditModal} from './modals.js?v=260823';
-import {regexPatterns} from './regex.js?v=260823';
-import {notify} from './ui-updater.js?v=260823';
+import {dom} from './dom.js?v=260824';
+import {state} from './state.js?v=260824';
+import {extractJsonArrayString, copyTextToClipboard, countTokens, escapeHtml} from './utils.js?v=260824';
+import {openMessageEditModal} from './modals.js?v=260824';
+import {regexPatterns} from './regex.js?v=260824';
+import {notify} from './ui-updater.js?v=260824';
 
 // ===== NEW: Copy Menu Logic =====
 
@@ -60,10 +60,27 @@ export function showCopyMenu(button, message) {
         existingMenu.remove();
     }
 
+    // 移除上一次可能残留的全局监听器
+    if (showCopyMenu._currentCleanup) {
+        showCopyMenu._currentCleanup();
+    }
+
     // 创建菜单容器
     const menu = document.createElement('div');
     menu.id = 'copy-menu-dynamic';
     menu.className = 'copy-menu'; // 用于CSS样式
+
+    // 乌鸦：统一的菜单销毁与全局事件注销函数
+    const cleanupMenu = () => {
+        document.removeEventListener('click', clickOutsideHandler, true);
+        if (showCopyMenu._currentCleanup === cleanupMenu) {
+            showCopyMenu._currentCleanup = null;
+        }
+        if (menu.parentNode) {
+            menu.remove();
+        }
+    };
+    showCopyMenu._currentCleanup = cleanupMenu;
 
     // 创建“复制MD”按钮
     const copyMdBtn = document.createElement('button');
@@ -71,9 +88,7 @@ export function showCopyMenu(button, message) {
     copyMdBtn.onclick = (e) => {
         e.stopPropagation();
         copyMarkdown(message).finally(() => {
-            if (menu.parentNode) {
-                menu.remove();
-            }
+            cleanupMenu();
         });
     };
 
@@ -83,9 +98,7 @@ export function showCopyMenu(button, message) {
     copyTextBtn.onclick = (e) => {
         e.stopPropagation();
         copyPlainText(message).finally(() => {
-            if (menu.parentNode) {
-                menu.remove();
-            }
+            cleanupMenu();
         });
     };
 
@@ -109,11 +122,10 @@ export function showCopyMenu(button, message) {
     menu.style.top = `${top}px`;
     menu.style.left = `${left}px`;
 
-    // 点击菜单外部时，自动关闭菜单
+    // 点击菜单外部时，自动关闭菜单并解绑监听器
     const clickOutsideHandler = (event) => {
         if (!menu.contains(event.target)) {
-            menu.remove();
-            document.removeEventListener('click', clickOutsideHandler, true);
+            cleanupMenu();
         }
     };
     // 使用事件捕获阶段，确保能监听到所有点击
@@ -527,7 +539,7 @@ export async function switchMessageVersion(message, targetIdx, bubbleIndex) {
     message.activeVersionIndex = targetIdx;
     message.content = message.versions[targetIdx].content;
 
-    const { saveConversation } = await import('./db.js?v=260823');
+    const { saveConversation } = await import('./db.js?v=260824');
     const conv = state.conversations[state.currentConversationId];
     if (conv) {
         saveConversation(conv.id, conv);
@@ -537,7 +549,7 @@ export async function switchMessageVersion(message, targetIdx, bubbleIndex) {
     if (messageElement) {
         const contentEl = messageElement.querySelector('.message-content');
         if (contentEl) {
-            const { formatMessagePipeline, renderFormattedContent } = await import('./renderer.js?v=260823');
+            const { formatMessagePipeline, renderFormattedContent } = await import('./renderer.js?v=260824');
             const formattedHtml = await formatMessagePipeline(message.content, message.role);
             renderFormattedContent(contentEl, formattedHtml);
             addOrUpdateMessageFooter(messageElement, message);

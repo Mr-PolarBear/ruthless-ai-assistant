@@ -3,7 +3,7 @@
  * @description Manages the tools dropdown menu and tool navigation.
  */
 
-import { dom } from './dom.js?v=260823';
+import { dom } from './dom.js?v=260824';
 
 const TOOLS = [
     {

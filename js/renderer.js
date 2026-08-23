@@ -3,37 +3,38 @@
  * @description Core rendering engine, V3 (Refactored). Facade for rendering sub-systems.
  */
 
-import { dom } from './dom.js?v=260823';
-import { state } from './state.js?v=260823';
-import { getAvatar } from './db.js?v=260823';
-import { getChatSearchKeyword } from './chat-search.js?v=260823';
-import { scrollToBottom } from './ui-updater.js?v=260823';
+import { dom } from './dom.js?v=260824';
+import { state } from './state.js?v=260824';
+import { getAvatar } from './db.js?v=260824';
+import { getChatSearchKeyword } from './chat-search.js?v=260824';
+import { scrollToBottom } from './ui-updater.js?v=260824';
 import {
     updateAllMessagesCollapseState,
     addOrUpdateMessageFooter,
     updateMessageActions,
     updateSingleMessageCollapseState
-} from './message-manager.js?v=260823';
-import { openAvatarPreview, DEFAULT_AVATAR } from './modals.js?v=260823';
-import { extractThinkingFromContent, parseStreamingThinkContent, jsonToMarkdownTable, isFloorHiddenInConfig, isMessageHidden } from './utils.js?v=260823';
-import CodeBlockEnhancer from './code-block-enhancer.js?v=260823';
-import { regexPatterns } from './regex.js?v=260823';
+} from './message-manager.js?v=260824';
+import { openAvatarPreview, DEFAULT_AVATAR } from './modals.js?v=260824';
+import { extractThinkingFromContent, parseStreamingThinkContent, jsonToMarkdownTable, isFloorHiddenInConfig, isMessageHidden } from './utils.js?v=260824';
+import CodeBlockEnhancer from './code-block-enhancer.js?v=260824';
+import { regexPatterns } from './regex.js?v=260824';
 
 // --- Sub-system Imports ---
-import { initSharedStyleSheets, getSharedStyleSheets, allShadowRoots } from './renderers/style-manager.js?v=260823';
-import { updateDomPreservingCodeBlocks } from './renderers/stream-renderer.js?v=260823';
-import { updateReasoningContainer, updateReasoningPartContent } from './renderers/reasoning-renderer.js?v=260823';
-import { formatMessagePipeline, enhanceJsonCodeBlocks } from './renderers/markdown-engine.js?v=260823';
+import { initSharedStyleSheets, getSharedStyleSheets, allShadowRoots } from './renderers/style-manager.js?v=260824';
+import { updateDomPreservingCodeBlocks } from './renderers/stream-renderer.js?v=260824';
+import { updateReasoningContainer, updateReasoningPartContent } from './renderers/reasoning-renderer.js?v=260824';
+import { formatMessagePipeline, enhanceJsonCodeBlocks } from './renderers/markdown-engine.js?v=260824';
 // Re-export UI populators for compatibility with main.js/settings-events.js
-export { populateApiSelector, populatePersonaSelector, renderApiEndpointsList, renderPersonaModal, renderRegexRulesList } from './ui-populator.js?v=260823';
+export { populateApiSelector, populatePersonaSelector, renderApiEndpointsList, renderPersonaModal, renderRegexRulesList } from './ui-populator.js?v=260824';
 // Re-export markdown engine for external use if needed
 export { formatMessagePipeline };
 export { updateReasoningContainer, updateReasoningPartContent };
+export { getAvatarUrl };
 
 // --- Avatar Caching ---
 
 /**
- * 乌鸦：新增的头像URL缓存管理器
+ * 乌鸦：统一的头像URL缓存管理器
  */
 async function getAvatarUrl(avatarId) {
     if (!avatarId) return DEFAULT_AVATAR;
@@ -438,7 +439,7 @@ export async function displayMessage(message, index, highlightKeyword, visibleIn
                 // 如果消息处于折叠状态，先展开
                 const contentEl = bubble.querySelector('.message-content');
                 if (contentEl && contentEl.classList.contains('collapsible')) {
-                    import('./message-manager.js?v=260823').then(module => {
+                    import('./message-manager.js?v=260824').then(module => {
                         module.updateSingleMessageCollapseState(bubble, false);
                     });
                 }
@@ -561,7 +562,7 @@ export async function displayMessage(message, index, highlightKeyword, visibleIn
         const isInitiallyExpanded = false;
         message.toolCalls.forEach((toolCallResult, index) => {
             if (toolCallResult && toolCallResult.success !== undefined) {
-                import('./mcp-renderer.js?v=260823').then(module => {
+                import('./mcp-renderer.js?v=260824').then(module => {
                     module.renderToolCallResult(messageDiv, toolCallResult, index, isInitiallyExpanded);
                 });
             }
@@ -571,7 +572,7 @@ export async function displayMessage(message, index, highlightKeyword, visibleIn
     // Analysis Result rendering
     // 乌鸦：如果有 analysisRounds 元数据，按轮次交错渲染；否则退回旧逻辑兼容老数据
     if (message.analysisRounds && message.analysisRounds.length > 0) {
-        import('./mcp-renderer.js?v=260823').then(async ({ renderToolCallResult }) => {
+        import('./mcp-renderer.js?v=260824').then(async ({ renderToolCallResult }) => {
             for (const roundData of message.analysisRounds) {
                 // 乌鸦：创建本轮分析容器
                 const analysisContainer = document.createElement('div');
@@ -637,7 +638,7 @@ export async function displayMessage(message, index, highlightKeyword, visibleIn
         });
     } else if (message.analysisResult && typeof message.analysisResult === 'string') {
         // 乌鸦：旧数据兼容——单个分析容器
-        import('./mcp-renderer.js?v=260823').then(async () => {
+        import('./mcp-renderer.js?v=260824').then(async () => {
             let analysisContainer = messageDiv.querySelector('.analysis-result-container');
             if (!analysisContainer) {
                 const toolCallsContainer = messageDiv.querySelector('.tool-calls-container');
@@ -835,6 +836,7 @@ export async function renderChatMessages(options) {
             dom.chatMessages.innerHTML = '<div style="color:#888;text-align:center;margin:2em 0;">未找到相关消息</div>';
         } else {
             const totalVisible = filtered.length;
+            const fragment = document.createDocumentFragment();
             // 乌鸦：使用 for...of 保证顺序
             for (let visibleIdx = 0; visibleIdx < filtered.length; visibleIdx++) {
                 // 乌鸦：检查是否已被新的渲染任务打断
@@ -846,8 +848,9 @@ export async function renderChatMessages(options) {
                 // 乌鸦：再次检查，因为 await 期间可能发生了新的渲染
                 if (thisRenderId !== currentRenderId) return;
 
-                dom.chatMessages.appendChild(wrapper);
+                fragment.appendChild(wrapper);
             }
+            dom.chatMessages.appendChild(fragment);
         }
     } else {
         if (activeBranch.length === 0) {
@@ -879,6 +882,7 @@ export async function renderChatMessages(options) {
                     : 5;
             }
 
+            const fragment = document.createDocumentFragment();
             // 乌鸦：使用 for...of 保证顺序
             for (let index = 0; index < activeBranch.length; index++) {
                 // 乌鸦：检查是否已被新的渲染任务打断
@@ -897,8 +901,9 @@ export async function renderChatMessages(options) {
                 // 乌鸦：再次检查
                 if (thisRenderId !== currentRenderId) return;
 
-                dom.chatMessages.appendChild(wrapper);
+                fragment.appendChild(wrapper);
             }
+            dom.chatMessages.appendChild(fragment);
 
             const shouldShowBtn = recentCount && recentCount > 0 && activeBranch.length > recentCount;
             if (dom.loadAllMessagesBtn) {

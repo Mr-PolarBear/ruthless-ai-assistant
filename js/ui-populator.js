@@ -3,9 +3,9 @@
  * @description Handles population of UI lists and selectors (Updated V2).
  */
 
-import { dom } from './dom.js?v=260823';
-import { state, DEFAULT_REGEX_RULES } from './state.js?v=260823';
-import { escapeHtml } from './utils.js?v=260823';
+import { dom } from './dom.js?v=260824';
+import { state, DEFAULT_REGEX_RULES } from './state.js?v=260824';
+import { escapeHtml } from './utils.js?v=260824';
 
 export function populateApiSelector() {
     const currentVal = dom.apiSelector.value;

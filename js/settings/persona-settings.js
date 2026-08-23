@@ -3,16 +3,16 @@
  * @description Handles Persona settings events.
  */
 
-import { dom } from '../dom.js?v=260823';
-import { state } from '../state.js?v=260823';
-import { saveToLocalStorage } from '../utils.js?v=260823';
+import { dom } from '../dom.js?v=260824';
+import { state } from '../state.js?v=260824';
+import { saveToLocalStorage } from '../utils.js?v=260824';
 import { 
     renderPersonaModal, populatePersonaSelector, resetPersonaForm,
     openPersonaModal, openPersonaEditModal, closePersonaEditModal,
     resetPersonaEditForm
-} from '../modals.js?v=260823';
-import { closeModalWithAnimation } from '../modal-events.js?v=260823';
-import { DraggableList } from '../draggable-list.js?v=260823';
+} from '../modals.js?v=260824';
+import { closeModalWithAnimation } from '../modal-events.js?v=260824';
+import { DraggableList } from '../draggable-list.js?v=260824';
 
 let lastPersonaCopyTime = 0;
 let personaDragInstance = null;
