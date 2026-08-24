@@ -6,6 +6,7 @@
 import { dom } from './dom.js?v=260824';
 import { state, DEFAULT_REGEX_RULES } from './state.js?v=260824';
 import { escapeHtml } from './utils.js?v=260824';
+import { isPersonaBatchMode, getSelectedPersonaIds } from './persona-batch-delete.js?v=260824';
 
 export function populateApiSelector() {
     const currentVal = dom.apiSelector.value;
@@ -97,8 +98,12 @@ export function renderApiEndpointsList() {
 }
 
 export function renderPersonaModal() {
+    if (!dom.personaList) return;
     dom.personaList.innerHTML = '';
     
+    const batchMode = isPersonaBatchMode();
+    const selectedIds = getSelectedPersonaIds();
+
     // 乌鸦：确保所有角色都有sort字段，并按sort排序
     const personas = Object.values(state.personas)
         .map(p => {
@@ -115,12 +120,21 @@ export function renderPersonaModal() {
     }
 
     personas.forEach(p => {
-        dom.personaList.innerHTML += `
-            <div class="persona-item" draggable="true">
-                <div class="persona-item-details">
-                    <div class="persona-item-name">${p.name}</div>
-                    <div class="persona-item-prompt">${p.prompt}</div>
+        const isSelected = selectedIds.has(p.id);
+        const itemClass = `persona-item${batchMode ? ' batch-mode' : ''}${isSelected ? ' selected' : ''}`;
+        const draggableAttr = batchMode ? 'draggable="false"' : 'draggable="true"';
+        
+        let batchCheckboxHtml = '';
+        let actionsHtml = '';
+
+        if (batchMode) {
+            batchCheckboxHtml = `
+                <div class="persona-batch-checkbox-wrapper">
+                    <input type="checkbox" class="persona-batch-checkbox" data-id="${p.id}" ${isSelected ? 'checked' : ''}>
                 </div>
+            `;
+        } else {
+            actionsHtml = `
                 <div class="persona-item-actions action-btn-group">
                     <button class="action-btn edit persona-edit-btn" data-id="${p.id}" title="编辑">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
@@ -132,6 +146,17 @@ export function renderPersonaModal() {
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
                     </button>
                 </div>
+            `;
+        }
+
+        dom.personaList.innerHTML += `
+            <div class="${itemClass}" data-id="${p.id}" ${draggableAttr}>
+                ${batchCheckboxHtml}
+                <div class="persona-item-details">
+                    <div class="persona-item-name">${escapeHtml(p.name)}</div>
+                    <div class="persona-item-prompt">${escapeHtml(p.prompt)}</div>
+                </div>
+                ${actionsHtml}
             </div>
         `;
     });

@@ -164,44 +164,96 @@ body.resizing-preview {
 
 .code-preview-content {
     flex-grow: 1;
-    overflow-y: auto;
-    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* 内容区外层不产生滚动条，头部固定在最上方 */
+    padding: 0;
     background-color: transparent; /* 乌鸦：内容区透明，透出 sidebar 的 bg-deep */
-    /* 乌鸦：阻止滚动链，防止滚动到底部时触发主窗口滚动 */
     overscroll-behavior: contain; 
     position: relative;
-    /* 乌鸦：移除聚焦时的默认边框 */
     outline: none;
+    min-height: 0; /* 允许 flex 子项高度正常自适应 */
 }
 
 /* 4. 侧边栏内的代码块样式覆写 */
 .code-preview-content .code-block-container {
     margin: 0;
-    /* 乌鸦：修复自动滚动追底失败 bug
-       旧值 height: 100% 把容器限死在父元素高度内，导致内容再多也不会擑开 contentArea 的 scrollHeight。
-       改为 min-height: 100% 让容器可随内容增长，contentArea 才能产生滚动条。 */
-    min-height: 100%;
+    flex-grow: 1;
+    height: 100%;
+    min-height: 0;
     display: flex;
     flex-direction: column;
-    background-color: transparent !important; /* 乌鸦：强制透明，防止多层背景叠加 */
-    box-shadow: none; /* 移除投影，保持和主气泡一致的纯净感 */
+    background-color: transparent !important;
+    box-shadow: none;
+    border: none;
+    border-radius: 0;
+    overflow: hidden;
+}
+
+/* 预览侧边栏专属淡蓝科技风格配色 */
+.code-preview-sidebar {
+    --preview-code-bg: #1c2536;       /* 默认深蓝灰代码背景 */
+    --preview-header-bg: #151d2c;     /* 默认深蓝灰头部背景 */
+    --preview-border-color: #2c3954;  /* 默认蓝调边框 */
+    --preview-text-color: #e2e8f0;    /* 默认浅色文字 */
+}
+
+/* 浅色模式：清爽高辨识度的柔和淡蓝色 */
+body[data-theme="light"] .code-preview-sidebar {
+    --preview-code-bg: #ebf3fc;       /* 清爽淡蓝色背景 */
+    --preview-header-bg: #deecfa;     /* 淡蓝头部背景 */
+    --preview-border-color: #c9def5;  /* 柔和淡蓝边框 */
+    --preview-text-color: #1e293b;    /* 深色清晰文字 */
+}
+
+/* 深色模式：深邃科技蓝灰 */
+body[data-theme="dark"] .code-preview-sidebar {
+    --preview-code-bg: #172032;       /* 深邃科技暗蓝代码背景 */
+    --preview-header-bg: #111827;     /* 深海蓝头部背景 */
+    --preview-border-color: #25334c;  /* 暗蓝边框 */
+    --preview-text-color: #e2e8f0;    /* 高对比度浅色文字 */
+}
+
+/* 代码预览侧边栏内的代码块头部：绝对固定在最顶部，使用专属淡蓝头部背景 */
+.code-preview-content .code-block-header {
+    position: relative;
+    flex-shrink: 0;
+    background-color: var(--preview-header-bg);
+    border-bottom: 1px solid var(--preview-border-color);
+    padding: 8px 16px;
+    z-index: 5;
 }
 
 .code-preview-content .code-block-container pre {
-    max-height: none !important; /* 移除限高 */
+    max-height: none !important;
     flex-grow: 1;
-    border-radius: var(--radius-md); /* 侧边栏预览全圆角更好看 */
-    background-color: var(--code-bg) !important; /* 强制使用系统代码背景 */
-    border: 1px solid var(--border-color);
-    padding: 1em; /* 乌鸦：确保 pre 有内边距 */
+    height: 100%;
+    min-height: 0;
+    overflow-y: auto !important; /* 滚动发生在 pre 内部，头部绝不会滚跑 */
+    overflow-x: auto;
+    border-radius: 0;
+    background-color: var(--preview-code-bg) !important; /* 专属高辨识度淡蓝代码背景 */
+    color: var(--preview-text-color);
+    border: none;
+    padding: 1.25rem 1.5rem; /* 内边距统一移入 pre 内部 */
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
 }
 
-/* 乌鸦：核心修复 - 强制移除 highlight.js 主题自带的背景色，让其透出 pre 的统一背景 */
-.code-preview-content .code-block-container pre code.hljs {
-    background: transparent !important;
-    padding: 0 !important; /* 内边距由 pre 统一控制 */
-    width: 100%;
+.code-preview-content .code-block-container pre code {
+    background-color: transparent !important;
+}
+
+.code-preview-content .json-table-view {
+    margin: 0;
+    flex-grow: 1;
     height: 100%;
+    min-height: 0;
+    overflow-y: auto;
+    border: none;
+    border-radius: 0;
+    padding: 1rem 1.5rem;
+    background-color: var(--preview-code-bg);
 }
 
 /* 隐藏侧边栏里的“右侧展开”按钮 */

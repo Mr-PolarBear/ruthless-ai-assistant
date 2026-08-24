@@ -15,8 +15,11 @@ import { setupSettingsEvents } from './settings-events.js?v=260824';
  * Sets up all event listeners for the application by coordinating different event modules.
  */
 export function setupEventListeners() {
-    // 挂载隐藏按钮高亮函数到全局
-    import('./ui-updater.js?v=260824').then(mod => { window.updateHideSummaryBtnColor = mod.updateHideSummaryBtnColor; });
+    // 挂载隐藏按钮高亮与总 Token 徽章刷新函数到全局
+    import('./ui-updater.js?v=260824').then(mod => {
+        window.updateHideSummaryBtnColor = mod.updateHideSummaryBtnColor;
+        window.updateSessionTokenBadge = mod.updateSessionTokenBadge;
+    });
     
     // Setup new chat button
     if (dom.newChatBtn) {

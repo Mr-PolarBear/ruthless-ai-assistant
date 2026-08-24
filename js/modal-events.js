@@ -32,7 +32,7 @@ import {
     showImportTemplate,
     fallbackCopyText
 } from './utils.js?v=260824';
-import { showLoadingOverlay, hideLoadingOverlay, notify, updateSummaryEditorLockState } from './ui-updater.js?v=260824';
+import { showLoadingOverlay, hideLoadingOverlay, notify, updateSummaryEditorLockState, updateSessionTokenBadge, updateHideSummaryBtnColor } from './ui-updater.js?v=260824';
 import { addOrUpdateMessageFooter, updateMessageActions } from './message-manager.js?v=260824';
 import { switchToConversation, setHideSummaryForCurrentConversation, getHideSummaryForCurrentConversation, getHideSummaryForConversation, setHideSummaryForConversation } from './main.js?v=260824';
 import { saveConversation } from './db.js?v=260824';
@@ -57,6 +57,8 @@ import {
 import { initSummaryHistoryModal, updateHideSummaryHistoryCount } from './modals/summary-history-modal.js?v=260824';
 import { initSimulateSendModal } from './modals/simulate-send-modal.js?v=260824';
 import { setupBranchSummaryConfirmModal } from './modals/branch-summary-confirm-modal.js?v=260824';
+
+let handleHideSummaryModalClose = null;
 
 /**
  * Sets up modal-related event listeners
@@ -176,7 +178,11 @@ function setupModalCloseButtons() {
                     closeModalWithAnimation(modal, closeExportConfigModal);
                     break;
                 case 'hide-summary-modal':
-                    closeModalWithAnimation(dom.hideSummaryModal);
+                    if (typeof handleHideSummaryModalClose === 'function') {
+                        handleHideSummaryModalClose();
+                    } else {
+                        closeModalWithAnimation(dom.hideSummaryModal);
+                    }
                     break;
                 case 'system-prompt-modal':
                     closeModalWithAnimation(dom.systemPromptModal);
@@ -839,7 +845,8 @@ function setupHideSummaryModal() {
         });
     }
 
-    dom.hideSummaryModal.querySelector('.modal-close-btn').addEventListener('click', () => {
+    // 统一的隐藏与总结弹窗安全关闭逻辑（含正在生成中的拦截与确认）
+    handleHideSummaryModalClose = function() {
         if (dom.hideSummaryStartBtn && dom.hideSummaryStartBtn.dataset.summarizing === '1') {
             const shouldClose = confirm('正在总结，是否停止并关闭弹窗？');
             if (!shouldClose) return;
@@ -847,6 +854,13 @@ function setupHideSummaryModal() {
         }
         setTableExpanded(false);
         closeModalWithAnimation(dom.hideSummaryModal);
+    };
+
+    // 点击遮罩层背景关闭（同步进行总结拦截检查）
+    dom.hideSummaryModal.addEventListener('click', (e) => {
+        if (e.target === dom.hideSummaryModal) {
+            handleHideSummaryModalClose();
+        }
     });
 
     // 实时监听通用开关与参数变动并持久化
@@ -864,29 +878,34 @@ function setupHideSummaryModal() {
         dom.hideSummaryWithWorldBook
     ];
 
+    const handleSummaryInputChange = (input) => {
+        const convId = state.currentConversationId;
+        const config = normalizeHideSummaryConfig(getHideSummaryForConversation(convId));
+
+        config.enabled = dom.hideSummaryEnable.checked;
+        config.autoSummaryEnabled = dom.autoSummaryEnable ? dom.autoSummaryEnable.checked : false;
+        config.autoSummaryType = (dom.autoSummaryTypeTokens && dom.autoSummaryTypeTokens.checked) ? 'tokens' : 'floors';
+        config.autoSummaryFloorInterval = parseInt(dom.autoSummaryFloorInterval?.value, 10) || 10;
+        config.autoSummaryTokenThreshold = parseInt(dom.autoSummaryTokenThreshold?.value, 10) || 4000;
+        config.dropSummarizedFloors = dom.autoSummaryDropFloors ? dom.autoSummaryDropFloors.checked : true;
+        config.keepRecentFloors = dom.autoSummaryKeepRecent ? dom.autoSummaryKeepRecent.checked : true;
+        config.keepRecentFloorsCount = parseInt(dom.autoSummaryKeepRecentCount?.value, 10) || 2;
+        config.withRole = dom.hideSummaryWithRole.checked;
+        config.withWorldBook = dom.hideSummaryWithWorldBook.checked;
+
+        setHideSummaryForCurrentConversation(config);
+        if (window.updateHideSummaryBtnColor) window.updateHideSummaryBtnColor();
+        if (input === dom.hideSummaryEnable) {
+            renderChatMessages({ updateVisibilityOnly: true });
+        }
+    };
+
     summaryInputsToSave.forEach(input => {
         if (!input) return;
-        input.addEventListener('change', () => {
-            const convId = state.currentConversationId;
-            const config = normalizeHideSummaryConfig(getHideSummaryForConversation(convId));
-
-            config.enabled = dom.hideSummaryEnable.checked;
-            config.autoSummaryEnabled = dom.autoSummaryEnable ? dom.autoSummaryEnable.checked : false;
-            config.autoSummaryType = (dom.autoSummaryTypeTokens && dom.autoSummaryTypeTokens.checked) ? 'tokens' : 'floors';
-            config.autoSummaryFloorInterval = parseInt(dom.autoSummaryFloorInterval?.value, 10) || 10;
-            config.autoSummaryTokenThreshold = parseInt(dom.autoSummaryTokenThreshold?.value, 10) || 4000;
-            config.dropSummarizedFloors = dom.autoSummaryDropFloors ? dom.autoSummaryDropFloors.checked : true;
-            config.keepRecentFloors = dom.autoSummaryKeepRecent ? dom.autoSummaryKeepRecent.checked : true;
-            config.keepRecentFloorsCount = parseInt(dom.autoSummaryKeepRecentCount?.value, 10) || 2;
-            config.withRole = dom.hideSummaryWithRole.checked;
-            config.withWorldBook = dom.hideSummaryWithWorldBook.checked;
-
-            setHideSummaryForCurrentConversation(config);
-            if (window.updateHideSummaryBtnColor) window.updateHideSummaryBtnColor();
-            if (input === dom.hideSummaryEnable) {
-                renderChatMessages({ updateVisibilityOnly: true });
-            }
-        });
+        input.addEventListener('change', () => handleSummaryInputChange(input));
+        if (input.tagName === 'INPUT' && (input.type === 'number' || input.type === 'text')) {
+            input.addEventListener('input', () => handleSummaryInputChange(input));
+        }
     });
 
     // 提示词输入监听（保存到当前模式对应的 prompts[currentMemoryMode]）
@@ -1635,6 +1654,15 @@ async function handleStartSummary() {
 
     const activeBranch = conv.branches ? conv.branches[conv.activeBranchIndex] : [];
     const hideConfig = normalizeHideSummaryConfig(getHideSummaryForConversation(convId));
+
+    // 实时同步 DOM 表单中的所有最新参数
+    if (dom.hideSummaryEnable) hideConfig.enabled = dom.hideSummaryEnable.checked;
+    if (dom.autoSummaryDropFloors) hideConfig.dropSummarizedFloors = dom.autoSummaryDropFloors.checked;
+    if (dom.autoSummaryKeepRecent) hideConfig.keepRecentFloors = dom.autoSummaryKeepRecent.checked;
+    if (dom.autoSummaryKeepRecentCount) hideConfig.keepRecentFloorsCount = parseInt(dom.autoSummaryKeepRecentCount.value, 10) || 2;
+    if (dom.hideSummaryWithRole) hideConfig.withRole = dom.hideSummaryWithRole.checked;
+    if (dom.hideSummaryWithWorldBook) hideConfig.withWorldBook = dom.hideSummaryWithWorldBook.checked;
+
     const visibleMessages = getVisibleMessagesForSummary(activeBranch, hideConfig);
 
     if (visibleMessages.length === 0) {
@@ -1717,6 +1745,17 @@ async function handleStartSummary() {
 async function handleSaveSummary() {
     const convId = state.currentConversationId;
     const config = normalizeHideSummaryConfig(getHideSummaryForConversation(convId));
+
+    // 实时同步 DOM 表单中的所有最新参数
+    if (dom.hideSummaryEnable) config.enabled = dom.hideSummaryEnable.checked;
+    if (dom.autoSummaryDropFloors) config.dropSummarizedFloors = dom.autoSummaryDropFloors.checked;
+    if (dom.autoSummaryKeepRecent) config.keepRecentFloors = dom.autoSummaryKeepRecent.checked;
+    if (dom.autoSummaryKeepRecentCount) config.keepRecentFloorsCount = parseInt(dom.autoSummaryKeepRecentCount.value, 10) || 2;
+    if (dom.hideSummaryWithRole) config.withRole = dom.hideSummaryWithRole.checked;
+    if (dom.hideSummaryWithWorldBook) config.withWorldBook = dom.hideSummaryWithWorldBook.checked;
+
+    setHideSummaryForCurrentConversation(config);
+
     const mode = config.memoryMode || 'recursive';
     const dropFloors = dom.autoSummaryDropFloors ? dom.autoSummaryDropFloors.checked : true;
 

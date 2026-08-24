@@ -396,13 +396,24 @@
     margin: 0;
 }
 
-.worldbook-merge-toggle-wrap label:first-child {
+.worldbook-merge-toggle-wrap label:first-child,
+.worldbook-merge-toggle-label {
     font-size: 0.8rem;
     color: var(--text-secondary);
     margin-bottom: 0;
     cursor: pointer;
     user-select: none;
     white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+}
+
+.wb-merge-label-mobile {
+    display: none;
+}
+
+.wb-merge-label-desktop {
+    display: inline;
 }
 
 /* 移动端视图切换导航 */
@@ -449,6 +460,17 @@
     min-height: 0;
     height: 100%;
     overflow: hidden;
+    transition: grid-template-columns 0.25s ease;
+}
+
+/* PC端左侧标签面板收起状态 */
+#worldbook-modal.tags-collapsed .worldbook-split-container {
+    grid-template-columns: 0px 400px 1fr;
+    gap: 1rem;
+}
+
+#worldbook-modal.tags-collapsed .worldbook-tags-panel {
+    display: none !important;
 }
 
 /* 文本放大编辑模式：隐藏左侧标签、中间列表、上方名称行、下方参数行与标签展示区，编辑区与文本框铺满整个弹窗 */
@@ -1179,11 +1201,26 @@ body[data-theme="dark"] #regex-default-readonly-hint {
 
 .worldbook-tags-panel {
     border-right: 1px solid var(--border-color);
-    padding-right: 1.5rem;
+    padding-right: 1.25rem;
     display: flex;
     flex-direction: column;
-    gap: 1rem;
     height: 100%; /* 乌鸦：填满父容器高度 */
+    min-width: 0;
+}
+
+.worldbook-tags-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 0.75rem;
+    flex-shrink: 0;
+}
+
+.worldbook-tags-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
 
 .worldbook-tags-panel h4 {
@@ -1191,7 +1228,100 @@ body[data-theme="dark"] #regex-default-readonly-hint {
     font-size: 0.95rem;
     font-weight: 600;
     color: var(--text-primary);
-    flex-shrink: 0; /* 乌鸦：标题不缩放 */
+    flex-shrink: 0;
+}
+
+.wb-selected-tags-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
+    font-size: 11px;
+    font-weight: 600;
+    background-color: var(--accent-blue);
+    color: #ffffff;
+    line-height: 1;
+}
+
+.worldbook-tags-header-tools {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.wb-tags-collapse-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: 1px solid var(--border-color);
+    background: var(--bg-deep, var(--bg-primary));
+    color: var(--text-secondary);
+    border-radius: var(--radius-sm, 4px);
+    cursor: pointer;
+    line-height: 1;
+    transition: all 0.2s ease;
+}
+
+.wb-tags-collapse-btn:hover {
+    background: var(--bg-light);
+    color: var(--text-primary);
+    border-color: var(--accent-blue);
+}
+
+.wb-tags-open-btn {
+    display: none; /* 桌面端默认隐藏，仅在 tags-collapsed 时显示 */
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    font-size: 12px;
+    font-weight: 500;
+    border: 1px solid var(--border-color);
+    background: var(--bg-deep, var(--bg-primary));
+    color: var(--text-primary);
+    border-radius: var(--radius-sm, 4px);
+    cursor: pointer;
+    line-height: 1;
+    transition: all 0.2s ease;
+    margin-right: 8px;
+}
+
+#worldbook-modal.tags-collapsed .wb-tags-open-btn {
+    display: inline-flex;
+}
+
+.wb-tags-open-btn:hover {
+    background: var(--bg-light);
+    border-color: var(--accent-blue);
+    color: var(--accent-blue);
+}
+
+.wb-open-tags-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: 8px;
+    font-size: 10px;
+    font-weight: 600;
+    background-color: var(--accent-blue);
+    color: #ffffff;
+    line-height: 1;
+}
+
+.worldbook-tags-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    flex: 1;
+    min-height: 0;
 }
 
 /* 标签搜索框 */
@@ -1207,6 +1337,7 @@ body[data-theme="dark"] #regex-default-readonly-hint {
     border-radius: var(--radius-sm);
     font-size: 0.9rem;
     background-color: var(--bg-light);
+    box-sizing: border-box;
 }
 
 /* 标签列表 */
@@ -1468,37 +1599,7 @@ body[data-theme="dark"] #regex-default-readonly-hint {
     color: var(--accent-color);
 }
 
-/* 响应式 - 小屏幕下堆叠 */
-@media (max-width: 1200px) {
-    .worldbook-split-container {
-        grid-template-columns: 180px 1fr;
-    }
-    
-    .worldbook-form-panel {
-        grid-column: 1 / -1;
-        border-top: 1px solid var(--border-color);
-        padding-top: 1.5rem;
-    }
-}
 
-@media (max-width: 768px) {
-    .worldbook-split-container {
-        grid-template-columns: 1fr;
-    }
-    
-    .worldbook-tags-panel {
-        border-right: none;
-        border-bottom: 1px solid var(--border-color);
-        padding-right: 0;
-        padding-bottom: 1rem;
-        max-height: 200px;
-    }
-    
-    .worldbook-form-panel {
-        border-top: 1px solid var(--border-color);
-        padding-top: 1.5rem;
-    }
-}
 
 /* --- Parameter Settings Tooltips & API Params --- */
 .param-tooltip-icon {

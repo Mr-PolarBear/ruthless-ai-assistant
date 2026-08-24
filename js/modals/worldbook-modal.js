@@ -326,6 +326,20 @@ export function filterWorldBookByTags() {
     ) : [];
     const selectedTags = selectedCheckboxes.map(checkbox => checkbox.closest('.tag-item')?.dataset.tag).filter(Boolean);
     
+    // 更新标签栏与列表头部的已选标签数量徽章
+    const specificSelectedTags = selectedTags.filter(tag => tag !== '全部');
+    const badgeText = specificSelectedTags.length.toString();
+    const hasSpecific = specificSelectedTags.length > 0;
+
+    if (dom.worldBookSelectedTagsBadge) {
+        dom.worldBookSelectedTagsBadge.textContent = badgeText;
+        dom.worldBookSelectedTagsBadge.style.display = hasSpecific ? 'inline-flex' : 'none';
+    }
+    if (dom.worldBookOpenTagsBadge) {
+        dom.worldBookOpenTagsBadge.textContent = badgeText;
+        dom.worldBookOpenTagsBadge.style.display = hasSpecific ? 'inline-flex' : 'none';
+    }
+    
     // — 为什么这么写 —
     // 若没有选中任何具体标签，或者勾选了“全部”，强制保证“全部”处于选中与高亮状态，展示全部条目
     if (selectedTags.length === 0 || selectedTags.includes('全部')) {

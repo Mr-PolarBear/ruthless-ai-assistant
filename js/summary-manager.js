@@ -537,6 +537,8 @@ export function recordSummaryVersion(convId, summaryText, hiddenFloors = [], sou
     const activeBranch = conv && conv.branches ? conv.branches[conv.activeBranchIndex] : [];
     const currentMaxFloor = activeBranch ? activeBranch.length : (sortedFloors.length ? Math.max(...sortedFloors) : 0);
 
+    const mode = existingConfig.memoryMode || 'recursive';
+
     const newSnapshot = {
         id: `ver_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
         timestamp: Date.now(),
@@ -646,15 +648,18 @@ export async function applySummaryResult(convId, summaryText, summarizedMessages
 
     // — 为什么这么写 —
     // 1. 若开启了“总结后抛弃被总结楼层”，将本次参与总结的消息批量标记为 msg.hidden = true
-    // 2. 若开启了“保留最后 K 楼不隐藏”，截取排除末尾 K 条消息，保留其可见性以供大模型做格式与近期语境参考
+    // 2. 若开启了“保留最后 K 楼不隐藏”，截取排除末尾 K 条消息，保留其可见性以供大模型做格式与近期语境参考；
+    //    当总可见消息数 <= K 时，所有消息都应被保留（hideLength = 0），绝不能回退为全部隐藏。
     if (dropFloors && Array.isArray(summarizedMessages) && summarizedMessages.length > 0) {
         const keepCount = existingConfig.keepRecentFloors !== false
             ? (Number(existingConfig.keepRecentFloorsCount) || 2)
             : 0;
 
-        const messagesToHide = (keepCount > 0 && summarizedMessages.length > keepCount)
-            ? summarizedMessages.slice(0, summarizedMessages.length - keepCount)
-            : summarizedMessages;
+        let messagesToHide = summarizedMessages;
+        if (existingConfig.keepRecentFloors !== false && keepCount > 0) {
+            const hideLength = Math.max(0, summarizedMessages.length - keepCount);
+            messagesToHide = summarizedMessages.slice(0, hideLength);
+        }
 
         messagesToHide.forEach(({ msg }) => {
             if (msg) msg.hidden = true;
@@ -751,6 +756,18 @@ export async function checkAndTriggerAutoSummary(convId, branchIndex) {
     const visibleItems = getVisibleMessagesForSummary(activeBranch, hideConfig);
     if (visibleItems.length === 0) return;
 
+    // — 为什么这么写 —
+    // 1. 自动总结必须在 AI 回复成功且完整结束后触发；
+    // 2. 若最后一条消息是用户提问（AI 尚未回复或生成中断）或包含错误标记（如连接报错/网络中断/空文本），绝不能盲目发起总结，
+    //    避免在网络或服务故障时产生“幽灵弹窗”与并发报错。
+    const lastMsg = activeBranch[activeBranch.length - 1];
+    if (!lastMsg || lastMsg.role !== 'assistant') return;
+    const lastMsgContent = (lastMsg.content || '').trim();
+    if (!lastMsgContent) return;
+    if (lastMsgContent.includes('error-indicator') || lastMsgContent.includes('[Response Error:') || lastMsgContent.includes('[ 该消息意外中断') || lastMsgContent.includes('[ 生成已中断')) {
+        return;
+    }
+
     const autoType = hideConfig.autoSummaryType || 'floors';
     const floorInterval = Number(hideConfig.autoSummaryFloorInterval) || 10;
     const tokenThreshold = Number(hideConfig.autoSummaryTokenThreshold) || 4000;
@@ -825,6 +842,7 @@ export async function checkAndTriggerAutoSummary(convId, branchIndex) {
     } catch (err) {
         if (err.name !== 'AbortError') {
             console.warn('[AutoSummary] 自动总结失败:', err);
+            notify.warning(`⚠️ 自动记忆总结未完成: ${err.message || '网络或接口请求异常'}`);
         }
         autoSummaryContext.listeners.forEach(listener => {
             try {

@@ -471,3 +471,10 @@ export function showErrorDialog(title, message) {
         });
     };
 }
+
+// 自动挂载高频跨模块调用的 UI 刷新函数到全局 window 对象
+if (typeof window !== 'undefined') {
+    window.updateSessionTokenBadge = updateSessionTokenBadge;
+    window.updateHideSummaryBtnColor = updateHideSummaryBtnColor;
+}
+

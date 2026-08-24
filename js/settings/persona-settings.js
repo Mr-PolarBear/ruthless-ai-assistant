@@ -13,6 +13,9 @@ import {
 } from '../modals.js?v=260824';
 import { closeModalWithAnimation } from '../modal-events.js?v=260824';
 import { DraggableList } from '../draggable-list.js?v=260824';
+import { initPersonaBatchDelete, isPersonaBatchMode, togglePersonaSelection } from '../persona-batch-delete.js?v=260824';
+import { importPresetPersonas } from '../preset-personas.js?v=260824';
+import { notify } from '../ui-updater.js?v=260824';
 
 let lastPersonaCopyTime = 0;
 let personaDragInstance = null;
@@ -21,6 +24,27 @@ export function setupPersonaEvents() {
     if (dom.managePersonasBtn) dom.managePersonasBtn.addEventListener('click', openPersonaModal);
     if (dom.personaSaveBtn) dom.personaSaveBtn.addEventListener('click', savePersona);
     if (dom.personaCancelBtn) dom.personaCancelBtn.addEventListener('click', resetPersonaForm);
+    
+    // 初始化角色批量删除功能
+    initPersonaBatchDelete();
+
+    // 绑定导入预设角色按钮事件
+    const importPresetBtn = document.getElementById('import-preset-personas-btn');
+    if (importPresetBtn && !importPresetBtn._bound) {
+        importPresetBtn._bound = true;
+        importPresetBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const { addedCount, skippedCount, total } = importPresetPersonas(state, saveToLocalStorage);
+            renderPersonaModal();
+            populatePersonaSelector();
+            if (addedCount > 0) {
+                notify.success(`成功导入 ${addedCount} 个预设角色（${skippedCount} 个已存在已跳过）`);
+            } else {
+                notify.info(`预设的 ${total} 个角色已全部存在，无需重复导入`);
+            }
+        });
+    }
+
     if (dom.personaList) {
         dom.personaList.addEventListener('click', handlePersonaListActions);
         
@@ -28,8 +52,9 @@ export function setupPersonaEvents() {
             personaDragInstance.destroy();
         }
         personaDragInstance = new DraggableList(dom.personaList, {
-            itemSelector: '.persona-item',
+            itemSelector: '.persona-item:not(.batch-mode)',
             onDrop: (fromIndex, toIndex) => {
+                if (isPersonaBatchMode()) return;
                 const personas = Object.values(state.personas)
                     .map(p => {
                         if (typeof p.sort !== 'number') {
@@ -141,6 +166,15 @@ function savePersonaEdit() {
 }
 
 function handlePersonaListActions(e) {
+    if (isPersonaBatchMode()) {
+        const item = e.target.closest('.persona-item');
+        if (item) {
+            const personaId = item.dataset.id;
+            togglePersonaSelection(personaId);
+        }
+        return;
+    }
+
     const button = e.target.closest('button');
     if (!button) return;
     const personaId = button.dataset.id;

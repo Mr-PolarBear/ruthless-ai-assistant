@@ -164,15 +164,84 @@ Write-Host "====================================================================
 Write-Host ""
 
 $fileCount = (Get-ChildItem -Path $targetDir -Recurse -File | Where-Object { $_.FullName -notmatch '\\\.git\\' }).Count
-Write-Host "  同步成功！共导出 $fileCount 个纯净开源文件至: $targetDir" -ForegroundColor Green
+Write-Host "  ✅ 同步成功！共导出 $fileCount 个纯净开源文件至: $targetDir" -ForegroundColor Green
 Write-Host ""
-Write-Host "----------------------------------------------------------------------" -ForegroundColor DarkGray
-Write-Host "  接下来你可以在发布文件夹中执行 Git 提交命令:" -ForegroundColor White
-Write-Host "----------------------------------------------------------------------" -ForegroundColor DarkGray
-Write-Host "  cd `"$targetDir`"" -ForegroundColor Yellow
-Write-Host "  git add ." -ForegroundColor Yellow
-Write-Host "  git commit -m `"feat: release v1.0.0`"" -ForegroundColor Yellow
-Write-Host "  git remote add origin YOUR_GITHUB_REPO_URL   # (仅首次需要)" -ForegroundColor Cyan
-Write-Host "  git push -u origin main" -ForegroundColor Yellow
-Write-Host "----------------------------------------------------------------------" -ForegroundColor DarkGray
+
+# ——————————————————————————————————————————————————————————————————————
+# 6. 自动化 Git 提交流程与推送 (Plan B: 带推送确认)
+# ——————————————————————————————————————————————————————————————————————
+Write-Host "======================================================================" -ForegroundColor Cyan
+Write-Host "         🚀 发布仓库 Git 自动提交与推送" -ForegroundColor Cyan
+Write-Host "======================================================================" -ForegroundColor Cyan
 Write-Host ""
+
+# 检查是否有 git 命令
+$gitAvailable = $false
+try {
+    $null = & git --version 2>&1
+    if ($LASTEXITCODE -eq 0) { $gitAvailable = $true }
+} catch {}
+
+if (-not $gitAvailable) {
+    Write-Host "  ⚠️ 未检测到系统 Git 环境，已跳过自动提交与推送。" -ForegroundColor Yellow
+    Write-Host "     请在安装 Git 后手动进入发布文件夹提交。" -ForegroundColor Gray
+} else {
+    # 1. 暂存所有文件变动
+    Write-Host "  ⏳ 正在暂存文件变动 (git add -A)..." -ForegroundColor Gray
+    & git -C $targetDir add -A
+
+    # 2. 检查工作区是否有任何变动（暂存区或未跟踪）
+    $statusOutput = & git -C $targetDir status --porcelain 2>&1
+    if ([string]::IsNullOrWhiteSpace($statusOutput)) {
+        Write-Host "  ℹ️ 工作区与远程代码一致，未检测到任何文件变更，无需提交。" -ForegroundColor Green
+    } else {
+        # 3. 获取提交说明
+        $defaultMsg = "更新 $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
+        Write-Host ""
+        Write-Host -NoNewline ">>> 请输入 Git 提交信息 [直接回车默认: $defaultMsg]: " -ForegroundColor White
+        $inputCommitMsg = Read-Host
+        $commitMsg = if ([string]::IsNullOrWhiteSpace($inputCommitMsg)) { $defaultMsg } else { $inputCommitMsg.Trim() }
+
+        # 4. 执行 Commit
+        Write-Host ""
+        Write-Host "  ⏳ 正在提交版本: $commitMsg ..." -ForegroundColor Gray
+        & git -C $targetDir commit -m "$commitMsg"
+
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "  ✅ 本地提交成功！" -ForegroundColor Green
+        } else {
+            Write-Host "  ⚠️ 本地提交遇到异常，请检查 Git 状态。" -ForegroundColor Yellow
+        }
+
+        # 5. Plan B：询问是否立即推送到远程仓库
+        Write-Host ""
+        Write-Host "----------------------------------------------------------------------" -ForegroundColor DarkGray
+        Write-Host -NoNewline ">>> 是否立即推送到远程仓库？[Y/n，直接回车默认 Y]: " -ForegroundColor White
+        $pushChoice = Read-Host
+        if ([string]::IsNullOrWhiteSpace($pushChoice) -or ($pushChoice -in @("y", "Y", "yes", "YES"))) {
+            Write-Host ""
+            Write-Host "  🚀 正在推送到远程仓库 (git push)..." -ForegroundColor Cyan
+            & git -C $targetDir push
+            if ($LASTEXITCODE -eq 0) {
+                Write-Host ""
+                Write-Host "======================================================================" -ForegroundColor Green
+                Write-Host "  🎉 同步、本地提交与远程推送已全部圆满完成！" -ForegroundColor Green
+                Write-Host "======================================================================" -ForegroundColor Green
+            } else {
+                Write-Host ""
+                Write-Host "======================================================================" -ForegroundColor Yellow
+                Write-Host "  ⚠️ 远程推送失败 (错误码 $LASTEXITCODE)" -ForegroundColor Yellow
+                Write-Host "     可能原因: 网络连接超时、未配置 SSH/凭据、或需要拉取冲突。" -ForegroundColor Gray
+                Write-Host "     提示: 本地 Commit 已成功保留，大爷可稍后在发布文件夹中手动执行 git push。" -ForegroundColor Gray
+                Write-Host "======================================================================" -ForegroundColor Yellow
+            }
+        } else {
+            Write-Host ""
+            Write-Host "  ℹ️ 已跳过远程推送。本地提交已保留在: $targetDir" -ForegroundColor Yellow
+        }
+    }
+}
+
+Write-Host ""
+Write-Host "按回车退出..."
+$null = Read-Host

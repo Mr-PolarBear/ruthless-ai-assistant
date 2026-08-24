@@ -745,15 +745,10 @@ export async function initialize() {
     initBatchDelete();
 
     renderHistory();
-    const lastConversationId = Object.keys(state.conversations).sort((a, b) => new Date(state.conversations[b].lastModified) - new Date(state.conversations[a].lastModified))[0];
-    if (lastConversationId) {
-        await switchToConversation(lastConversationId);
-    } else {
-        // — 为什么这么写 —
-        // 首次打开系统的全新用户无任何历史会话，如果传入 null 会导致 currentConversationId 被置空。
-        // 自动初始化创建第一个会话，以便用户直接导入设置即可开始对话。
-        await createNewConversation();
-    }
+    // — 为什么这么写 —
+    // 需求：系统刚进入时不自动加载最后一个会话，保持未选中状态，由用户自行去点击加载。
+    // 如果用户直接在输入框发送消息，handleSendMessage 内置机制会自动创建新会话，确保交互顺畅。
+    await switchToConversation(null);
 
     initDatabaseSettings();
 

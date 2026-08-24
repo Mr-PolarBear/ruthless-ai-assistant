@@ -404,62 +404,251 @@
         padding-top: 0.85rem;
     }
 
+    /* ==========================================================================
+       移动端/窄屏 (<= 900px) - 备忘录管理弹窗 (Worldbook Modal)
+       ========================================================================== */
+    #worldbook-modal.modal-overlay {
+        padding: 0 !important;
+        align-items: stretch !important;
+        justify-content: stretch !important;
+    }
+
     #worldbook-modal .modal-content {
-        width: 100vw;
-        height: 100vh;
-        max-width: none;
-        max-height: none;
-        border-radius: 0;
-        margin: 0;
-        display: flex;
-        flex-direction: column;
+        width: 100vw !important;
+        height: 100vh !important;
+        max-width: 100vw !important;
+        max-height: 100vh !important;
+        border-radius: 0 !important;
+        border: none !important;
+        margin: 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        box-shadow: none !important;
     }
 
-    #worldbook-modal .modal-body {
-        padding: 0;
-        flex: 1;
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
+    .worldbook-modal-header {
+        padding: 0.6rem 0.85rem !important;
+        flex-shrink: 0;
     }
 
-    .worldbook-mobile-nav {
-        display: grid;
+    .worldbook-header-left h2 {
+        font-size: 1rem;
     }
 
     .worldbook-header-left .drag-sort-hint {
         display: none;
     }
 
-    .worldbook-merge-toggle-wrap label:first-child {
-        display: none;
+    .worldbook-merge-toggle-wrap {
+        padding: 3px 6px !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 5px !important;
+    }
+
+    .worldbook-merge-toggle-wrap label:first-child,
+    .worldbook-merge-toggle-label {
+        display: inline-flex !important;
+        font-size: 0.76rem !important;
+        color: var(--text-secondary) !important;
+        white-space: nowrap !important;
+        margin-bottom: 0 !important;
+    }
+
+    .wb-merge-label-desktop {
+        display: none !important;
+    }
+
+    .wb-merge-label-mobile {
+        display: inline !important;
+    }
+
+    #worldbook-modal .modal-body {
+        padding: 0 !important;
+        margin: 0 !important;
+        flex: 1 !important;
+        overflow: hidden !important;
+        display: flex !important;
+        flex-direction: column !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+
+    .worldbook-mobile-nav {
+        display: grid !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
     }
 
     .worldbook-split-container {
-        display: flex;
-        flex-direction: column;
-        flex: 1;
-        overflow: hidden;
-        gap: 0;
+        display: flex !important;
+        flex-direction: column !important;
+        flex: 1 !important;
+        overflow: hidden !important;
+        gap: 0 !important;
+        min-height: 0 !important;
+        height: 100% !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        position: relative !important;
+        padding: 0 !important;
+        margin: 0 !important;
     }
 
-    /* 列表视图 (data-mobile-view 为 list 或默认时) */
-    #worldbook-modal:not([data-mobile-view="form"]) .worldbook-tags-panel {
-        display: flex;
-        max-height: 125px;
-        border-right: none;
-        border-bottom: 1px solid var(--border-color);
-        padding: 0.5rem 0.75rem;
-        flex-shrink: 0;
+    /* 移动端标签抽屉遮罩层（暗色毛玻璃半透明） */
+    .worldbook-tags-backdrop {
+        position: fixed;
+        inset: 0;
+        background-color: rgba(0, 0, 0, 0.55);
+        z-index: 99;
+        display: none;
+        backdrop-filter: blur(2px);
     }
 
+    .worldbook-tags-backdrop.active {
+        display: block !important;
+    }
+
+    /* 移动端标签面板：向左滑出的左侧抽屉（Drawer） */
+    #worldbook-modal .worldbook-tags-panel {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        bottom: 0 !important;
+        width: 290px !important;
+        max-width: 85vw !important;
+        background: var(--bg-deep, var(--bg-primary)) !important;
+        z-index: 100 !important;
+        box-shadow: 6px 0 24px rgba(0, 0, 0, 0.35) !important;
+        transform: translateX(-100%) !important;
+        transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        display: flex !important;
+        flex-direction: column !important;
+        padding: 1rem 0.85rem !important;
+        border-right: 1px solid var(--border-color) !important;
+        border-radius: 0 12px 12px 0 !important;
+        border-bottom: none !important;
+        border-top: none !important;
+        border-left: none !important;
+        box-sizing: border-box !important;
+        margin: 0 !important;
+    }
+
+    #worldbook-modal .worldbook-tags-panel.drawer-open {
+        transform: translateX(0) !important;
+    }
+
+    .worldbook-tags-header {
+        margin-bottom: 0.75rem;
+        width: 100%;
+    }
+
+    .wb-tags-collapse-btn {
+        display: inline-flex !important;
+    }
+
+    .worldbook-tags-body {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 0.75rem !important;
+        flex: 1 !important;
+        min-height: 0 !important;
+        overflow-y: auto !important;
+    }
+
+    /* 移动端条目列表面板：100% 独占空间，绝无遮挡与留白 */
     #worldbook-modal:not([data-mobile-view="form"]) .worldbook-list-panel {
+        display: flex !important;
+        flex-direction: column !important;
+        flex: 1 !important;
+        border: none !important;
+        padding: 0.4rem 0.75rem 0.75rem 0.75rem !important;
+        margin: 0 !important;
+        min-height: 0 !important;
+        overflow: hidden !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    .worldbook-list-header {
+        display: flex !important;
+        align-items: center !important;
+        margin-bottom: 0.5rem !important;
+        flex-shrink: 0 !important;
+        gap: 8px !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    .wb-tags-open-btn {
+        display: inline-flex !important;
+        flex-shrink: 0 !important;
+    }
+
+    .worldbook-list-content {
+        flex: 1 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        padding-right: 2px !important;
+        box-sizing: border-box !important;
+    }
+
+    /* 移动端条目卡片内部精细化排版 */
+    .worldbook-item {
+        padding: 9px 10px !important;
+        margin-bottom: 8px !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+    }
+
+    .worldbook-item .regex-rule-item-name {
+        font-size: 0.92rem;
+    }
+
+    .worldbook-item .persona-item-prompt {
+        font-size: 0.82rem;
+        max-height: 60px;
+        -webkit-line-clamp: 3;
+    }
+
+    .scope-badges {
         display: flex;
-        flex: 1;
-        border: none;
-        padding: 0.5rem 0.75rem;
-        border-bottom: none;
-        margin-bottom: 0;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+        margin-top: 0.4rem;
+    }
+
+    .scope-badges .toggle-label {
+        font-size: 0.72rem;
+        gap: 2px;
+    }
+
+    .scope-badges .worldbook-action-buttons {
+        margin-left: auto;
+        gap: 6px;
+    }
+
+    .worldbook-action-buttons button,
+    .worldbook-action-buttons .action-btn {
+        width: 28px;
+        height: 28px;
+        min-width: 28px;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .worldbook-action-buttons svg {
+        width: 14px;
+        height: 14px;
     }
 
     #worldbook-modal:not([data-mobile-view="form"]) .worldbook-form-panel {
@@ -474,28 +663,57 @@
 
     #worldbook-modal[data-mobile-view="form"] .worldbook-form-panel {
         display: flex !important;
-        flex: 1;
-        padding: 0.75rem;
-        border: none;
+        flex-direction: column !important;
+        flex: 1 !important;
+        padding: 0.75rem !important;
+        border: none !important;
+        min-height: 0 !important;
+        overflow-y: auto !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        margin: 0 !important;
+    }
+
+    .worldbook-form-panel .modal-section {
+        padding: 0;
+    }
+
+    .worldbook-form-body {
+        gap: 0.75rem;
+    }
+
+    #worldbook-content-input {
+        min-height: 160px;
     }
 
     .worldbook-params-row {
+        display: flex;
+        flex-wrap: wrap;
         gap: 0.5rem;
     }
 
     .worldbook-params-row .param-tags-group {
         width: 100%;
-        flex: auto;
+        flex: 1 1 100%;
     }
 
     .worldbook-params-row .param-depth-group {
-        flex: 1;
-        width: auto;
+        flex: 1 1 45%;
+        min-width: 100px;
     }
 
     .worldbook-params-row .param-role-group {
-        flex: 1;
-        width: auto;
+        flex: 1 1 45%;
+        min-width: 100px;
+    }
+
+    .worldbook-params-row .param-toggle-group {
+        flex: 1 1 100%;
+        padding: 4px 8px;
+        background: var(--bg-light);
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
     }
 
     #message-edit-modal .modal-content {
