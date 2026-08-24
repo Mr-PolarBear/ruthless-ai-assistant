@@ -20,7 +20,7 @@ import { renderHistory } from './sidebar.js?v=260824';
 // 乌鸦：导入文档解析服务
 import { isDocumentFile, parseDocumentFile, getDocumentType, MAX_DOCUMENT_SIZE_BYTES } from './services/file-parser.js?v=260824';
 // 乌鸦：导入通知与弹窗组件
-import { notify, showErrorDialog } from './ui-updater.js?v=260824';
+import { notify, showErrorDialog, updateSendButtonState } from './ui-updater.js?v=260824';
 // 导入配置导出多选弹窗
 import { openExportConfigModal, setupExportConfigModalEvents } from './modals/export-config-modal.js?v=260824';
 
@@ -30,6 +30,9 @@ import { openExportConfigModal, setupExportConfigModalEvents } from './modals/ex
 export function setupFileEvents() {
     // File attachment events
     setupFileAttachmentEvents();
+
+    // 智能摸鱼：设置输入框粘贴图片与文件事件
+    setupMessageInputPasteEvents();
 
     // 乌鸦：设置聊天区文件拖拽上传事件
     setupDragAndDropEvents();
@@ -97,6 +100,101 @@ function setupFileAttachmentEvents() {
             }
         });
     }
+}
+
+/**
+ * 智能摸鱼：设置输入框剪贴板粘贴事件（支持图片、系统截图、复制的本地文件及图文混排）
+ * — 为什么这么写 —
+ * 1. 原生 textarea 对文件粘贴默认仅尝试插入纯文本或直接忽略，无法被附件管道捕获
+ * 2. 拦截 message-input 的 paste 事件，支持从 e.clipboardData.items / files 中提取 File 对象
+ * 3. 针对微信、QQ、Win+Shift+S 等系统截图生成的泛化文件名（如 image.png、blob），根据毫秒时间戳生成可区分的文件名
+ * 4. 若剪贴板中提取到文件，阻止原生默认行为，避免在输入框中产生无意义的二进制占位符或脏数据
+ * 5. 若剪贴板中同时存在伴随文本（例如复制富文本时），将文本精确插入当前光标处并自适应输入框高度
+ * 6. 若纯文本粘贴（无任何文件），完全不调用 preventDefault，保持原生极速粘贴体验
+ */
+function setupMessageInputPasteEvents() {
+    const input = dom.messageInput || document.getElementById('message-input');
+    if (!input) return;
+
+    input.addEventListener('paste', async (e) => {
+        const clipboardData = e.clipboardData || window.clipboardData;
+        if (!clipboardData) return;
+
+        const items = clipboardData.items;
+        const rawFiles = clipboardData.files;
+        const filesToHandle = [];
+
+        // 1. 优先从 DataTransferItemList 提取文件（对现代浏览器截图和图片对象兼容最佳）
+        if (items && items.length > 0) {
+            for (let i = 0; i < items.length; i++) {
+                const item = items[i];
+                if (item.kind === 'file') {
+                    const file = item.getAsFile();
+                    if (file) {
+                        filesToHandle.push(formatClipboardFile(file));
+                    }
+                }
+            }
+        } else if (rawFiles && rawFiles.length > 0) {
+            // 2. 兜底从 rawFiles 中提取（适配部分浏览器从资源管理器复制的文件）
+            for (let i = 0; i < rawFiles.length; i++) {
+                filesToHandle.push(formatClipboardFile(rawFiles[i]));
+            }
+        }
+
+        // 3. 如果成功提取到了文件（图片/文档/代码文件等）
+        if (filesToHandle.length > 0) {
+            // 阻止浏览器将文件对象作为脏文本或空白字符插入输入框
+            e.preventDefault();
+
+            // 若同时携带非空文本（如复制图文混合内容），将其插入光标位置
+            const plainText = clipboardData.getData('text/plain');
+            if (plainText && plainText.trim()) {
+                insertTextAtInputCursor(input, plainText);
+            }
+
+            // 送入统一的文件处理入口（包含魔数防伪检测、异步文档解析、大小检查和附件栏渲染）
+            await handleFiles(filesToHandle);
+            // 刷新发送按钮状态
+            updateSendButtonState();
+        }
+        // 4. 若无文件（用户复制的是纯文本），不执行 preventDefault，放行原生粘贴
+    });
+}
+
+/**
+ * 规范化剪贴板提取出的文件对象（针对无名截图增加可辨识的时间戳文件名）
+ * @param {File} file - 原始文件对象
+ * @returns {File} 规范化后的文件对象
+ */
+function formatClipboardFile(file) {
+    if (!file.name || file.name === 'image.png' || file.name === 'blob') {
+        const ext = file.type ? (file.type.split('/')[1] || 'png') : 'png';
+        const now = new Date();
+        const pad = (n) => String(n).padStart(2, '0');
+        const timeStr = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+        const newFileName = `screenshot_${timeStr}.${ext}`;
+        return new File([file], newFileName, { type: file.type || 'image/png' });
+    }
+    return file;
+}
+
+/**
+ * 在输入框当前光标所在位置插入文本，并联动触发 input 事件以自适应高度
+ * @param {HTMLTextAreaElement} textarea - 目标输入框
+ * @param {string} text - 待插入的文本
+ */
+function insertTextAtInputCursor(textarea, text) {
+    if (!textarea || !text) return;
+    const start = textarea.selectionStart ?? textarea.value.length;
+    const end = textarea.selectionEnd ?? textarea.value.length;
+    const val = textarea.value;
+
+    textarea.value = val.substring(0, start) + text + val.substring(end);
+    textarea.selectionStart = textarea.selectionEnd = start + text.length;
+
+    // 触发 input 事件以自适应高度并更新字数统计与按钮状态
+    textarea.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
 /**

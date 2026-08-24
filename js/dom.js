@@ -251,6 +251,12 @@ export function initDom() {
     // 乌鸦：标签相关的DOM元素
     dom.worldBookTagsInput = document.getElementById('worldbook-tags-input');
     dom.worldBookTagsDisplay = document.getElementById('worldbook-tags-display');
+    dom.worldBookTagsPanel = document.getElementById('worldbook-tags-panel');
+    dom.worldBookTagsCollapseBtn = document.getElementById('worldbook-tags-collapse-btn');
+    dom.worldBookTagsOpenBtn = document.getElementById('worldbook-tags-open-btn');
+    dom.worldBookTagsBackdrop = document.getElementById('worldbook-tags-backdrop');
+    dom.worldBookSelectedTagsBadge = document.getElementById('worldbook-selected-tags-badge');
+    dom.worldBookOpenTagsBadge = document.getElementById('worldbook-open-tags-badge');
     dom.worldBookTagSearchInput = document.getElementById('worldbook-tag-search-input');
     dom.worldBookTagList = document.getElementById('worldbook-tag-list');
     dom.worldBookClearFilterBtn = document.getElementById('worldbook-clear-filter-btn');

@@ -901,7 +901,24 @@
             <button class="modal-close-btn" title="关闭">&times;</button>
         </div>
         <div class="modal-body">
-            <button id="add-new-persona-btn" style="margin-bottom: 1rem;">添加新角色</button>
+            <div class="persona-modal-toolbar" style="display: flex; gap: 8px; margin-bottom: 1rem; align-items: center; flex-wrap: wrap;">
+                <button id="add-new-persona-btn">添加新角色</button>
+                <button id="import-preset-personas-btn" class="persona-toolbar-btn" title="导入内置的22个预设角色包，已存在的角色自动跳过">导入预设角色</button>
+                <button id="persona-batch-delete-btn" class="persona-toolbar-btn">批量删除</button>
+            </div>
+
+            <!-- 角色批量操作工具栏 -->
+            <div id="persona-batch-actions-bar" class="persona-batch-actions-bar" style="display: none;">
+                <div class="batch-select-tools">
+                    <button type="button" id="persona-batch-select-all-btn" class="batch-tool-btn">全选</button>
+                    <button type="button" id="persona-batch-deselect-all-btn" class="batch-tool-btn">取消全选</button>
+                </div>
+                <div id="persona-batch-selected-count" class="batch-selected-count">已选 0 项</div>
+                <div class="batch-actions-buttons">
+                    <button type="button" id="persona-batch-delete-confirm" class="batch-action-btn delete" disabled>删除选中</button>
+                    <button type="button" id="persona-batch-cancel-btn" class="batch-action-btn cancel">退出</button>
+                </div>
+            </div>
 
             <div id="persona-list"></div>
             <div class="modal-section"><!-- This hidden form block is restored to fix the JS error -->
@@ -989,7 +1006,10 @@
             </div>
             <div class="worldbook-header-right">
                 <div class="form-group-toggle worldbook-merge-toggle-wrap" title="开启后将所有启用的备忘录条目合并为单条System消息发送">
-                    <label for="worldbook-merge-toggle">合并发送条目</label>
+                    <label for="worldbook-merge-toggle" class="worldbook-merge-toggle-label">
+                        <span class="wb-merge-label-desktop">合并发送条目</span>
+                        <span class="wb-merge-label-mobile">合并系统消息</span>
+                    </label>
                     <label class="theme-switch small">
                         <input type="checkbox" id="worldbook-merge-toggle">
                         <span class="slider round"></span>
@@ -1011,37 +1031,55 @@
         </div>
         <div class="modal-body">
             <div class="worldbook-split-container">
-                <div class="worldbook-tags-panel">
-                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
-                        <h4>标签筛选</h4>
-                        <button id="worldbook-clear-filter-btn" class="btn-secondary"
-                            style="font-size: 12px; padding: 4px 8px; white-space: nowrap;"
-                            title="清除所有标签筛选">清除筛选</button>
-                    </div>
-                    <div class="tag-search">
-                        <input id="worldbook-tag-search-input" type="text" placeholder="搜索标签...">
-                    </div>
+                <!-- 移动端标签抽屉遮罩层 -->
+                <div id="worldbook-tags-backdrop" class="worldbook-tags-backdrop" style="display: none;"></div>
 
-                    <div class="tag-list" id="worldbook-tag-list">
-                        <!-- 乌鸦：动态生成标签 -->
+                <div class="worldbook-tags-panel" id="worldbook-tags-panel">
+                    <div class="worldbook-tags-header">
+                        <div class="worldbook-tags-title-wrap">
+                            <h4>标签筛选</h4>
+                            <span id="worldbook-selected-tags-badge" class="wb-selected-tags-badge" style="display: none;">0</span>
+                        </div>
+                        <div class="worldbook-tags-header-tools">
+                            <button id="worldbook-clear-filter-btn" class="btn-secondary wb-clear-filter-btn"
+                                style="font-size: 12px; padding: 3px 8px; white-space: nowrap;"
+                                title="清除所有标签筛选">清除筛选</button>
+                            <button type="button" id="worldbook-tags-collapse-btn" class="wb-tags-collapse-btn" title="向左收起标签面板">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                            </button>
+                        </div>
                     </div>
+                    <div class="worldbook-tags-body" id="worldbook-tags-body">
+                        <div class="tag-search">
+                            <input id="worldbook-tag-search-input" type="text" placeholder="搜索标签...">
+                        </div>
 
-                    <div class="tag-filter-mode">
-                        <span class="mode-label">选择模式</span>
-                        <div class="segmented-control">
-                            <label>
-                                <input type="radio" name="tag-logic" value="single" checked>
-                                <span>单选</span>
-                            </label>
-                            <label>
-                                <input type="radio" name="tag-logic" value="multi">
-                                <span>多选</span>
-                            </label>
+                        <div class="tag-list" id="worldbook-tag-list">
+                            <!-- 乌鸦：动态生成标签 -->
+                        </div>
+
+                        <div class="tag-filter-mode">
+                            <span class="mode-label">选择模式</span>
+                            <div class="segmented-control">
+                                <label>
+                                    <input type="radio" name="tag-logic" value="single" checked>
+                                    <span>单选</span>
+                                </label>
+                                <label>
+                                    <input type="radio" name="tag-logic" value="multi">
+                                    <span>多选</span>
+                                </label>
+                            </div>
                         </div>
                     </div>
                 </div>
                 <div class="worldbook-list-panel">
                     <div class="worldbook-list-header">
+                        <button type="button" id="worldbook-tags-open-btn" class="wb-tags-open-btn" title="展开标签筛选">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
+                            <span>标签</span>
+                            <span id="worldbook-open-tags-badge" class="wb-open-tags-badge" style="display: none;">0</span>
+                        </button>
                         <div class="worldbook-list-tabs">
                             <button class="tab-btn active" data-tab="all">全部</button>
                             <button class="tab-btn" data-tab="selected">已选中 <span id="selected-count"
@@ -1808,6 +1846,19 @@
         <div class="modal-body" style="max-height: 65vh; overflow-y: auto;">
             <!-- 更新日志标签内容 -->
             <div id="changelog-content" class="changelog-tab-content active">
+                <!-- v2.9.2 -->
+                <div class="changelog-version">
+                    <div class="changelog-version-header">
+                        <span class="changelog-version-tag">v2.9.2</span>
+                        <span class="changelog-version-date">2026-08-24</span>
+                    </div>
+                    <ul class="changelog-list">
+                        <li class="changelog-item feat">【输入交互】主输入框（`#message-input`）新增支持通过 `Ctrl + V` / 右键快捷菜单直接粘贴图片与各类本地文件；</li>
+                        <li class="changelog-item feat">【文件捕获】智能提取系统截图（微信/QQ/Snipaste/Win+Shift+S 等）、网页图片及操作系统资源管理器复制的本地文件（Word/PDF/Excel/TXT/代码等），自动按时序生成唯一文件名防止同名冲突；</li>
+                        <li class="changelog-item feat">【图文分流】图文混排内容自动分离，纯文本精准插入光标位置并撑开高度，文件统一送入附件管线执行魔数防伪校验与异步解析；</li>
+                        <li class="changelog-item opt">【性能体验】纯文本粘贴 100% 放行浏览器原生行为，零侵入无延迟，附件添加后自动刷新发送按钮可用状态。</li>
+                    </ul>
+                </div>
                 <!-- v2.9.1 -->
                 <div class="changelog-version">
                     <div class="changelog-version-header">

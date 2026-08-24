@@ -126,13 +126,17 @@ class CodePreviewManager {
 
     /**
      * 获取当前的滚动目标元素
-     * 乌鸦：CSS 修复后（.code-block-container 从 height:100% 改为 min-height:100%），
-     * contentArea 是唯一的滚动容器（overflow-y: auto）。
-     * 代码块容器会随内容自然增长，撑开 contentArea 的 scrollHeight。
+     * 侧边栏采用固定头部架构：.code-block-header 物理固定在顶部，
+     * 代码在内部 pre 容器中滚动，保证头部永远可见。
      */
     getScrollTarget() {
         if (!this.contentArea) return null;
-        return this.contentArea;
+        const table = this.contentArea.querySelector('.json-table-view');
+        if (table && table.style.display !== 'none') {
+            return table;
+        }
+        const pre = this.contentArea.querySelector('pre');
+        return pre || this.contentArea;
     }
 
     /**

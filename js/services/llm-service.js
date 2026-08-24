@@ -121,9 +121,11 @@ export async function handleNonStreamResponse(response, aiMessageId, convId, bra
     let finalContent = "";
     let userStopped = false;
     let processedContent = '';
+    let hasTriggeredFollowUp = false;
     let allReasoningParts = [];
     let cleanedContent = '';
     let fullContent = '';
+    let hasError = false;
 
     try {
         const responseData = await response.json();
@@ -147,7 +149,7 @@ export async function handleNonStreamResponse(response, aiMessageId, convId, bra
         // 乌鸦：传递 continueConversation 回调
         const toolCallResult = await handleToolCalls(cleanedContent, bubble, convId, msgIndex, continueConversation);
         processedContent = toolCallResult.content;
-        const hasTriggeredFollowUp = toolCallResult.hasTriggeredFollowUp;
+        hasTriggeredFollowUp = toolCallResult.hasTriggeredFollowUp;
 
         // — 为什么这么写 —
         // 优先使用 API 厂商返回的官方权威 usage Token（completion_tokens 或 total_tokens）
@@ -195,10 +197,9 @@ export async function handleNonStreamResponse(response, aiMessageId, convId, bra
         }
 
     } catch (error) {
+        hasError = true;
         if (error.name !== 'AbortError') {
-            finalContent += `
-
-[Response Error: ${error.message}]`;
+            finalContent += `\n\n[Response Error: ${error.message}]`;
         } else {
             userStopped = true;
         }
@@ -247,37 +248,18 @@ export async function handleNonStreamResponse(response, aiMessageId, convId, bra
         const conv = state.conversations[convId];
         if (conv) await saveConversation(convId, conv);
 
-        // 检查并触发自动总结（后台异步静默执行）
-        checkAndTriggerAutoSummary(convId, branchIndex).catch(err => console.warn('Auto summary error:', err));
+        // — 为什么这么写 —
+        // 仅当本次生成完全成功（未发生接口报错、非用户主动停止、非二次工具调用分析中、且生成了有效的非空非错误内容）时，才触发自动总结
+        const isContentValid = !!(finalFullContent && finalFullContent.trim() && !finalFullContent.includes('error-indicator') && !finalFullContent.includes('[Response Error:'));
+        if (!hasError && !userStopped && isContentValid && !hasTriggeredFollowUp) {
+            checkAndTriggerAutoSummary(convId, branchIndex).catch(err => console.warn('Auto summary error:', err));
+        }
 
         // 乌鸦：如果触发了二次请求，不重置状态，也不更新UI（让按钮保持Stop状态）
-        // 只有当没有触发二次请求时，才认为是完全结束
-        // 注意：handleNonStreamResponse 中的局部变量 processedContent 和 hasTriggeredFollowUp 需要在 try 块外访问，
-        // 但这里我们是在 finally 块中，try 块中的变量不可见。
-        // 这里的 hasTriggeredFollowUp 实际上是未定义的。
-        // 修复：我们在 try 块外定义 hasTriggeredFollowUp。
-
-        // 重新检查变量作用域... processedContent 定义在 try 外面。
-        // 我们需要在 try 外面定义 hasTriggeredFollowUp。
-
-        // 由于这里只能替换代码片段，我会假设 handleNonStreamResponse 的开头定义了 hasTriggeredFollowUp。
-        // 既然不能假设，我会在 finally 块里判断。
-        // 但是 processedContent 是在 try 块里赋值的。
-
-        // Wait, handleNonStreamResponse structure:
-        // let processedContent = ''; 
-        // try { ... processedContent = ... } finally { ... }
-
-        // I need to add `let hasTriggeredFollowUp = false;` at the top of handleNonStreamResponse first.
-        // Or I can modify the whole function.
-
-        // Let's modify continueConversation first, and handleStream/handleNonStreamResponse separately.
-
-        // This replacement targets the try/catch/finally block of handleNonStreamResponse.
-        // I will do this in smaller chunks.
-
-        state.streamingConversationId = null;
-        updateAllDynamicUI();
+        if (!hasTriggeredFollowUp) {
+            state.streamingConversationId = null;
+            updateAllDynamicUI();
+        }
     }
 
     return { finalContent, reasoningContent };
@@ -672,6 +654,8 @@ export async function handleStream(response, aiMessageId, convId, branchIndex, m
     let reasoningContent = "";
     let finalContent = "";
     let buffer = "";
+    let userStopped = false;
+    let hasStreamError = false;
     initialContentEl.classList.add('typing-cursor');
 
     const conv = state.conversations[convId];
@@ -696,7 +680,6 @@ export async function handleStream(response, aiMessageId, convId, branchIndex, m
     const totalVisibleMessages = visibleMessagesInfo.length;
     const currentMessageVisibleIndex = visibleMessagesInfo.findIndex(info => info.originalIndex === msgIndex);
 
-    let userStopped = false;
     let hasTriggeredFollowUp = false; // 乌鸦：跟踪是否触发了二次请求
     let officialUsageTokenCount = null; // 存储 API 官方返回的权威 Token 数量
     // 乌鸦：记录已预渲染的工具调用块 raw，避免每个 token 循环重复插入占位卡片
@@ -826,6 +809,7 @@ export async function handleStream(response, aiMessageId, convId, branchIndex, m
             }
         }
     } catch (error) {
+        hasStreamError = true;
         if (error.name === 'AbortError') {
             userStopped = true;
         } else {
@@ -945,8 +929,13 @@ export async function handleStream(response, aiMessageId, convId, branchIndex, m
         if (!isFollowUp) {
             const conv = state.conversations[convId];
             if (conv) await saveConversation(convId, conv);
-            // 检查并触发自动总结（后台异步静默执行）
-            checkAndTriggerAutoSummary(convId, branchIndex).catch(err => console.warn('Auto summary error:', err));
+
+            // — 为什么这么写 —
+            // 仅当流式生成完全成功（未发生连接中断/异常、非用户主动停止、非二次工具调用分析中、且生成了有效的非空非错误内容）时，才触发自动总结
+            const isContentValid = !!(pureMainContent && pureMainContent.trim() && !pureMainContent.includes('error-indicator') && !pureMainContent.includes('[ 该消息意外中断'));
+            if (!hasStreamError && !userStopped && isContentValid && !hasTriggeredFollowUp) {
+                checkAndTriggerAutoSummary(convId, branchIndex).catch(err => console.warn('Auto summary error:', err));
+            }
         }
 
         // 乌鸦：如果触发了二次请求，不重置状态，也不更新UI（让按钮保持Stop状态）

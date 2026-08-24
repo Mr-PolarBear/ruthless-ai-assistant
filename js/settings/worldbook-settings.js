@@ -98,6 +98,43 @@ export function setupWorldBookEvents() {
         });
     }
 
+    // 展开标签筛选（移动端打开抽屉 / PC端展开左侧栏）
+    if (dom.worldBookTagsOpenBtn) {
+        dom.worldBookTagsOpenBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (window.innerWidth <= 768) {
+                openWorldBookTagsDrawer();
+            } else {
+                if (dom.worldBookModal) {
+                    dom.worldBookModal.classList.remove('tags-collapsed');
+                }
+            }
+        });
+    }
+
+    // 向左收起标签面板（移动端关闭抽屉 / PC端收起左侧栏）
+    if (dom.worldBookTagsCollapseBtn) {
+        dom.worldBookTagsCollapseBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (window.innerWidth <= 768) {
+                closeWorldBookTagsDrawer();
+            } else {
+                if (dom.worldBookModal) {
+                    dom.worldBookModal.classList.add('tags-collapsed');
+                }
+            }
+        });
+    }
+
+    // 移动端点击标签遮罩层关闭抽屉
+    if (dom.worldBookTagsBackdrop) {
+        dom.worldBookTagsBackdrop.addEventListener('click', () => {
+            closeWorldBookTagsDrawer();
+        });
+    }
+
     // ESC 快捷键退出文本放大模式
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && dom.worldBookModal && dom.worldBookModal.classList.contains('content-expanded')) {
@@ -338,8 +375,31 @@ function clearWorldBookFilter() {
             item.style.display = 'flex';
         });
     }
+
+    if (dom.worldBookTagsPanel) {
+        dom.worldBookTagsPanel.classList.remove('expanded');
+        closeWorldBookTagsDrawer();
+    }
     
     filterWorldBookByTags();
+}
+
+export function openWorldBookTagsDrawer() {
+    if (dom.worldBookTagsPanel) {
+        dom.worldBookTagsPanel.classList.add('drawer-open');
+    }
+    if (dom.worldBookTagsBackdrop) {
+        dom.worldBookTagsBackdrop.classList.add('active');
+    }
+}
+
+export function closeWorldBookTagsDrawer() {
+    if (dom.worldBookTagsPanel) {
+        dom.worldBookTagsPanel.classList.remove('drawer-open');
+    }
+    if (dom.worldBookTagsBackdrop) {
+        dom.worldBookTagsBackdrop.classList.remove('active');
+    }
 }
 
 function updateWorldBookTags() {

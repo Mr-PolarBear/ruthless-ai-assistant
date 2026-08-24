@@ -13,6 +13,7 @@ import { updateWorldBookButton } from './ui-updater.js?v=260824';
 import { saveConversation, getConversation, getAllConversationIds, deleteConversation } from './db.js?v=260824';
 import { formatMemoryForApi, normalizeHideSummaryConfig } from './summary-manager.js?v=260824';
 import { showBatchConflictResolutionDialog } from './modals/import-conflict-modal.js?v=260824';
+import { initDefaultPersonasIfEmpty } from './preset-personas.js?v=260824';
 
 // --- Utility Functions ---
 
@@ -145,6 +146,8 @@ export async function loadFromLocalStorage() {
         state.personas = {};
         console.error("Failed to load personas:", e);
     }
+    // 首次使用时自动装载 22 款预设角色包
+    initDefaultPersonasIfEmpty(state, saveToLocalStorage);
 
     try { // 备忘录
         const rawWorldBook = localStorage.getItem('ai-chat-worldbook-v1');
