@@ -1611,7 +1611,7 @@ body[data-theme="dark"] .search-detail-msg-item {
     box-shadow: var(--shadow-lg);
 }
 
-/* 乌鸦：楼层快速跳转按钮 - 始终可见（不受 hidden 控制） */
+/* 乌鸦：楼层快速跳转按钮 - 始终可见（不受 hidden 控制，确保点击穿透与层级） */
 #jump-to-floor-btn {
     width: 40px;
     height: 40px;
@@ -1619,13 +1619,19 @@ body[data-theme="dark"] .search-detail-msg-item {
     color: var(--text-secondary);
     border-radius: var(--radius-full);
     box-shadow: var(--shadow-md);
-    display: flex;
+    display: flex !important;
     align-items: center;
     justify-content: center;
     border: none;
-    cursor: pointer;
+    cursor: pointer !important;
     opacity: 0.85;
+    pointer-events: auto !important;
+    z-index: 6;
     transition: opacity 0.2s, background-color 0.2s, box-shadow 0.2s, transform 0.2s;
+}
+
+#jump-to-floor-btn * {
+    pointer-events: none !important;
 }
 
 #jump-to-floor-btn:hover {
@@ -1636,32 +1642,33 @@ body[data-theme="dark"] .search-detail-msg-item {
     transform: scale(1.05);
 }
 
-/* 乌鸦：楼层快速跳转浮动面板 */
+/* 乌鸦：楼层快速跳转浮动面板 - 提高层级防遮挡 */
+#floor-jump-panel,
 .floor-jump-panel {
     position: absolute;
-    bottom: 8rem;
-    right: 5rem;
-    width: 280px;
-    max-height: 400px;
-    background-color: var(--bg-light);
+    bottom: 8.5rem;
+    right: 4.8rem;
+    width: 290px;
+    max-height: 420px;
+    background-color: var(--bg-medium);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-xl);
-    z-index: 10;
-    display: flex;
+    z-index: 1000 !important;
+    display: none;
     flex-direction: column;
     overflow: hidden;
-    /* 默认隐藏，用动画展开 */
     opacity: 0;
     transform: translateY(10px) scale(0.95);
-    pointer-events: none;
     transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
+#floor-jump-panel.active,
 .floor-jump-panel.active {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-    pointer-events: auto;
+    display: flex !important;
+    opacity: 1 !important;
+    transform: translateY(0) scale(1) !important;
+    pointer-events: auto !important;
 }
 
 .floor-jump-header {
@@ -1672,6 +1679,88 @@ body[data-theme="dark"] .search-detail-msg-item {
     background-color: var(--bg-medium);
     color: var(--text-primary);
     flex-shrink: 0;
+}
+
+.floor-jump-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.floor-jump-title {
+    display: inline-flex;
+    align-items: center;
+}
+
+.floor-jump-branch-badge {
+    font-size: 0.75em;
+    font-weight: 500;
+    padding: 2px 7px;
+    border-radius: var(--radius-full);
+    background-color: color-mix(in srgb, var(--accent-blue) 18%, transparent);
+    color: var(--accent-blue);
+    border: 1px solid color-mix(in srgb, var(--accent-blue) 30%, transparent);
+    white-space: nowrap;
+}
+
+.floor-jump-quick-bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    border-bottom: 1px dashed var(--border-color);
+    background-color: color-mix(in srgb, var(--bg-medium) 40%, transparent);
+}
+
+.floor-jump-input {
+    flex: 1;
+    min-width: 0;
+    padding: 5px 8px;
+    font-size: 0.82em;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    background-color: var(--bg-medium);
+    color: var(--text-primary);
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.floor-jump-input:focus {
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-blue) 25%, transparent);
+}
+
+.floor-jump-input-error {
+    border-color: var(--danger-color) !important;
+    animation: floor-jump-shake 0.3s ease;
+}
+
+@keyframes floor-jump-shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    75% { transform: translateX(4px); }
+}
+
+.floor-jump-go-btn {
+    padding: 5px 10px;
+    font-size: 0.82em;
+    font-weight: 500;
+    border: none;
+    border-radius: var(--radius-sm);
+    background-color: var(--accent-blue);
+    color: #ffffff;
+    cursor: pointer;
+    transition: background-color 0.15s, transform 0.1s;
+    white-space: nowrap;
+}
+
+.floor-jump-go-btn:hover {
+    background-color: var(--accent-blue-hover, var(--primary-hover));
+}
+
+.floor-jump-go-btn:active {
+    transform: scale(0.96);
 }
 
 .floor-jump-list {
@@ -4434,102 +4523,98 @@ body[data-theme="dark"] input:checked+.slider {
  * - 高度压缩，不显示完整气泡，只作为"摘要条"
  */
 .collapsed-placeholder-card {
-    display: flex;
+    display: inline-flex !important;
     align-items: center;
-    flex-wrap: wrap;
-    gap: 0.4rem;
-    padding: 0.4rem 0.75rem !important;
+    flex-wrap: nowrap !important;
+    gap: 0.5rem;
+    padding: 0.35rem 0.75rem !important;
     min-height: unset !important;
-    background: var(--bg-secondary, var(--bg-light)) !important;
+    max-width: min(100%, 45rem);
+    width: fit-content;
+    background: var(--bg-medium) !important;
+    border: 1px solid var(--border-color) !important;
     border-radius: var(--radius-md) !important;
-    box-shadow: none !important;
-    /* 乌鸦：左侧色条区分身份，user 用主题色，AI 用 blue */
+    box-shadow: var(--shadow-sm) !important;
     border-left: 3px solid var(--text-secondary) !important;
-    opacity: 0.9;
-    transition: opacity 0.2s ease;
+    opacity: 0.92;
+    cursor: pointer;
+    user-select: none;
+    transition: transform 0.15s ease, opacity 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
 }
 
-/* 乌鸦：user 侧用主题主色 */
+/* user 侧与 AI 侧身份色条 */
 .message-wrapper.user .collapsed-placeholder-card {
     border-left-color: var(--primary-color) !important;
 }
 
-/* 乌鸦：AI 侧用 accent-blue，与 user 形成视觉区分 */
 .message-wrapper.ai .collapsed-placeholder-card {
     border-left-color: var(--accent-blue, #4a9eff) !important;
 }
 
 .collapsed-placeholder-card:hover {
     opacity: 1;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md) !important;
+    border-color: color-mix(in srgb, var(--accent-blue) 40%, var(--border-color)) !important;
 }
 
-/* 角色标签：带背景色的小徽章 */
+.collapsed-placeholder-card.loading {
+    opacity: 0.7;
+    cursor: wait;
+}
+
+/* 角色与楼层组合徽章 */
 .placeholder-role-tag {
     font-size: 0.75em;
     font-weight: 600;
-    padding: 0.1rem 0.45rem;
+    padding: 0.12rem 0.45rem;
     border-radius: var(--radius-sm);
-    background: var(--bg-deep, rgba(0, 0, 0, 0.12));
+    background: var(--bg-deep, rgba(0, 0, 0, 0.15));
     color: var(--text-primary);
     white-space: nowrap;
-    /* 乌鸦：强制不换行，保证徽章完整 */
     flex-shrink: 0;
 }
 
-/* 楼层标签 */
-.placeholder-floor {
-    font-size: 0.75em;
-    font-weight: 500;
-    color: var(--text-secondary);
-    white-space: nowrap;
-    flex-shrink: 0;
-}
-
-/* 内容预览文本：占据剩余宽度，超出截断 */
+/* 内容预览文本：单行自适应截断，保证不挤爆高度 */
 .placeholder-text {
-    flex: 1 1 0;
-    /* 乌鸦：关键：flex-grow 撑满剩余空间，flex-shrink 正常收缩 */
+    flex: 1 1 auto;
     min-width: 0;
-    /* 乌鸦：必须设置，否则 text-overflow 失效 */
+    max-width: 26rem;
     font-size: 0.82em;
     color: var(--text-primary);
-    /* 乌鸦：改用主色 + opacity，对比度远高于 text-secondary */
-    opacity: 0.72;
-    font-style: italic;
+    opacity: 0.85;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-/* 加载按钮：轻量幽灵风格，不抢眼但清晰可识别 */
+/* 展开按钮 */
 .placeholder-load-btn {
     flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
     font-size: 0.75em;
-    padding: 0.15rem 0.55rem;
+    font-weight: 500;
+    padding: 0.12rem 0.5rem;
     border-radius: var(--radius-sm);
     border: 1px solid var(--border-color);
-    background: transparent;
+    background: color-mix(in srgb, var(--bg-light) 60%, transparent);
     color: var(--text-secondary);
     cursor: pointer;
-    transition: all 0.18s ease;
+    transition: background-color 0.15s, color 0.15s, border-color 0.15s;
     white-space: nowrap;
-    line-height: 1.6;
+    line-height: 1.4;
 }
 
-.placeholder-load-btn:hover:not(:disabled) {
+.collapsed-placeholder-card:hover .placeholder-load-btn {
     background: var(--primary-color);
     border-color: var(--primary-color);
-    color: #fff;
-    /* 乌鸦：hover 时按钮变主题色，吸引点击 */
+    color: #ffffff;
 }
 
-.placeholder-load-btn:active:not(:disabled) {
-    transform: scale(0.96);
-}
-
-/* 乌鸦：加载中禁用状态 */
 .placeholder-load-btn:disabled {
-    opacity: 0.5;
+    opacity: 0.6;
     cursor: not-allowed;
 }
 

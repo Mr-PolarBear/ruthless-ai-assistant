@@ -27,5 +27,15 @@ export const regexPatterns = {
   markdownTableRow: /^\|(.+)\|$/gm,
   markdownTableSeparator: /^\|(?:\s*:?-+:?\s*\|)+$/,
   eventHistoryHeader: /#{1,4}\s*历史记录表/i,
-  characterInfoHeader: /#{1,4}\s*最新角色信息表/i
+  characterInfoHeader: /#{1,4}\s*最新角色信息表/i,
+
+  // 楼层快速跳转：用于将换行符替换为空格（示例："\n\nhello\n" -> "  hello "）
+  newlineGlobal: /\r?\n+/g,
+
+  // 楼层快速跳转：用于将连续空白字符压缩为单个空格（示例："hello    world" -> "hello world"）
+  multiWhitespaceGlobal: /\s+/g,
+
+  // 楼层快速跳转：用于从用户输入中提取楼层纯数字（示例："#5" -> "5", "12楼" -> "12"）
+  floorInputNumber: /#?(\d+)/
 };
+

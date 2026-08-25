@@ -322,7 +322,7 @@ if ($isCdn) {
     $excludeNames += @('libs', 'font')
 }
 
-$includeLauncherFiles = @('启动智能摸鱼.bat', 'start.bat', 'server.ps1')
+$includeLauncherFiles = @('启动智能摸鱼.bat', 'server.ps1')
 
 Write-Host "[1/3] 正在扫描并过滤纯净源码文件..." -ForegroundColor Green
 

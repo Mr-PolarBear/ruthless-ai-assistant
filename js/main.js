@@ -48,7 +48,7 @@ import { applyBubbleCustomStyles } from './settings/bubble-settings.js?v=260824'
 import { scrollManager } from './scroll-manager.js?v=260824';
 import { mcpSessionManager } from './mcp-session-manager.js?v=260824';
 // 乌鸦：导入楼层快速跳转模块
-import { initFloorJump } from './floor-jump.js?v=260824';
+import { initFloorJump, closeFloorJumpPanel } from './floor-jump.js?v=260824';
 
 // 挂载 DEFAULT_TOOLS 到 window，供其他模块访问
 window.DEFAULT_TOOLS = DEFAULT_TOOLS;
@@ -381,6 +381,7 @@ export function switchToConversation(convId) {
         }
 
         closeChatSearch(); // 乌鸦：切换会话时，自动关闭搜索框
+        closeFloorJumpPanel(); // 切换会话时，自动关闭楼层快速跳转面板
 
         // 切换会话时，关闭可能开启的会话专属弹窗，防止旧会话表单残留或串台
         if (dom.hideSummaryModal && dom.hideSummaryModal.classList.contains('visible')) {
@@ -503,6 +504,7 @@ export function switchToConversation(convId) {
  * @param {number} direction - -1 for previous, 1 for next.
  */
 export async function switchBranch(direction) {
+    closeFloorJumpPanel();
     const conv = state.conversations[state.currentConversationId];
     if (!conv || dom.mainChat.classList.contains('generating')) return;
 
@@ -539,6 +541,7 @@ export async function switchBranch(direction) {
 }
 
 export async function switchBranchTo(targetIndex) {
+    closeFloorJumpPanel();
     const conv = state.conversations[state.currentConversationId];
     if (!conv || dom.mainChat.classList.contains('generating')) return;
 
@@ -610,6 +613,10 @@ export async function initialize() {
     });
 
     initDom();
+
+    // 初始化智能悬浮按钮与楼层快速跳转
+    initFloatingCollapseButton();
+    initFloorJump();
 
     // 将必要的函数挂载到window对象，供其他模块调用
     window.saveToLocalStorage = saveToLocalStorage;
@@ -853,12 +860,6 @@ export async function initialize() {
             }
         });
     }
-
-    // 初始化智能悬浮按钮
-    initFloatingCollapseButton();
-
-    // 乌鸦：初始化楼层快速跳转
-    initFloorJump();
 
     // 初始化外观设置
     initializeAppearanceSettings();
