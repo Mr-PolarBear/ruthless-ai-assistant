@@ -36,7 +36,7 @@
 
 ### 方式一：双击启动（Windows 用户）
 
-双击项目根目录下的 `start.bat`，脚本将自动探测环境（Node.js / Python / PowerShell 原生服务）并在浏览器中打开。
+双击项目根目录下的 `启动智能摸鱼.bat`，脚本将自动探测环境（Node.js / Python / PowerShell 原生服务）并在浏览器中打开。
 
 ### 方式二：使用任意静态 HTTP 服务器
 
@@ -79,7 +79,7 @@ ruthless-ai-assistant/
 ├── libs/                   # 本地化第三方依赖库（无需 CDN 即可离线运行）
 ├── mcp导入模板/             # 预置 MCP 工具配置模板
 ├── 预设角色导入包.json        # 预设 20+ 款常用角色配置
-├── start.bat               # Windows 启动脚本
+├── 启动智能摸鱼.bat        # Windows 启动脚本
 └── server.ps1              # 原生轻量 HTTP 服务脚本
 ```
 

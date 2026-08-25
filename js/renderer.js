@@ -274,58 +274,120 @@ export async function displayMessage(message, index, highlightKeyword, visibleIn
     const sender = role === 'user' ? 'user' : 'ai';
     const messageWrapper = document.createElement('div');
 
-    // Placeholder Logic（方案C：卡片式占位符 + 单条加载）
+    // Placeholder Logic（方案A：智能紧凑胶囊条 + 多模态前20字摘要 + 整卡一键展开）
     if (isPlaceholder) {
         messageWrapper.className = `message-wrapper ${sender} placeholder`;
 
-        // 乌鸦：外层气泡壳复用 message-bubble 的布局，追加 collapsed-placeholder-card 作为功能类
+        // 外层气泡壳：作为整卡可点击的轻量胶囊条
         const messageDiv = document.createElement('div');
         messageDiv.className = `message-bubble ${sender} collapsed-placeholder-card`;
         messageDiv.dataset.index = index;
         if (id) messageDiv.dataset.id = id;
 
-        // --- 角色标签（区分用户/AI，带 emoji） ---
-        const roleTag = document.createElement('span');
-        roleTag.className = 'placeholder-role-tag';
-        // 乌鸦：根据角色设置不同图标，让视觉上一目了然
-        roleTag.textContent = sender === 'user' ? '👤 用户' : '🤖 AI';
+        // 安全提取消息摘要（兼容字符串、多模态数组、附件对象等）
+        let rawPreview = '';
+        if (typeof message.content === 'string') {
+            rawPreview = message.content;
+        } else if (Array.isArray(message.content)) {
+            rawPreview = message.content.map(part => {
+                if (!part) return '';
+                if (typeof part === 'string') return part;
+                if (part.type === 'text') return part.text || '';
+                if (part.type === 'image_url') return '[图片]';
+                if (part.type === 'input_audio') return '[语音]';
+                if (part.type === 'file') return '[文件]';
+                return '';
+            }).filter(Boolean).join(' ');
+        } else if (message.content && typeof message.content === 'object') {
+            rawPreview = message.content.text || '';
+        }
 
-        // --- 楼层号 ---
-        const floorTag = document.createElement('span');
-        floorTag.className = 'placeholder-floor';
-        floorTag.textContent = `#${index + 1}楼`;
+        if (!rawPreview) {
+            if (message.attachment || (message.attachments && message.attachments.length > 0)) {
+                rawPreview = '[附件消息]';
+            } else {
+                rawPreview = '[无文字内容]';
+            }
+        }
 
-        // --- 内容预览（截取60字，换行符转空格） ---
-        const contentPreview = message.content.substring(0, 60).replace(/\n/g, ' ');
+        // 针对 AI 消息：剥离 <think>...</think> 或 <thinking>...</thinking> 思考标签，优先获取回答正文
+        if (sender === 'ai' && typeof rawPreview === 'string') {
+            // 剥离完整的 think 标签
+            let textWithoutThink = rawPreview.replace(regexPatterns.thinkTag, '').trim();
+            // 如果还残留有未闭合的 <think> 开头
+            if (textWithoutThink.includes('<think>') || textWithoutThink.includes('<thinking>')) {
+                const parts = textWithoutThink.split(/<\/(?:think|thinking)>/i);
+                if (parts.length > 1) {
+                    textWithoutThink = parts.slice(1).join(' ').trim();
+                } else {
+                    textWithoutThink = '';
+                }
+            }
+
+            if (textWithoutThink) {
+                rawPreview = textWithoutThink;
+            } else {
+                // 如果整条消息只有思考过程没有正文，则显示思考内容并标识 [思考]
+                const cleanThink = rawPreview
+                    .replace(/<\/?(?:think|thinking)\b[^>]*>/gi, '')
+                    .trim();
+                rawPreview = cleanThink ? `[思考] ${cleanThink}` : '[无正文]';
+            }
+        }
+
+        // 使用正则压缩换行与空白
+        const cleanPreview = rawPreview
+            .replace(regexPatterns.newlineGlobal, ' ')
+            .replace(regexPatterns.multiWhitespaceGlobal, ' ')
+            .trim();
+        const previewLimit = 22;
+        const contentPreview = cleanPreview.substring(0, previewLimit);
+        const hasMore = cleanPreview.length > previewLimit;
+
+        // --- 1. 角色与楼层组合徽章 ---
+        const badge = document.createElement('span');
+        badge.className = 'placeholder-role-tag';
+        badge.textContent = `${sender === 'user' ? '👤 用户' : '🤖 AI'} #${index + 1}楼`;
+
+        // --- 2. 消息内容摘要文本 ---
         const previewText = document.createElement('span');
         previewText.className = 'placeholder-text';
-        previewText.textContent = `${contentPreview}${message.content.length > 60 ? '…' : ''}`;
+        previewText.textContent = `💬 ${contentPreview}${hasMore ? '...' : ''}`;
+        previewText.title = cleanPreview; // 鼠标悬浮气泡展示完整文本
 
-        // --- 加载按钮 ---
+        // --- 3. 展开操作按钮 ---
         const loadBtn = document.createElement('button');
-        loadBtn.className = 'placeholder-load-btn';
-        loadBtn.textContent = '加载此消息';
+        loadBtn.className = 'placeholder-load-btn load-single-msg-btn';
+        loadBtn.innerHTML = `展开 <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-left:2px;"><polyline points="6 9 12 15 18 9"></polyline></svg>`;
+        loadBtn.title = '点击展开完整消息';
 
-        // 乌鸦：点击后即时渲染这单条消息并替换占位符 DOM
-        // 传入 isPlaceholder: false 走正常渲染流程，不影响其他占位符
-        loadBtn.addEventListener('click', async (e) => {
-            e.stopPropagation(); // 避免事件冒泡
-
-            // 乌鸦：按钮防重复点击
+        // 统一的展开触发逻辑
+        const triggerExpand = async () => {
+            if (loadBtn.disabled) return;
             loadBtn.disabled = true;
             loadBtn.textContent = '加载中…';
+            messageDiv.classList.add('loading');
 
             const newWrapper = await displayMessage(message, index, undefined, -1, 0, {
                 isInitialRender: false,
                 playIntroAnimation: true,
                 isPlaceholder: false
             });
-
-            // 乌鸦：将新渲染的消息替换当前占位符 wrapper
             messageWrapper.replaceWith(newWrapper);
+        };
+
+        // 点击整条卡片任意位置均可展开
+        messageDiv.addEventListener('click', (e) => {
+            e.stopPropagation();
+            triggerExpand();
         });
 
-        messageDiv.append(roleTag, floorTag, previewText, loadBtn);
+        loadBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            triggerExpand();
+        });
+
+        messageDiv.append(badge, previewText, loadBtn);
         messageWrapper.appendChild(messageDiv);
         return messageWrapper;
     }
@@ -822,6 +884,7 @@ export async function renderChatMessages(options) {
     if (!conv) {
         displayWelcomeMessage();
         dom.chatMessages.style.visibility = 'visible';
+        if (callback) callback();
         return;
     }
     const activeBranch = conv.branches[conv.activeBranchIndex] || [];
