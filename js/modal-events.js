@@ -3,9 +3,9 @@
  * @description Handles all modal-related events including opening, closing, and form submissions.
  */
 
-import { dom } from './dom.js?v=260824';
-import { state } from './state.js?v=260824';
-import { processAndFilterMessages, getWorldBookContent, buildApiRequest } from './api-common.js?v=260824';
+import { dom } from './dom.js?v=260907';
+import { state } from './state.js?v=260907';
+import { processAndFilterMessages, getWorldBookContent, buildApiRequest } from './api-common.js?v=260907';
 import {
     openSettingsModal, closeSettingsModal, openPersonaModal, openWorldBookModal,
     openApiEditModal, closeApiEditModal, openPersonaEditModal, closePersonaEditModal,
@@ -13,15 +13,15 @@ import {
     openAvatarPreview, closeAvatarPreview, openConversationAvatarModal, closeConversationAvatarModal,
     openQuickHideModal, closeQuickHideModal, closeConvTitleModal, setupConvTitleModalEvents,
     closeExportConvModal, setupExportConvModalEvents
-} from './modals.js?v=260824';
-import { closeExportConfigModal } from './modals/export-config-modal.js?v=260824';
+} from './modals.js?v=260907';
+import { closeExportConfigModal } from './modals/export-config-modal.js?v=260907';
 import {
     renderChatMessages,
     populateApiSelector,
     populatePersonaSelector,
     formatMessagePipeline,
     renderFormattedContent
-} from './renderer.js?v=260824';
+} from './renderer.js?v=260907';
 import {
     saveToLocalStorage,
     importConfig,
@@ -31,12 +31,12 @@ import {
     escapeHtml,
     showImportTemplate,
     fallbackCopyText
-} from './utils.js?v=260824';
-import { showLoadingOverlay, hideLoadingOverlay, notify, updateSummaryEditorLockState, updateSessionTokenBadge, updateHideSummaryBtnColor } from './ui-updater.js?v=260824';
-import { addOrUpdateMessageFooter, updateMessageActions } from './message-manager.js?v=260824';
-import { switchToConversation, setHideSummaryForCurrentConversation, getHideSummaryForCurrentConversation, getHideSummaryForConversation, setHideSummaryForConversation } from './main.js?v=260824';
-import { saveConversation } from './db.js?v=260824';
-import { closeSidebarMobile } from './ui-events.js?v=260824';
+} from './utils.js?v=260907';
+import { showLoadingOverlay, hideLoadingOverlay, notify, updateSummaryEditorLockState, updateSessionTokenBadge, updateHideSummaryBtnColor } from './ui-updater.js?v=260907';
+import { addOrUpdateMessageFooter, updateMessageActions } from './message-manager.js?v=260907';
+import { switchToConversation, setHideSummaryForCurrentConversation, getHideSummaryForCurrentConversation, getHideSummaryForConversation, setHideSummaryForConversation } from './main.js?v=260907';
+import { saveConversation } from './db.js?v=260907';
+import { closeSidebarMobile } from './ui-events.js?v=260907';
 import {
     DEFAULT_PROMPT_RECURSIVE,
     DEFAULT_PROMPT_APPEND,
@@ -53,10 +53,10 @@ import {
     recordSummaryVersion,
     autoSummaryContext,
     formatHiddenFloorsBannerInfo
-} from './summary-manager.js?v=260824';
-import { initSummaryHistoryModal, updateHideSummaryHistoryCount } from './modals/summary-history-modal.js?v=260824';
-import { initSimulateSendModal } from './modals/simulate-send-modal.js?v=260824';
-import { setupBranchSummaryConfirmModal } from './modals/branch-summary-confirm-modal.js?v=260824';
+} from './summary-manager.js?v=260907';
+import { initSummaryHistoryModal, updateHideSummaryHistoryCount } from './modals/summary-history-modal.js?v=260907';
+import { initSimulateSendModal } from './modals/simulate-send-modal.js?v=260907';
+import { setupBranchSummaryConfirmModal } from './modals/branch-summary-confirm-modal.js?v=260907';
 
 let handleHideSummaryModalClose = null;
 

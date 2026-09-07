@@ -4,24 +4,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>智能摸鱼 (v260824)</title>
-    <link rel="icon" href="favorite.ico?v=260824" type="image/x-icon">
+    <title>智能摸鱼 (v260907)</title>
+    <link rel="icon" href="favorite.ico?v=260907" type="image/x-icon">
 
     <!-- External Libraries -->
-    <link rel="stylesheet" href="./libs/atom-one-dark.min.css?v=260824" id="hljs-theme">
-    <link rel="stylesheet" href="./libs/cropper.min.css?v=260824">
+    <link rel="stylesheet" href="./libs/atom-one-dark.min.css?v=260907" id="hljs-theme">
+    <link rel="stylesheet" href="./libs/cropper.min.css?v=260907">
 
     <!-- Refactored CSS -->
-    <link rel="stylesheet" href="css/base.css?v=260824">
-    <link rel="stylesheet" href="css/theme.css?v=260824">
-    <link rel="stylesheet" href="css/layout.css?v=260824">
-    <link rel="stylesheet" href="css/chat.css?v=260824">
-    <link rel="stylesheet" href="css/modals.css?v=260824">
-    <link rel="stylesheet" href="css/components.css?v=260824">
-    <link rel="stylesheet" href="css/appearance.css?v=260824">
-    <link rel="stylesheet" href="css/code-preview.css?v=260824">
-    <link rel="stylesheet" href="css/tools-menu.css?v=260824">
-    <link rel="stylesheet" href="css/responsive.css?v=260824">
+    <link rel="stylesheet" href="css/base.css?v=260907">
+    <link rel="stylesheet" href="css/theme.css?v=260907">
+    <link rel="stylesheet" href="css/layout.css?v=260907">
+    <link rel="stylesheet" href="css/chat.css?v=260907">
+    <link rel="stylesheet" href="css/modals.css?v=260907">
+    <link rel="stylesheet" href="css/components.css?v=260907">
+    <link rel="stylesheet" href="css/appearance.css?v=260907">
+    <link rel="stylesheet" href="css/code-preview.css?v=260907">
+    <link rel="stylesheet" href="css/tools-menu.css?v=260907">
+    <link rel="stylesheet" href="css/responsive.css?v=260907">
 </head>
 
 <body data-theme="light">
@@ -342,20 +342,20 @@
     <div id="mcp-tools-menu" class="popup-menu" style="display: none;"></div>
 
     <!-- Scripts -->
-    <script src="./libs/cropper.min.js?v=260824"></script>
-    <script src="./libs/marked.min.js?v=260824" defer></script>
-    <script src="./libs/highlight.min.js?v=260824" defer></script>
-    <script src="draw_css/mermaid.min.js?v=260824" defer></script>
-    <script src="./libs/echarts.min.js?v=260824" defer></script>
-    <script src="js/purify.min.js?v=260824"></script>
-    <script src="js/theme.js?v=260824"></script>
+    <script src="./libs/cropper.min.js?v=260907"></script>
+    <script src="./libs/marked.min.js?v=260907" defer></script>
+    <script src="./libs/highlight.min.js?v=260907" defer></script>
+    <script src="draw_css/mermaid.min.js?v=260907" defer></script>
+    <script src="./libs/echarts.min.js?v=260907" defer></script>
+    <script src="js/purify.min.js?v=260907"></script>
+    <script src="js/theme.js?v=260907"></script>
 
     <!-- 乌鸦：文档解析库（Word/Excel/PDF/PPTX） -->
-    <script src="./libs/mammoth.browser.min.js?v=260824" defer></script>
-    <script src="./libs/xlsx.full.min.js?v=260824" defer></script>
-    <script src="./libs/pdf.min.js?v=260824" defer></script>
-    <script src="./libs/pdf.worker.min.js?v=260824" defer></script>
-    <script src="./libs/jszip.min.js?v=260824" defer></script>
+    <script src="./libs/mammoth.browser.min.js?v=260907" defer></script>
+    <script src="./libs/xlsx.full.min.js?v=260907" defer></script>
+    <script src="./libs/pdf.min.js?v=260907" defer></script>
+    <script src="./libs/pdf.worker.min.js?v=260907" defer></script>
+    <script src="./libs/jszip.min.js?v=260907" defer></script>
     <!-- 协议安全检测：直接双击 file:/// 协议打开时给出清晰启动指引 -->
     <script>
         if (window.location.protocol === 'file:') {
@@ -383,19 +383,19 @@
     <!-- Dynamic Content Loader -->
     <script type="module">
         // Import the necessary initialization functions from your JS files.
-        import { initialize } from './js/main.js?v=260824';
+        import { initialize } from './js/main.js?v=260907';
 
         async function loadApp() {
             try {
                 // Step 1: Fetch the sidebar HTML
-                const sidebarResp = await fetch('sidebar.html?v=260824');
+                const sidebarResp = await fetch('sidebar.html?v=260907');
                 if (sidebarResp.ok) {
                     const sidebarHTML = await sidebarResp.text();
                     document.getElementById('sidebar-placeholder').innerHTML = sidebarHTML;
                 }
 
                 // Step 2: Fetch the modals' HTML
-                const response = await fetch('modals.html?v=260824');
+                const response = await fetch('modals.html?v=260907');
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }

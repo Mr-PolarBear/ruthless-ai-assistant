@@ -13,11 +13,11 @@
  * - 导出 closeFloorJumpPanel() 支持切换会话/分支时自动清理
  */
 
-import { state } from './state.js?v=260824';
-import { dom } from './dom.js?v=260824';
-import { scrollManager } from './scroll-manager.js?v=260824';
-import { regexPatterns } from './regex.js?v=260824';
-import { renderChatMessages } from './renderer.js?v=260824';
+import { state } from './state.js?v=260907';
+import { dom } from './dom.js?v=260907';
+import { scrollManager } from './scroll-manager.js?v=260907';
+import { regexPatterns } from './regex.js?v=260907';
+import { renderChatMessages } from './renderer.js?v=260907';
 
 /**
  * 楼层快速跳转管理器
@@ -111,9 +111,13 @@ class FloorJumpManager {
             // 滚动到当前可见区域附近的楼层
             this._scrollToCurrentFloor();
 
-            // 自动聚焦直达输入框
+            // — 为什么这么写 —
+            // 1. 自动聚焦直达输入框：在 PC 桌面端保留自动聚焦，方便用户直接键盘输入楼层回车跳转；
+            // 2. 手机端防御软键盘遮挡：在移动设备（宽度 <= 768px 或触摸屏设备）上坚决不自动 focus()，
+            //    避免弹窗刚打开就强行拉起系统软键盘遮挡住大半个弹窗和楼层列表，用户需要手动输入时可自行点击输入框。
+            const isMobile = window.innerWidth <= 768 || ('ontouchstart' in window) || (window.matchMedia && window.matchMedia('(hover: none)').matches);
             const quickInput = this.panel.querySelector('.floor-jump-input');
-            if (quickInput) {
+            if (quickInput && !isMobile) {
                 setTimeout(() => quickInput.focus(), 120);
             }
         } catch (error) {

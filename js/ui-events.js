@@ -3,15 +3,15 @@
  * @description Handles basic UI interaction events like sidebar toggle, fullscreen, scrolling, theme changes, etc.
  */
 
-import { dom } from './dom.js?v=260824';
-import { state } from './state.js?v=260824';
-import { scrollToBottom, updateScrollButtonsVisibility, applyTheme, adjustTextareaHeight, notify } from './ui-updater.js?v=260824';
-import { renderChatMessages } from './renderer.js?v=260824';
-import { saveAppSettings } from './utils.js?v=260824';
-import { clearAttachment } from './attachment.js?v=260824';
-import { renderQuickPromptMenu } from './quick-prompts.js?v=260824';
-import { updateFloatingButton } from './floating-button.js?v=260824';
-import { scrollManager } from './scroll-manager.js?v=260824';
+import { dom } from './dom.js?v=260907';
+import { state } from './state.js?v=260907';
+import { scrollToBottom, updateScrollButtonsVisibility, applyTheme, adjustTextareaHeight, notify } from './ui-updater.js?v=260907';
+import { renderChatMessages } from './renderer.js?v=260907';
+import { saveAppSettings } from './utils.js?v=260907';
+import { clearAttachment } from './attachment.js?v=260907';
+import { renderQuickPromptMenu } from './quick-prompts.js?v=260907';
+import { updateFloatingButton } from './floating-button.js?v=260907';
+import { scrollManager } from './scroll-manager.js?v=260907';
 
 function positionPopupNearButton(button, popup) {
     if (!button || !popup) return;
@@ -447,7 +447,7 @@ function handleSendKeyChange(e) {
         state.appSettings.sendKey = e.target.value;
         saveAppSettings();
         // 乌鸦：切换发送快捷键后，同步刷新输入框占位提示文案
-        import('./ui-updater.js?v=260824').then(mod => mod.updateInputPlaceholder());
+        import('./ui-updater.js?v=260907').then(mod => mod.updateInputPlaceholder());
     }
 }
 

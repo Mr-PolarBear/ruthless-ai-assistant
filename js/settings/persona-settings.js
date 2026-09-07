@@ -3,19 +3,19 @@
  * @description Handles Persona settings events.
  */
 
-import { dom } from '../dom.js?v=260824';
-import { state } from '../state.js?v=260824';
-import { saveToLocalStorage } from '../utils.js?v=260824';
+import { dom } from '../dom.js?v=260907';
+import { state } from '../state.js?v=260907';
+import { saveToLocalStorage } from '../utils.js?v=260907';
 import { 
     renderPersonaModal, populatePersonaSelector, resetPersonaForm,
     openPersonaModal, openPersonaEditModal, closePersonaEditModal,
     resetPersonaEditForm
-} from '../modals.js?v=260824';
-import { closeModalWithAnimation } from '../modal-events.js?v=260824';
-import { DraggableList } from '../draggable-list.js?v=260824';
-import { initPersonaBatchDelete, isPersonaBatchMode, togglePersonaSelection } from '../persona-batch-delete.js?v=260824';
-import { importPresetPersonas } from '../preset-personas.js?v=260824';
-import { notify } from '../ui-updater.js?v=260824';
+} from '../modals.js?v=260907';
+import { closeModalWithAnimation } from '../modal-events.js?v=260907';
+import { DraggableList } from '../draggable-list.js?v=260907';
+import { initPersonaBatchDelete, isPersonaBatchMode, togglePersonaSelection } from '../persona-batch-delete.js?v=260907';
+import { importPresetPersonas } from '../preset-personas.js?v=260907';
+import { notify } from '../ui-updater.js?v=260907';
 
 let lastPersonaCopyTime = 0;
 let personaDragInstance = null;

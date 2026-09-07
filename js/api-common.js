@@ -1,8 +1,8 @@
-import { state } from './state.js?v=260824';
-import { getSelectedToolsDescription } from './mcp-tools-selector.js?v=260824';
-import { parseRegex, getActiveRegexRules } from './regex-engine.js?v=260824';
-import { isFloorHiddenInConfig, isMessageHidden } from './utils.js?v=260824';
-import { formatMemoryForApi } from './summary-manager.js?v=260824';
+import { state } from './state.js?v=260907';
+import { getSelectedToolsDescription } from './mcp-tools-selector.js?v=260907';
+import { parseRegex, getActiveRegexRules } from './regex-engine.js?v=260907';
+import { isFloorHiddenInConfig, isMessageHidden } from './utils.js?v=260907';
+import { formatMemoryForApi } from './summary-manager.js?v=260907';
 
 /**
  * 处理单条消息的内容，包括文本和附件

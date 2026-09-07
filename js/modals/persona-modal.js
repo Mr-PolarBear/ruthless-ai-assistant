@@ -3,9 +3,9 @@
  * @description Handles persona editing and management modals.
  */
 
-import { dom } from '../dom.js?v=260824';
-import { state } from '../state.js?v=260824';
-import { renderPersonaModal } from '../ui-populator.js?v=260824';
+import { dom } from '../dom.js?v=260907';
+import { state } from '../state.js?v=260907';
+import { renderPersonaModal } from '../ui-populator.js?v=260907';
 
 // Re-export renderPersonaModal for consistency
 export { renderPersonaModal };

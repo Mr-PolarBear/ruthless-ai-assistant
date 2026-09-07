@@ -3,21 +3,21 @@
  * @description 快捷提示系统门面出口（整合 Storage、Executor 与 UI 子模块）
  */
 
-import { state } from './state.js?v=260824';
+import { state } from './state.js?v=260907';
 import { 
     DEFAULT_PROMPTS, 
     QUICK_PROMPTS_STORAGE_KEY, 
     loadQuickPromptsFromStorage, 
     saveQuickPromptsToStorage 
-} from './quick-prompts/quick-prompt-storage.js?v=260824';
+} from './quick-prompts/quick-prompt-storage.js?v=260907';
 import { 
     renderQuickPromptsList, 
     populateQuickPromptForm, 
     resetQuickPromptForm, 
     renderQuickPromptMenu, 
     openQuickPromptManagement 
-} from './quick-prompts/quick-prompt-ui.js?v=260824';
-import { executeQuickPrompt, calculateCursorOffset } from './quick-prompts/quick-prompt-executor.js?v=260824';
+} from './quick-prompts/quick-prompt-ui.js?v=260907';
+import { executeQuickPrompt, calculateCursorOffset } from './quick-prompts/quick-prompt-executor.js?v=260907';
 
 // 导出子模块内容保持向后兼容
 export { 
