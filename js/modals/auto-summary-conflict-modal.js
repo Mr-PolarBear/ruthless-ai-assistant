@@ -3,9 +3,9 @@
  * @description 处理用户发消息时后台自动总结并发冲突的交互弹窗（支持实时流式预览与耗时秒表计时）
  */
 
-import { dom } from '../dom.js?v=260824';
-import { autoSummaryContext } from '../summary-manager.js?v=260824';
-import { notify } from '../ui-updater.js?v=260824';
+import { dom } from '../dom.js?v=260907';
+import { autoSummaryContext } from '../summary-manager.js?v=260907';
+import { notify } from '../ui-updater.js?v=260907';
 
 let timerInterval = null;
 let streamUnsubscribe = null;

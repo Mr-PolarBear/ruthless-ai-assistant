@@ -3,12 +3,12 @@
  * @description 角色批量删除控制器。实现角色管理弹窗内的批量选择、全选、反选与安全批量删除。
  */
 
-import { dom } from './dom.js?v=260824';
-import { state } from './state.js?v=260824';
-import { saveToLocalStorage } from './utils.js?v=260824';
-import { renderPersonaModal } from './ui-populator.js?v=260824';
-import { populatePersonaSelector } from './renderer.js?v=260824';
-import { notify } from './ui-updater.js?v=260824';
+import { dom } from './dom.js?v=260907';
+import { state } from './state.js?v=260907';
+import { saveToLocalStorage } from './utils.js?v=260907';
+import { renderPersonaModal } from './ui-populator.js?v=260907';
+import { populatePersonaSelector } from './renderer.js?v=260907';
+import { notify } from './ui-updater.js?v=260907';
 
 let isBatchMode = false;
 const selectedPersonaIds = new Set();

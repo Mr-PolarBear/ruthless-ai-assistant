@@ -9,13 +9,21 @@
     }
 
     /* --- Layout: Sidebar Drawer --- */
+    /* — 为什么这么写 —
+       1. 消除溢出：在 layout.css 中 .sidebar 默认有 min-width: 400px;
+          在移动端必须显式声明 min-width: 0 !important; 重置，否则 CSS 规范中 min-width 会强行覆盖 max-width，
+          导致侧边栏在主流手机端（屏幕宽 360px~393px）被锁死在 400px，右侧严重溢出屏幕，顶部的设置齿轮按钮被挤出屏幕外；
+       2. 设置 width: 85%; max-width: 320px; box-sizing: border-box !important; 保持抽屉式自适应，并留出右侧可点击的遮罩关闭区。
+    */
     .sidebar {
         position: fixed;
         top: 0;
         left: 0;
         bottom: 0;
-        width: 82%;
+        width: 85%;
         max-width: 320px;
+        min-width: 0 !important;
+        box-sizing: border-box !important;
         transform: translateX(-100%);
         z-index: 150;
         box-shadow: var(--shadow-xl);
@@ -291,7 +299,85 @@
         padding: 1px 5px;
     }
 
-    /* --- Bottom Input Area & Controls (分行防溢出排版) --- */
+    /* --- 悬浮控制按钮：智能折叠按钮与滚动/楼层跳转按钮（移动端靠右缩小+呼吸式半透明适配） --- */
+    /* — 为什么这么写 —
+       1. PC端默认 right: 2rem (32px)，在手机屏幕上极度侵占正文区域并遮挡大面积文字；
+       2. 移动端将其统一右靠到 right: 6px，紧靠屏幕右边缘；
+       3. 按钮尺寸从 40px 等比缩小至 32px，内部 SVG 图标从 20~24px 缩至 16px，保留舒适点击热区的同时极大地释放阅读视野；
+       4. 呼吸式半透明：平时呈现 opacity: 0.65 让底层文本透出来，触摸/悬停 (:hover/:active) 时丝滑恢复 opacity: 1；
+       5. 楼层快速跳转面板位置相应调整为 right: 42px，避免面板超出屏幕左侧。
+    */
+    #floating-collapse-btn {
+        right: 6px !important;
+        width: 32px !important;
+        height: 32px !important;
+        min-width: 32px !important;
+        min-height: 32px !important;
+        transition: opacity 0.2s ease, transform 0.2s ease !important;
+    }
+
+    /* 只有处于激活显示状态时才应用半透明与高亮 */
+    #floating-collapse-btn.visible {
+        opacity: 0.65 !important;
+    }
+
+    #floating-collapse-btn.visible:hover,
+    #floating-collapse-btn.visible:active {
+        opacity: 1 !important;
+    }
+
+    #floating-collapse-btn svg {
+        width: 16px !important;
+        height: 16px !important;
+    }
+
+    .scroll-nav-buttons {
+        right: 6px !important;
+        bottom: 7.5rem !important;
+        gap: 4px !important;
+    }
+
+    .scroll-nav-buttons button,
+    #jump-to-floor-btn {
+        width: 32px !important;
+        height: 32px !important;
+        min-width: 32px !important;
+        min-height: 32px !important;
+        transition: opacity 0.2s ease, transform 0.2s ease !important;
+    }
+
+    /* 滚动按钮与楼层跳转按钮：平时半透明 0.65，触摸/激活时恢复 1 */
+    .scroll-nav-buttons button:not(.hidden),
+    #jump-to-floor-btn {
+        opacity: 0.65 !important;
+    }
+
+    .scroll-nav-buttons button:not(.hidden):hover,
+    .scroll-nav-buttons button:not(.hidden):active,
+    #jump-to-floor-btn:hover,
+    #jump-to-floor-btn:active {
+        opacity: 1 !important;
+    }
+
+    .scroll-nav-buttons button svg,
+    #jump-to-floor-btn svg {
+        width: 16px !important;
+        height: 16px !important;
+    }
+
+    /* 移动端楼层跳转面板跟随右贴并限制最大宽度防溢出 */
+    #floor-jump-panel,
+    .floor-jump-panel {
+        right: 42px !important;
+        max-width: calc(100vw - 50px) !important;
+    }
+
+    /* --- Bottom Input Area & Controls (移动端单行紧凑排版) --- */
+    /* — 为什么这么写 —
+       1. 隐藏手机端不需要的数据库和选表按钮：释放单行极其宝贵的横向空间；
+       2. API 选项下拉框宽度固定为屏幕/容器的 1/4 (25%)，并设置 text-overflow: ellipsis 截断防撑破；
+       3. 让 [API] [文件] [快捷] [MCP] [发送] 完美排布在同一行，发送按钮靠右对齐，彻底消灭折行！
+    */
     .input-area {
         padding: 0.5rem;
         padding-bottom: max(env(safe-area-inset-bottom, 0px), 0.5rem);
@@ -335,6 +421,12 @@
         border-radius: 50%;
     }
 
+    /* 手机端隐藏数据库和选表两个按钮 */
+    #choose-db-btn,
+    #choose-table-btn {
+        display: none !important;
+    }
+
     /* 底部操作图标排列在第二行 */
     .input-controls > select,
     .input-controls > button:not(#send-button):not(#clear-input-btn),
@@ -363,13 +455,21 @@
         height: 19px;
     }
 
+    /* API 下拉选择器：固定占屏幕/容器的 1/4 宽度，超长文本自动省略 */
     .api-selector {
-        max-width: 105px;
-        height: 34px;
-        font-size: 11px;
-        padding: 0 4px;
-        border-radius: var(--radius-sm);
-        flex-shrink: 0;
+        flex: 0 0 25% !important;
+        width: 25% !important;
+        max-width: 25% !important;
+        min-width: 0 !important;
+        box-sizing: border-box !important;
+        height: 34px !important;
+        font-size: 11px !important;
+        padding: 0 4px !important;
+        border-radius: var(--radius-sm) !important;
+        text-overflow: ellipsis !important;
+        overflow: hidden !important;
+        white-space: nowrap !important;
+        flex-shrink: 0 !important;
     }
 
     /* 发送按钮靠右自适应对齐 */

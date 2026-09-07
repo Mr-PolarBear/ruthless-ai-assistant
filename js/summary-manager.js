@@ -3,14 +3,14 @@
  * @description 对话记忆与智能总结模块（支持递归滚动、列表拼接、角色扮演双表3种记忆模式，支持自动触发与滚动上下文压缩）
  */
 
-import { state } from './state.js?v=260824';
-import { dom } from './dom.js?v=260824';
-import { saveConversation } from './db.js?v=260824';
-import { saveToLocalStorage, countTokens, isMessageHidden, extractThinkingFromContent } from './utils.js?v=260824';
-import { buildApiRequest, processAndFilterMessages } from './api-common.js?v=260824';
-import { renderChatMessages } from './renderer.js?v=260824';
-import { notify, updateSummaryEditorLockState } from './ui-updater.js?v=260824';
-import { getHideSummaryForConversation, setHideSummaryForConversation } from './main.js?v=260824';
+import { state } from './state.js?v=260907';
+import { dom } from './dom.js?v=260907';
+import { saveConversation } from './db.js?v=260907';
+import { saveToLocalStorage, countTokens, isMessageHidden, extractThinkingFromContent } from './utils.js?v=260907';
+import { buildApiRequest, processAndFilterMessages } from './api-common.js?v=260907';
+import { renderChatMessages } from './renderer.js?v=260907';
+import { notify, updateSummaryEditorLockState } from './ui-updater.js?v=260907';
+import { getHideSummaryForConversation, setHideSummaryForConversation } from './main.js?v=260907';
 
 // — 为什么这么写 —
 // 3 种记忆模式官方默认提示词常量：

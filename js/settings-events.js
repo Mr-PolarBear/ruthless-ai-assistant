@@ -4,13 +4,13 @@
  * Refactored to delegate responsibilities to specialized modules in ./settings/
  */
 
-import { setupAPIEvents } from './settings/api-settings.js?v=260824';
-import { setupPersonaEvents } from './settings/persona-settings.js?v=260824';
-import { setupRegexEvents } from './settings/regex-settings.js?v=260824';
-import { setupWorldBookEvents } from './settings/worldbook-settings.js?v=260824';
-import { setupQuickPromptEvents } from './settings/quick-prompt-settings.js?v=260824';
-import { setupMCPEvents } from './settings/mcp-settings.js?v=260824';
-import { setupBubbleSettingsEvents } from './settings/bubble-settings.js?v=260824';
+import { setupAPIEvents } from './settings/api-settings.js?v=260907';
+import { setupPersonaEvents } from './settings/persona-settings.js?v=260907';
+import { setupRegexEvents } from './settings/regex-settings.js?v=260907';
+import { setupWorldBookEvents } from './settings/worldbook-settings.js?v=260907';
+import { setupQuickPromptEvents } from './settings/quick-prompt-settings.js?v=260907';
+import { setupMCPEvents } from './settings/mcp-settings.js?v=260907';
+import { setupBubbleSettingsEvents } from './settings/bubble-settings.js?v=260907';
 
 /**
  * Sets up all settings-related event listeners by calling sub-modules.

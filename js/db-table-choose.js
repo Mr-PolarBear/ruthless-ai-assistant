@@ -109,30 +109,52 @@ function renderPagination(total, current, size) {
 
 // --- API Call ---
 
+// — 为什么这么写 —
+// 1. 全局接口独立性：拉取数据库表结构的后端接口与当前会话绑定的大模型 API 属于不同职责服务。
+//    优先读取 state.appSettings.dbTableFetchUrl，彻底解绑会话上下文，杜绝无会话或预设模型下的短路误杀。
+// 2. 健壮回退：未配置全局接口时，回退至当前会话 API 或全局下拉框选中的 API，并同时在 state.apiEndpoints 与 API_PRESETS 中安全查找。
+// 3. 兼容多种后端分页数据格式 (status 100/200, code 200/0, records/data 等)。
 async function loadTablePage(page) {
     pageState.pageNum = page;
     const listContainer = modal.querySelector('#table-list-container');
     listContainer.innerHTML = '<div class="empty-placeholder">加载中...</div>';
 
     try {
-        const conv = getCurrentConversation();
-        if (!conv || !conv.apiEndpointId) {
-            listContainer.innerHTML = '<div class="error-placeholder">未配置API地址</div>';
-            return;
-        }
-        const apiObj = window.state.apiEndpoints[conv.apiEndpointId];
-        if (!apiObj || !apiObj.url) {
-            listContainer.innerHTML = '<div class="error-placeholder">未配置API地址</div>';
-            return;
+        // 1. 优先使用用户在“全局接口设置”中配置的接口地址
+        let apiBase = window.state?.appSettings?.dbTableFetchUrl?.trim() || '';
+
+        // 2. 若未配置全局接口，才回退至当前会话或选中的 API 地址拼接
+        if (!apiBase) {
+            const conv = getCurrentConversation();
+            const apiId = conv?.apiEndpointId || window.dom?.apiSelector?.value;
+            const apiObj = (window.state?.apiEndpoints && window.state.apiEndpoints[apiId]) ||
+                           (window.API_PRESETS && window.API_PRESETS[apiId]);
+            if (!apiObj || !apiObj.url) {
+                listContainer.innerHTML = '<div class="error-placeholder">未配置全局数据库接口，且未检测到可用的 API 端点</div>';
+                return;
+            }
+
+            const rawUrl = apiObj.url.trim();
+            try {
+                const u = new URL(rawUrl);
+                if (u.pathname && u.pathname !== '/') {
+                    const segments = u.pathname.split('/').filter(Boolean);
+                    segments.pop();
+                    segments.push('getTableInfoWithPage');
+                    u.pathname = '/' + segments.join('/');
+                } else {
+                    u.pathname = '/getTableInfoWithPage';
+                }
+                apiBase = u.toString();
+            } catch (_) {
+                apiBase = rawUrl.endsWith('/') ? `${rawUrl}getTableInfoWithPage` : `${rawUrl}/getTableInfoWithPage`;
+            }
         }
 
-        // 乌鸦：优先使用全局配置的自定义URL
-        let apiBase;
-        if (window.state.appSettings && window.state.appSettings.dbTableFetchUrl) {
-            apiBase = window.state.appSettings.dbTableFetchUrl;
-        } else {
-            // 默认回退逻辑：使用当前API地址拼接
-            apiBase = apiObj.url.replace(/\/[^/]*$/, '/getTableInfoWithPage');
+        // 3. 校验数据库连接字符串
+        if (!pageState.dbConnStr) {
+            listContainer.innerHTML = '<div class="error-placeholder">未检测到有效的数据库连接，请先选择或配置数据库</div>';
+            return;
         }
 
         const requestBody = {
@@ -140,7 +162,7 @@ async function loadTablePage(page) {
             pageNum: pageState.pageNum,
             pageSize: pageState.pageSize,
             tableName: pageState.tableName,
-            isSelectCreateTable: true // 乌鸦：强制获取表结构
+            isSelectCreateTable: true // 强制获取表结构
         };
 
         const resp = await fetch(apiBase, {
@@ -149,24 +171,66 @@ async function loadTablePage(page) {
             body: JSON.stringify(requestBody)
         });
 
-        const data = await resp.json();
-        if (data && data.status === 100 && data.data && Array.isArray(data.data.records)) {
-            currentPageRecords = data.data.records; // 乌鸦：缓存数据
+        if (!resp.ok) {
+            throw new Error(`HTTP 状态码异常: ${resp.status} (${resp.statusText})`);
+        }
 
-            // 乌鸦：自动更新已选表的结构信息（如果有）
+        const data = await resp.json();
+
+        // 4. 兼容常见后端多形态数据结构
+        let records = null;
+        let total = 0;
+        let current = page;
+        let size = pageState.pageSize;
+
+        if (data) {
+            if (data.data && Array.isArray(data.data.records)) {
+                records = data.data.records;
+                total = data.data.total ?? records.length;
+                current = data.data.current ?? page;
+                size = data.data.size ?? pageState.pageSize;
+            } else if (Array.isArray(data.records)) {
+                records = data.records;
+                total = data.total ?? records.length;
+                current = data.current ?? page;
+                size = data.size ?? pageState.pageSize;
+            } else if (Array.isArray(data.data)) {
+                records = data.data;
+                total = data.total ?? records.length;
+            } else if (Array.isArray(data)) {
+                records = data;
+                total = records.length;
+            }
+        }
+
+        const isSuccess = records !== null && (
+            data.status === 100 ||
+            data.status === 200 ||
+            data.code === 200 ||
+            data.code === 0 ||
+            data.code === '200' ||
+            data.code === '0' ||
+            data.success === true ||
+            (!data.error && !data.msg && !data.message)
+        );
+
+        if (isSuccess) {
+            currentPageRecords = records; // 缓存数据
+
+            // 自动更新已选表的结构信息（如果有）
             const conv = getCurrentConversation();
             if (conv && selectedTables.length > 0) {
                 if (!conv.dbTableInfos) conv.dbTableInfos = {};
                 currentPageRecords.forEach(record => {
-                    if (selectedTables.includes(record.tableName)) {
+                    if (record && record.tableName && selectedTables.includes(record.tableName)) {
                         conv.dbTableInfos[record.tableName] = record.tableInfo;
                     }
                 });
             }
 
-            renderTableList(data.data.records, data.data.total, data.data.current, data.data.size);
+            renderTableList(records, total, current, size);
         } else {
-            const errorMessage = data.msg || data.message || '未知错误';
+            const errorMessage = data?.msg || data?.message || data?.error || '返回数据格式不符合预期';
             listContainer.innerHTML = `<div class="error-placeholder">加载失败: ${errorMessage}</div>`;
         }
     } catch (e) {

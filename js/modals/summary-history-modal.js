@@ -1,11 +1,11 @@
-import { dom } from '../dom.js?v=260824';
-import { state } from '../state.js?v=260824';
-import { escapeHtml, saveToLocalStorage } from '../utils.js?v=260824';
-import { notify } from '../ui-updater.js?v=260824';
-import { saveConversation } from '../db.js?v=260824';
-import { getHideSummaryForConversation, setHideSummaryForConversation, getHideSummaryForCurrentConversation, setHideSummaryForCurrentConversation } from '../main.js?v=260824';
-import { renderChatMessages } from '../renderer.js?v=260824';
-import { formatHiddenFloorsBannerInfo } from '../summary-manager.js?v=260824';
+import { dom } from '../dom.js?v=260907';
+import { state } from '../state.js?v=260907';
+import { escapeHtml, saveToLocalStorage } from '../utils.js?v=260907';
+import { notify } from '../ui-updater.js?v=260907';
+import { saveConversation } from '../db.js?v=260907';
+import { getHideSummaryForConversation, setHideSummaryForConversation, getHideSummaryForCurrentConversation, setHideSummaryForCurrentConversation } from '../main.js?v=260907';
+import { renderChatMessages } from '../renderer.js?v=260907';
+import { formatHiddenFloorsBannerInfo } from '../summary-manager.js?v=260907';
 
 let pendingRollbackVersion = null;
 

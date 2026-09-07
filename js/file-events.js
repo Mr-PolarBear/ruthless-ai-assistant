@@ -3,26 +3,26 @@
  * @description Handles file-related events including uploads, attachments, avatars, and file operations.
  */
 
-import { dom } from './dom.js?v=260824';
-import { state, ALLOWED_FILE_TYPES } from './state.js?v=260824';
+import { dom } from './dom.js?v=260907';
+import { state, ALLOWED_FILE_TYPES } from './state.js?v=260907';
 import { 
     showAttachmentPreviewMulti, showFileViewer, showMessageEditAttachmentPreview,
     showParsingPreview, openDocumentEditor
-} from './attachment.js?v=260824';
+} from './attachment.js?v=260907';
 import { 
     setupUserAvatarUI, setupConversationAvatarUI, closeCropModal, closeConvAvatarCropModal, 
     DEFAULT_AVATAR, currentConversationIdForAvatar
-} from './modals.js?v=260824';
-import { renderChatMessages } from './renderer.js?v=260824';
-import { saveAppSettings, exportConfig, exportAllConversations, saveToLocalStorage } from './utils.js?v=260824';
-import { saveAvatar, deleteAvatar, saveConversation } from './db.js?v=260824';
-import { renderHistory } from './sidebar.js?v=260824';
+} from './modals.js?v=260907';
+import { renderChatMessages } from './renderer.js?v=260907';
+import { saveAppSettings, exportConfig, exportAllConversations, saveToLocalStorage } from './utils.js?v=260907';
+import { saveAvatar, deleteAvatar, saveConversation } from './db.js?v=260907';
+import { renderHistory } from './sidebar.js?v=260907';
 // 乌鸦：导入文档解析服务
-import { isDocumentFile, parseDocumentFile, getDocumentType, MAX_DOCUMENT_SIZE_BYTES } from './services/file-parser.js?v=260824';
+import { isDocumentFile, parseDocumentFile, getDocumentType, MAX_DOCUMENT_SIZE_BYTES } from './services/file-parser.js?v=260907';
 // 乌鸦：导入通知与弹窗组件
-import { notify, showErrorDialog, updateSendButtonState } from './ui-updater.js?v=260824';
+import { notify, showErrorDialog, updateSendButtonState } from './ui-updater.js?v=260907';
 // 导入配置导出多选弹窗
-import { openExportConfigModal, setupExportConfigModalEvents } from './modals/export-config-modal.js?v=260824';
+import { openExportConfigModal, setupExportConfigModalEvents } from './modals/export-config-modal.js?v=260907';
 
 /**
  * Sets up file-related event listeners
@@ -692,7 +692,7 @@ async function processDocumentFiles(documentFiles) {
     state.isParsingFile = true;
     
     // 乌鸦：显示全局加载框
-    const { showLoadingOverlay, hideLoadingOverlay } = await import('./ui-updater.js?v=260824');
+    const { showLoadingOverlay, hideLoadingOverlay } = await import('./ui-updater.js?v=260907');
     showLoadingOverlay();
     
     // 乌鸦：立即显示解析中的预览状态

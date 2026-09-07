@@ -3,11 +3,12 @@
  * @description 数据库连接设置管理
  */
 
-import {state} from './state.js?v=260824';
-import {dom} from './dom.js?v=260824';
-import {openDB, DB_CONNECTIONS_STORE} from './db.js?v=260824';
-import {DraggableList} from './draggable-list.js?v=260824';
-import {saveAppSettings} from './utils.js?v=260824'; // 乌鸦：导入保存设置函数
+import {state} from './state.js?v=260907';
+import {dom} from './dom.js?v=260907';
+import {openDB, DB_CONNECTIONS_STORE} from './db.js?v=260907';
+import {DraggableList} from './draggable-list.js?v=260907';
+import {saveAppSettings} from './utils.js?v=260907'; // 乌鸦：导入保存设置函数
+import {notify} from './ui-updater.js?v=260907';
 
 // 乌鸦：数据库连接拖拽实例
 let databaseConnectionDragInstance = null;
@@ -168,13 +169,6 @@ function bindDatabaseEvents() {
     // 密码显示/隐藏按钮
     dom.dbTogglePasswordBtn.addEventListener('click', togglePasswordVisibility);
 
-    // 乌鸦：恢复默认表获取URL按钮
-    if (dom.dbResetTableUrlBtn) {
-        dom.dbResetTableUrlBtn.addEventListener('click', () => {
-            dom.dbTableFetchUrlInput.value = '';
-        });
-    }
-
     // 乌鸦：全局数据库设置事件
     if (dom.saveGlobalDbSettingsBtn) {
         dom.saveGlobalDbSettingsBtn.addEventListener('click', saveGlobalDbSettings);
@@ -188,19 +182,30 @@ function bindDatabaseEvents() {
 }
 
 /**
- * 乌鸦：保存全局数据库接口设置
+ * 保存全局数据库接口设置
  */
+// — 为什么这么写 —
+// 1. 同步保存到 state.appSettings 并持久化至 localStorage (ai-chat-appsettings-v2)
+// 2. 采用应用统一非阻塞的 notify.success Toast 提示机制，避免原生 alert 弹窗被部分浏览器静默拦截
 async function saveGlobalDbSettings() {
     if (!state.appSettings) state.appSettings = {};
-    const url = dom.globalDbTableUrlInput.value.trim();
+    const url = dom.globalDbTableUrlInput ? dom.globalDbTableUrlInput.value.trim() : '';
     state.appSettings.dbTableFetchUrl = url;
     
     try {
         saveAppSettings(); 
-        alert('全局数据库接口设置已保存');
+        if (typeof notify !== 'undefined' && notify.success) {
+            notify.success('全局数据库接口设置已保存');
+        } else {
+            alert('全局数据库接口设置已保存');
+        }
     } catch (error) {
         console.error('保存全局设置失败:', error);
-        alert('保存全局设置失败');
+        if (typeof notify !== 'undefined' && notify.error) {
+            notify.error('保存全局设置失败');
+        } else {
+            alert('保存全局设置失败');
+        }
     }
 }
 
