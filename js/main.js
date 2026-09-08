@@ -43,6 +43,7 @@ import { setupUserAvatarUI } from './modals.js?v=260907';
 import { MCPToolsRegistry, DEFAULT_TOOLS } from './mcp-tools-registry.js?v=260907';
 import { initMCPToolsSelector } from './mcp-tools-selector.js?v=260907';
 import { initMCPManagement } from './mcp-management.js?v=260907';
+import { initStoragePersistence, updateStoragePersistenceUI } from './services/storage-persistence.js?v=260907';
 import { initBackupReminder } from './services/backup-reminder.js?v=260907';
 import { applyBubbleCustomStyles } from './settings/bubble-settings.js?v=260907';
 import { scrollManager } from './scroll-manager.js?v=260907';
@@ -593,6 +594,11 @@ export async function initialize() {
     try {
         await openDB();
         console.log("IndexedDB 数据库连接已成功初始化");
+
+        // — 为什么这么写 —
+        // 自动接入 W3C StorageManager 数据持久化存储保护锁 (navigator.storage.persist)
+        // 解决手机浏览器日常清理缓存导致 IndexedDB 会话记录与 LocalStorage 误删的痛点
+        initStoragePersistence();
     } catch (err) {
         console.error("IndexedDB 数据库连接失败:", err);
         alert("数据库初始化失败，这可能会影响应用的正常使用。请确保您的浏览器支持 IndexedDB 并且没有禁用它。");
@@ -800,6 +806,9 @@ export async function initialize() {
             }
         };
     }
+
+    // 初始化存储持久化保护卡片状态与事件绑定
+    updateStoragePersistenceUI();
 
     // 乌鸦：清空所有头像按钮事件绑定
     if (dom.clearAllAvatarsBtn) {

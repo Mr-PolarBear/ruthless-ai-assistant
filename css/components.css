@@ -668,6 +668,11 @@ body[data-theme="light"] .history-item-title input {
     gap: 0.3rem;
 }
 
+/* PC桌面端默认隐藏移动端三点更多操作按钮 */
+.history-item .more-conv-btn {
+    display: none !important;
+}
+
 .history-item:hover .actions {
     display: flex;
     align-items: center;

@@ -24,6 +24,7 @@ import { checkBranchMemoryStatus } from './summary-manager.js?v=260907';
 import { codePreviewManager } from './code-preview-manager.js?v=260907';
 import { eventBus, EVENTS } from './services/event-bus.js?v=260907';
 import { toggleConvSelection } from './batch-delete.js?v=260907';
+import { openConvActionsSheet } from './modals/conv-actions-sheet.js?v=260907';
 
 /**
  * Sets up chat-related event listeners
@@ -233,6 +234,10 @@ function handleHistoryListActions(e) {
         const convId = btn.dataset.id;
         if (!convId) return;
         openConversationAvatarModal(convId);
+    } else if (button && button.classList.contains('more-conv-btn')) {
+        // 移动端：点击三点图标弹出专属管理Action Sheet
+        e.stopPropagation();
+        openConvActionsSheet(id);
     } else {
         // 批量选择模式下拦截点击，执行勾选切换，不触发会话跳转
         if (state.batchSelectMode) {
@@ -427,7 +432,7 @@ async function handleSaveEdit(messageBubble, message, index) {
 /**
  * Handles conversation pinning
  */
-async function handlePinConversation(id) {
+export async function handlePinConversation(id) {
     const conv = state.conversations[id];
     if (conv) {
         conv.pinned = !conv.pinned;
@@ -440,7 +445,7 @@ async function handlePinConversation(id) {
  * 复制对话（深拷贝会话数据、克隆隐藏总结与备忘录关联关系）
  * @param {string} id - 原会话ID
  */
-async function handleDuplicateConversation(id) {
+export async function handleDuplicateConversation(id) {
     if (!id) return;
     
     // 1. 获取原会话数据（优先从内存，其次从 IndexedDB）
@@ -518,7 +523,7 @@ async function handleDuplicateConversation(id) {
 /**
  * Handles conversation deletion
  */
-function handleDeleteConversation(id) {
+export function handleDeleteConversation(id) {
     if (!confirm('确定要删除这个对话吗？')) return;
 
     delete state.conversations[id];
