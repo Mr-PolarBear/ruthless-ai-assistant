@@ -177,6 +177,25 @@
                         <span id="idb-space-result" style="margin-left:1em;color:var(--text-secondary);"></span>
                     </div>
                 </div>
+                <!-- 存储持久化保护状态卡片 (W3C StorageManager 防清理拦截) -->
+                <div class="form-group storage-persist-card" style="margin-top: 1rem; padding: 12px 14px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--bg-light);">
+                    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 1.25rem;">🛡️</span>
+                            <div>
+                                <strong style="font-size: 0.95rem; color: var(--text-primary);">数据防清理保护 (持久化存储)</strong>
+                                <div id="storage-persist-quota" style="font-size: 0.76rem; color: var(--text-secondary); margin-top: 2px;"></div>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span id="storage-persist-badge" class="badge" style="padding: 4px 8px; border-radius: 6px; font-size: 0.8rem; background: var(--bg-medium); color: var(--text-primary);">检测中...</span>
+                            <button id="request-storage-persist-btn" type="button" class="action-button" style="padding: 5px 12px; font-size: 0.82rem; display: none;">申请永久保护</button>
+                        </div>
+                    </div>
+                    <div id="storage-persist-desc" style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 8px; line-height: 1.45;">
+                        正在检测浏览器存储安全等级...
+                    </div>
+                </div>
                 <div class="form-group" style="margin-top: 1rem;">
                     <button id="clear-all-avatars-btn" type="button" class="action-button danger"
                         style="padding: 10px 5px;">清空所有头像</button>

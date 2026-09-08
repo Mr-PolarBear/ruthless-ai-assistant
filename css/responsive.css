@@ -847,12 +847,68 @@
         font-size: 15px;
     }
 
+    /* --- 移动端会话项排版与防误触重构 --- */
+    /* — 为什么这么写 —
+       1. 消除触屏hover晃动：移动端没有鼠标悬停，触碰触发 translateX 会导致列表视觉抖动；
+       2. 彻底消灭误触：隐藏桌面端平铺的 6 个密集小按钮，改为常驻显示一个紧凑的「···」更多按钮；
+       3. 释放横向空间：整条会话项 90% 的面积纯粹用于切换会话，标题不再被挤压，误触率直接归零。
+    */
+    .history-item:hover {
+        transform: none !important;
+    }
+
+    .history-item-main {
+        flex: 1 1 auto !important;
+        min-width: 0 !important;
+    }
+
     .history-item-title {
         font-size: 0.9rem;
+        width: 100% !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
     }
 
     .history-item .api-badge-container {
         display: none;
+    }
+
+    /* 移动端常驻展示操作区，但只露出一枚小巧的三点图标 */
+    .history-item .actions {
+        display: flex !important;
+        align-items: center !important;
+        margin-left: auto !important;
+        flex-shrink: 0 !important;
+    }
+
+    /* 隐藏移动端不需要平铺的 6 个管理按钮 */
+    .history-item .actions button:not(.more-conv-btn) {
+        display: none !important;
+    }
+
+    /* 移动端专属三点更多按钮样式 */
+    .history-item .actions .more-conv-btn {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 32px !important;
+        height: 32px !important;
+        min-width: 32px !important;
+        min-height: 32px !important;
+        padding: 4px !important;
+        border: none !important;
+        background: transparent !important;
+        color: var(--text-secondary) !important;
+        border-radius: var(--radius-sm) !important;
+        cursor: pointer !important;
+        opacity: 0.75;
+    }
+
+    .history-item .actions .more-conv-btn:active {
+        background-color: var(--bg-hover, rgba(0, 0, 0, 0.08)) !important;
+        color: var(--text-primary) !important;
+        opacity: 1;
     }
 
     #new-chat-btn {

@@ -37,6 +37,7 @@ import { addOrUpdateMessageFooter, updateMessageActions } from './message-manage
 import { switchToConversation, setHideSummaryForCurrentConversation, getHideSummaryForCurrentConversation, getHideSummaryForConversation, setHideSummaryForConversation } from './main.js?v=260907';
 import { saveConversation } from './db.js?v=260907';
 import { closeSidebarMobile } from './ui-events.js?v=260907';
+import { updateStoragePersistenceUI } from './services/storage-persistence.js?v=260907';
 import {
     DEFAULT_PROMPT_RECURSIVE,
     DEFAULT_PROMPT_APPEND,
@@ -70,6 +71,7 @@ export function setupModalEvents() {
             closeSidebarMobile();
         }
         openSettingsModal();
+        updateStoragePersistenceUI();
     };
 
     if (dom.settingsBtn) dom.settingsBtn.addEventListener('click', handleOpenSettings);
