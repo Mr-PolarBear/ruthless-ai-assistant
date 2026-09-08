@@ -3,7 +3,7 @@
  * @description Pure regex processing logic shared between Main Thread and Worker.
  */
 
-import { regexPatterns } from '../regex.js?v=260907';
+import { regexPatterns } from '../regex.js?v=temp';
 
 export function parseRegex(findString) {
     const literalRegex = /^\/(.*)\/([gimy]*)$/;

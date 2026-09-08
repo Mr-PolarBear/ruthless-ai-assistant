@@ -3,8 +3,8 @@
  * @description Client for communicating with the Markdown Web Worker.
  */
 
-import { state } from '../state.js?v=260907';
-import { getActiveRegexRules } from '../regex-engine.js?v=260907';
+import { state } from '../state.js?v=temp';
+import { getActiveRegexRules } from '../regex-engine.js?v=temp';
 
 class MarkdownWorkerClient {
     constructor() {

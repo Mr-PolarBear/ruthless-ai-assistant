@@ -11,7 +11,7 @@
  * 4. 健壮性：提供启动自动静默上锁、状态感知、手动重试申请与配额估算 (estimate) 完整闭环。
  */
 
-import { notify } from '../ui-updater.js?v=260907';
+import { notify } from '../ui-updater.js?v=temp';
 
 /**
  * 格式化字节大小为易读字符串

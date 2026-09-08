@@ -345,6 +345,17 @@ Get-ChildItem -Path $tempDir -Recurse | Where-Object {
     $_.Extension -in @('.md', '.bat', '.ps1', '.zip', '.apk', '.log')
 } | Remove-Item -Force -ErrorAction SilentlyContinue
 
+# ——————————————————————————————————————————————————————————————————————
+# 核心：在临时构建目录中动态全量注入当前真实时分版本号 (源码区 0 污染)
+# ——————————————————————————————————————————————————————————————————————
+$releaseVersion = (Get-Date).ToString("yyMMddHHmm")
+Write-Host "  🚀 正在向构建目录动态注入防缓存版本号 (v$releaseVersion，源码区 0 污染)..." -ForegroundColor Cyan
+& "$toolDir\release.ps1" -TargetDir $tempDir -NewVersion $releaseVersion -Force
+if ($LASTEXITCODE -ne 0 -and $LASTEXITCODE -ne $null) {
+    Write-Host "[ERROR] 构建目录版本注入失败，打包中止！" -ForegroundColor Red
+    exit 1
+}
+
 $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 
 # --- 外网 CDN 模式下的资源替换处理 ---

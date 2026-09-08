@@ -3,9 +3,9 @@
  * @description Handles regex rules editing and management.
  */
 
-import { dom } from '../dom.js?v=260907';
-import { state, DEFAULT_REGEX_RULES } from '../state.js?v=260907';
-import { renderRegexRulesList } from '../ui-populator.js?v=260907'; // Re-use from ui-populator to avoid duplication
+import { dom } from '../dom.js?v=temp';
+import { state, DEFAULT_REGEX_RULES } from '../state.js?v=temp';
+import { renderRegexRulesList } from '../ui-populator.js?v=temp'; // Re-use from ui-populator to avoid duplication
 
 export { renderRegexRulesList };
 

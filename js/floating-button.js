@@ -5,9 +5,9 @@
  * @author 乌鸦
  */
 
-import { dom } from './dom.js?v=260907';
-import { scrollManager } from './scroll-manager.js?v=260907';
-import { updateToggleButtonState } from './message-manager.js?v=260907';
+import { dom } from './dom.js?v=temp';
+import { scrollManager } from './scroll-manager.js?v=temp';
+import { updateToggleButtonState } from './message-manager.js?v=temp';
 
 // 模块内变量，保存按钮元素
 let floatingBtn = null;

@@ -5,7 +5,9 @@
 # ======================================================================
 
 param(
-    [string]$NewVersion = ""
+    [string]$TargetDir = "",
+    [string]$NewVersion = "",
+    [switch]$Force
 )
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -16,10 +18,13 @@ $toolDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 if (-not $toolDir) { $toolDir = (Get-Location).Path }
 $projectRoot = (Resolve-Path "$toolDir\..").Path
 
-$indexFile = Join-Path $projectRoot "index.html"
-$sidebarFile = Join-Path $projectRoot "sidebar.html"
-$drawFile = Join-Path $projectRoot "draw.html"
-$jsDir = Join-Path $projectRoot "js"
+# 若未显式传入 TargetDir，则默认操作工程根目录；打包流水线可传入 _dist_build_temp 临时目录进行无感注入
+$targetPath = if ([string]::IsNullOrWhiteSpace($TargetDir)) { $projectRoot } else { (Resolve-Path $TargetDir).Path }
+
+$indexFile = Join-Path $targetPath "index.html"
+$sidebarFile = Join-Path $targetPath "sidebar.html"
+$drawFile = Join-Path $targetPath "draw.html"
+$jsDir = Join-Path $targetPath "js"
 
 # --- Step 1: 检查核心入口文件是否存在 ---
 if (-not (Test-Path $indexFile)) {
@@ -46,8 +51,20 @@ Write-Host ""
 
 # --- Step 3: 获取新版本号并确认 ---
 if ($NewVersion -eq "") {
-    Write-Host -NoNewline ">>> 请输入新版本号 (例如 260821): " -ForegroundColor White
-    $NewVersion = Read-Host
+    # 采用 24 小时制 yyMMddHHmm (例如 2609081430)，精确到分，杜绝同一天多次发版版本号重复导致的缓存击穿失败
+    $defaultVersion = (Get-Date).ToString("yyMMddHHmm")
+    if ($Force) {
+        $NewVersion = $defaultVersion
+        Write-Host ">>> 已指定 -Force 参数，自动采用当前时间戳版本号: v$NewVersion" -ForegroundColor Green
+    } else {
+        Write-Host -NoNewline ">>> 推荐新版本号: $defaultVersion [直接按回车采用，或输入自定义版本号]: " -ForegroundColor White
+        $inputVersion = Read-Host
+        if ([string]::IsNullOrWhiteSpace($inputVersion)) {
+            $NewVersion = $defaultVersion
+        } else {
+            $NewVersion = $inputVersion.Trim()
+        }
+    }
 }
 
 if ([string]::IsNullOrWhiteSpace($NewVersion)) {
@@ -64,12 +81,17 @@ Write-Host "   版本变更预览:" -ForegroundColor White
 Write-Host "   v$currentVersion  -->  v$NewVersion" -ForegroundColor Green
 Write-Host "----------------------------------------------------------------------" -ForegroundColor DarkGray
 Write-Host ""
-Write-Host -NoNewline ">>> 确认更新请输入 y (y/n): " -ForegroundColor White
-$confirm = Read-Host
-if ($confirm -notin @("y", "yes", "Y", "YES")) {
-    Write-Host "[CANCELLED] 已取消更新。" -ForegroundColor Yellow
-    Read-Host "按回车退出"
-    exit 0
+if (-not $Force) {
+    Write-Host -NoNewline ">>> 确认更新请输入 y (直接按回车默认确认 y, 或输入 n 取消): " -ForegroundColor White
+    $confirm = Read-Host
+    if ([string]::IsNullOrWhiteSpace($confirm)) { $confirm = "y" }
+    if ($confirm -notin @("y", "yes", "Y", "YES")) {
+        Write-Host "[CANCELLED] 已取消更新。" -ForegroundColor Yellow
+        Read-Host "按回车退出"
+        exit 0
+    }
+} else {
+    Write-Host ">>> 已指定 -Force 参数，自动确认执行发版更新。" -ForegroundColor Green
 }
 
 Write-Host ""
@@ -81,6 +103,8 @@ $updatedCount = 0
 # --- Step 4: 处理 index.html ---
 # 1. 标题
 $indexContent = [System.Text.RegularExpressions.Regex]::Replace($indexContent, '<title>智能摸鱼\s+\(v[^)]+\)</title>', "<title>智能摸鱼 (v$NewVersion)</title>")
+# 1.1 Meta 版本标记
+$indexContent = [System.Text.RegularExpressions.Regex]::Replace($indexContent, '<meta name="app-version" content="[^"]*">', "<meta name=`"app-version`" content=`"$NewVersion`">")
 # 2. 图标
 $indexContent = [System.Text.RegularExpressions.Regex]::Replace($indexContent, 'href="favorite\.ico(\?v=[^"]*)?"', "href=`"favorite.ico?v=$NewVersion`"")
 # 3. 所有 CSS <link>
@@ -90,12 +114,12 @@ $indexContent = [System.Text.RegularExpressions.Regex]::Replace($indexContent, '
 # 5. <script type="module"> 入口 import
 $indexContent = [System.Text.RegularExpressions.Regex]::Replace($indexContent, "(import\s+[^;]+?\s+from\s+['""]\./js/main\.js)(?:\?v=[^'""]*)?(['""])", "`${1}?v=$NewVersion`${2}")
 # 6. 动态拉取的 HTML 模板 fetch('sidebar.html') 和 fetch('modals.html')
-$indexContent = [System.Text.RegularExpressions.Regex]::Replace($indexContent, "(fetch\(['""]sidebar\.html)(?:\?v=[^'""]*)?(['""]\))", "`${1}?v=$NewVersion`${2}")
-$indexContent = [System.Text.RegularExpressions.Regex]::Replace($indexContent, "(fetch\(['""]modals\.html)(?:\?v=[^'""]*)?(['""]\))", "`${1}?v=$NewVersion`${2}")
+$indexContent = [System.Text.RegularExpressions.Regex]::Replace($indexContent, "(fetch\(['""]sidebar\.html)(?:\?v=[^'""]*)?(['""])", "`${1}?v=$NewVersion`${2}")
+$indexContent = [System.Text.RegularExpressions.Regex]::Replace($indexContent, "(fetch\(['""]modals\.html)(?:\?v=[^'""]*)?(['""])", "`${1}?v=$NewVersion`${2}")
 
 [System.IO.File]::WriteAllText($indexFile, $indexContent, $utf8NoBom)
 $updatedCount++
-Write-Host "  ✅ [1/4] index.html - 标题、favicon、CSS、JS、ESM 入口及 HTML fetch 模板已全部更新。" -ForegroundColor Green
+Write-Host "  ✅ [1/5] index.html - 标题、版本Meta、favicon、CSS、JS、ESM 入口及 HTML fetch 模板已全部更新。" -ForegroundColor Green
 
 # --- Step 5: 处理 sidebar.html ---
 if (Test-Path $sidebarFile) {
@@ -103,9 +127,9 @@ if (Test-Path $sidebarFile) {
     $sideContent = [System.Text.RegularExpressions.Regex]::Replace($sideContent, '<h1>智能摸鱼\s+v[0-9a-zA-Z._-]+</h1>', "<h1>智能摸鱼 v$NewVersion</h1>")
     [System.IO.File]::WriteAllText($sidebarFile, $sideContent, $utf8NoBom)
     $updatedCount++
-    Write-Host "  ✅ [2/4] sidebar.html - 头部版本号标题已更新。" -ForegroundColor Green
+    Write-Host "  ✅ [2/5] sidebar.html - 头部版本号标题已更新。" -ForegroundColor Green
 } else {
-    Write-Host "  ⚠️ [2/4] 未找到 sidebar.html (已跳过)。" -ForegroundColor Yellow
+    Write-Host "  ⚠️ [2/5] 未找到 sidebar.html (已跳过)。" -ForegroundColor Yellow
 }
 
 # --- Step 6: 处理 draw.html (独立的思维导图/流程图工具页面) ---
@@ -119,13 +143,13 @@ if (Test-Path $drawFile) {
     $drawContent = [System.Text.RegularExpressions.Regex]::Replace($drawContent, "(@import\s+url\(['""]?[^'"")\s]+\.css)(?:\?v=[^'"")\s]*)?(['""]?\))", "`${1}?v=$NewVersion`${2}")
     [System.IO.File]::WriteAllText($drawFile, $drawContent, $utf8NoBom)
     $updatedCount++
-    Write-Host "  ✅ [3/4] draw.html - 绘图工具页面依赖及 @import 版本号已全部更新。" -ForegroundColor Green
+    Write-Host "  ✅ [3/5] draw.html - 绘图工具页面依赖及 @import 版本号已全部更新。" -ForegroundColor Green
 } else {
-    Write-Host "  ⚠️ [3/4] 未找到 draw.html (已跳过)。" -ForegroundColor Yellow
+    Write-Host "  ⚠️ [3/5] 未找到 draw.html (已跳过)。" -ForegroundColor Yellow
 }
 
 # --- Step 7: 深度递归扫描并更新 js/ 目录下所有原生 ES 模块依赖树 ---
-Write-Host "  ⏳ [4/4] 正在扫描并更新 js/ 目录下所有 ES 模块依赖..." -ForegroundColor Cyan
+Write-Host "  ⏳ [4/5] 正在扫描并更新 js/ 目录下所有 ES 模块依赖..." -ForegroundColor Cyan
 
 $jsFilesUpdated = 0
 $totalJsScanned = 0
@@ -170,12 +194,26 @@ if (Test-Path $jsDir) {
     }
 
     $updatedCount += $jsFilesUpdated
-    Write-Host "  ✅ [4/4] js/ 模块依赖处理完毕：共扫描 $totalJsScanned 个 JS 模块，精准更新 $jsFilesUpdated 个含有模块依赖的文件。" -ForegroundColor Green
+    Write-Host "  ✅ [4/5] js/ 模块依赖处理完毕：共扫描 $totalJsScanned 个 JS 模块，精准更新 $jsFilesUpdated 个含有模块依赖的文件。" -ForegroundColor Green
 } else {
-    Write-Host "  ⚠️ [4/4] 未找到 js 目录 (已跳过)。" -ForegroundColor Yellow
+    Write-Host "  ⚠️ [4/5] 未找到 js 目录 (已跳过)。" -ForegroundColor Yellow
 }
 
-# --- Step 8: 总结 ---
+# --- Step 8: 生成根目录 version.json 版本描述文件 ---
+$versionJsonPath = Join-Path $targetPath "version.json"
+$nowTimeStr = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
+$nowTimestamp = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
+$versionObj = [ordered]@{
+    version = $NewVersion
+    buildTime = $nowTimeStr
+    timestamp = $nowTimestamp
+}
+$versionJsonContent = $versionObj | ConvertTo-Json
+[System.IO.File]::WriteAllText($versionJsonPath, $versionJsonContent, $utf8NoBom)
+$updatedCount++
+Write-Host "  ✅ [5/5] version.json - 版本描述文件已同步生成 (v$NewVersion, 构建时间: $nowTimeStr)。" -ForegroundColor Green
+
+# --- Step 9: 总结 ---
 Write-Host ""
 Write-Host "======================================================================" -ForegroundColor Cyan
 Write-Host "   🎉 版本递增与防缓存更新全部完成！" -ForegroundColor Green
@@ -183,7 +221,9 @@ Write-Host "   📌 版本号变更为 : v$currentVersion --> v$NewVersion" -For
 Write-Host "   📁 累计更新文件 : 共更新 $updatedCount 个文件 (含 $jsFilesUpdated 个 JS 模块)" -ForegroundColor Gray
 Write-Host "======================================================================" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "按回车退出..."
-$null = Read-Host
+if (-not $Force) {
+    Write-Host "按回车退出..."
+    $null = Read-Host
+}
 
 

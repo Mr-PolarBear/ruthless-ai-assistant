@@ -9,17 +9,17 @@
  * 4. 深度复用原有会话操作接口，低耦合、高可维护。
  */
 
-import { state } from '../state.js?v=260907';
+import { state } from '../state.js?v=temp';
 import { 
     openConvTitleModal, 
     openExportConvModal, 
     openConversationAvatarModal 
-} from '../modals.js?v=260907';
+} from '../modals.js?v=temp';
 import { 
     handlePinConversation, 
     handleDuplicateConversation, 
     handleDeleteConversation 
-} from '../chat-events.js?v=260907';
+} from '../chat-events.js?v=temp';
 
 let sheetOverlay = null;
 let currentActiveConvId = null;

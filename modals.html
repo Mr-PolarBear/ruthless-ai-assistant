@@ -196,6 +196,30 @@
                         正在检测浏览器存储安全等级...
                     </div>
                 </div>
+                <!-- 系统版本与在线更新卡片 (穿透缓存无损更新) -->
+                <div class="form-group version-settings-card">
+                    <div class="version-card-header">
+                        <div class="version-card-title-group">
+                            <span class="version-card-icon">🚀</span>
+                            <div>
+                                <div class="version-card-title">系统版本与在线更新</div>
+                                <div class="version-card-meta">
+                                    当前运行: <strong id="app-current-version-label" style="font-family: var(--font-mono, monospace);">v260907</strong>
+                                    <span id="app-version-build-time" style="margin-left: 8px;"></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="version-card-actions">
+                            <span id="app-version-status-badge" class="badge" style="padding: 4px 8px; border-radius: 6px; font-size: 0.8rem; background: var(--bg-medium); color: var(--text-primary);">未检测</span>
+                            <button id="check-app-update-btn" type="button" class="action-button" style="padding: 5px 12px; font-size: 0.82rem;">检查更新</button>
+                            <button id="force-app-reload-btn" type="button" class="action-button" style="padding: 5px 12px; font-size: 0.82rem;" title="直接绕过手机浏览器本地缓存，强制加载最新页面资源">强制刷新(穿透缓存)</button>
+                        </div>
+                    </div>
+                    <div class="version-card-desc">
+                        <span class="version-safe-tag">🛡️ 零数据损失保障：</span>
+                        手机端发布新版本若未自动生效，点击“强制刷新”将带时间戳穿透手机本地缓存并载入最新代码，<strong>绝对不会删除您的对话记录与 API 配置</strong>。
+                    </div>
+                </div>
                 <div class="form-group" style="margin-top: 1rem;">
                     <button id="clear-all-avatars-btn" type="button" class="action-button danger"
                         style="padding: 10px 5px;">清空所有头像</button>
@@ -564,6 +588,17 @@
                 </div>
             </div>
             <div id="data-settings" class="tab-content">
+                <div class="modal-section" style="background: var(--bg-light); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px 14px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                        <div>
+                            <h4 style="margin: 0 0 4px 0; display: flex; align-items: center; gap: 6px;">📦 一键备份全部数据</h4>
+                            <p class="settings-hint" style="margin: 0;">同时导出全局配置与所有本地历史会话记录（防止浏览器清理或换机丢失）。</p>
+                        </div>
+                        <div class="modal-actions" style="margin-top: 0;">
+                            <button id="backup-all-data-modal-btn" style="background: linear-gradient(135deg, var(--accent-blue) 0%, #2563eb 100%); color: #fff; font-weight: 600;">🚀 一键备份全部</button>
+                        </div>
+                    </div>
+                </div>
                 <div class="modal-section">
                     <div>
                         <h4>导出配置</h4>

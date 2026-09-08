@@ -3,28 +3,28 @@
  * @description Handles chat-related events including message operations, history management, and chat interactions.
  */
 
-import { dom } from './dom.js?v=260907';
-import { state } from './state.js?v=260907';
-import { handleSendMessage, switchToConversation, switchBranch } from './main.js?v=260907';
-import { closeSidebarMobile } from './ui-events.js?v=260907';
-import { renderHistory } from './sidebar.js?v=260907';
-import { renderChatMessages, formatMessagePipeline, renderFormattedContent } from './renderer.js?v=260907';
+import { dom } from './dom.js?v=temp';
+import { state } from './state.js?v=temp';
+import { handleSendMessage, switchToConversation, switchBranch } from './main.js?v=temp';
+import { closeSidebarMobile } from './ui-events.js?v=temp';
+import { renderHistory } from './sidebar.js?v=temp';
+import { renderChatMessages, formatMessagePipeline, renderFormattedContent } from './renderer.js?v=temp';
 import {
     enterEditMode, cancelEdit, smartCollapseStateCheck, addOrUpdateMessageFooter, 
     updateMessageActions, showCopyMenu, updateSingleMessageCollapseState, updateToggleButtonState
-} from './message-manager.js?v=260907';
-import { showFileViewer } from './attachment.js?v=260907';
-import { saveToLocalStorage, saveMessageAsFile, isMessageHidden } from './utils.js?v=260907';
-import { deleteConversation, saveConversation, getConversation } from './db.js?v=260907';
-import { openConversationAvatarModal, openQuickHideModal, openConvTitleModal, openExportConvModal, openBranchSummaryConfirmModal } from './modals.js?v=260907';
-import { adjustTextareaHeight, updateSendButtonState, notify } from './ui-updater.js?v=260907';
-import { getHideSummaryForConversation } from './main.js?v=260907';
-import { checkBranchMemoryStatus } from './summary-manager.js?v=260907';
+} from './message-manager.js?v=temp';
+import { showFileViewer } from './attachment.js?v=temp';
+import { saveToLocalStorage, saveMessageAsFile, isMessageHidden } from './utils.js?v=temp';
+import { deleteConversation, saveConversation, getConversation } from './db.js?v=temp';
+import { openConversationAvatarModal, openQuickHideModal, openConvTitleModal, openExportConvModal, openBranchSummaryConfirmModal } from './modals.js?v=temp';
+import { adjustTextareaHeight, updateSendButtonState, notify } from './ui-updater.js?v=temp';
+import { getHideSummaryForConversation } from './main.js?v=temp';
+import { checkBranchMemoryStatus } from './summary-manager.js?v=temp';
 // 乌鸦：导入代码预览管理器，用于在切换会话时关闭侧边栏
-import { codePreviewManager } from './code-preview-manager.js?v=260907';
-import { eventBus, EVENTS } from './services/event-bus.js?v=260907';
-import { toggleConvSelection } from './batch-delete.js?v=260907';
-import { openConvActionsSheet } from './modals/conv-actions-sheet.js?v=260907';
+import { codePreviewManager } from './code-preview-manager.js?v=temp';
+import { eventBus, EVENTS } from './services/event-bus.js?v=temp';
+import { toggleConvSelection } from './batch-delete.js?v=temp';
+import { openConvActionsSheet } from './modals/conv-actions-sheet.js?v=temp';
 
 /**
  * Sets up chat-related event listeners

@@ -3,12 +3,12 @@
  * @description MCP工具调用的UI渲染模块
  */
 
-import { escapeHtml } from './utils.js?v=260907';
-import { state } from './state.js?v=260907';
-import { DEFAULT_TOOLS } from './mcp-tools-registry.js?v=260907';
-import { processTemplate, preprocessApiData } from './mcp-template-engine.js?v=260907';
-import { jsonToMarkdownTable } from './utils.js?v=260907';
-import { scrollManager } from './scroll-manager.js?v=260907';
+import { escapeHtml } from './utils.js?v=temp';
+import { state } from './state.js?v=temp';
+import { DEFAULT_TOOLS } from './mcp-tools-registry.js?v=temp';
+import { processTemplate, preprocessApiData } from './mcp-template-engine.js?v=temp';
+import { jsonToMarkdownTable } from './utils.js?v=temp';
+import { scrollManager } from './scroll-manager.js?v=temp';
 
 /**
  * 乌鸦：安全的DOM替换工具函数
@@ -908,7 +908,7 @@ function handleToolRetry(messageElement, toolName, callIndex) {
         }
 
         // 乌鸦：重新执行工具调用
-        import('./mcp-core.js?v=260907').then(async (mcpCore) => {
+        import('./mcp-core.js?v=temp').then(async (mcpCore) => {
             try {
                 //    console.log(`乌鸦：开始重试工具 ${toolName}，参数:`, tool.lastCallParams);
                 const result = await mcpCore.mcpExecutor.callTool(

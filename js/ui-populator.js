@@ -3,10 +3,10 @@
  * @description Handles population of UI lists and selectors (Updated V2).
  */
 
-import { dom } from './dom.js?v=260907';
-import { state, DEFAULT_REGEX_RULES } from './state.js?v=260907';
-import { escapeHtml } from './utils.js?v=260907';
-import { isPersonaBatchMode, getSelectedPersonaIds } from './persona-batch-delete.js?v=260907';
+import { dom } from './dom.js?v=temp';
+import { state, DEFAULT_REGEX_RULES } from './state.js?v=temp';
+import { escapeHtml } from './utils.js?v=temp';
+import { isPersonaBatchMode, getSelectedPersonaIds } from './persona-batch-delete.js?v=temp';
 
 export function populateApiSelector() {
     const currentVal = dom.apiSelector.value;

@@ -159,11 +159,21 @@ try {
                     $mime = if ($mimeTable.ContainsKey($ext)) { $mimeTable[$ext] } else { 'application/octet-stream' }
                     $bytes = [System.IO.File]::ReadAllBytes($filePath)
 
+                    # — 为什么这么写 —
+                    # 1. 针对入口 HTML (index.html, sidebar.html 等) 及版本描述文件 version.json，必须强制下发严格防缓存头，
+                    #    防止手机浏览器将其固化在本地 Disk Cache 中导致发版后刷新无效；
+                    # 2. 普通静态资源 (JS/CSS/图片) 由于带有 ?v=版本号 query 参数，使用普通 no-cache 即可兼顾极速加载与版本穿透。
+                    $cacheHeader = if ($ext -in @('.html', '.htm') -or $cleanPath.ToLower().EndsWith('version.json')) {
+                        "Cache-Control: no-cache, no-store, must-revalidate, max-age=0`r`nPragma: no-cache`r`nExpires: 0`r`n"
+                    } else {
+                        "Cache-Control: no-cache`r`n"
+                    }
+
                     $header = "HTTP/1.1 200 OK`r`n" +
                               "Content-Type: $mime`r`n" +
                               "Content-Length: $($bytes.Length)`r`n" +
                               "Access-Control-Allow-Origin: *`r`n" +
-                              "Cache-Control: no-cache`r`n" +
+                              $cacheHeader +
                               "Connection: close`r`n`r`n"
                     $headerBytes = [System.Text.Encoding]::ASCII.GetBytes($header)
                     $stream.Write($headerBytes, 0, $headerBytes.Length)
