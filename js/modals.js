@@ -13,10 +13,10 @@ export {
     _editingMsgIndex,
     setAvatarCropper,
     setConvAvatarCropper
-} from './modals/base.js?v=260907';
+} from './modals/base.js?v=temp';
 
 // Settings
-export { openSettingsModal, closeSettingsModal } from './modals/settings-modal.js?v=260907';
+export { openSettingsModal, closeSettingsModal } from './modals/settings-modal.js?v=temp';
 
 // API
 export { 
@@ -24,27 +24,27 @@ export {
     resetApiEditForm, resetApiForm, 
     toggleApiEditFormFields, toggleApiFormFields, 
     renderApiEditPresetButtons
-} from './modals/api-modal.js?v=260907';
+} from './modals/api-modal.js?v=temp';
 
 // Persona
 export { 
     openPersonaEditModal, closePersonaEditModal, 
     resetPersonaEditForm, resetPersonaForm, 
     openPersonaModal
-} from './modals/persona-modal.js?v=260907';
+} from './modals/persona-modal.js?v=temp';
 
 // Regex
 export { 
     resetRegexForm, populateRegexForm, 
     updateRegexFloorSummary 
-} from './modals/regex-modal.js?v=260907';
+} from './modals/regex-modal.js?v=temp';
 
 // UI Populators (Re-export from central populator)
 export { 
     renderApiEndpointsList, populateApiSelector,
     renderPersonaModal, populatePersonaSelector,
     renderRegexRulesList 
-} from './ui-populator.js?v=260907';
+} from './ui-populator.js?v=temp';
 
 // World Book
 export { 
@@ -52,7 +52,7 @@ export {
     renderWorldBookList, updateCharCounter,
     renderWorldBookTagsPanel, filterWorldBookByTags, renderFilteredWorldBookList,
     updateFormSessionToggleState, setWorldBookMobileView, toggleWorldBookContentExpand
-} from './modals/worldbook-modal.js?v=260907';
+} from './modals/worldbook-modal.js?v=temp';
 
 // Avatar
 export { 
@@ -60,16 +60,16 @@ export {
     closeCropModal, closeConvAvatarCropModal,
     openConversationAvatarModal, closeConversationAvatarModal, setupConversationAvatarUI,
     openAvatarPreview, closeAvatarPreview 
-} from './modals/avatar-modal.js?v=260907';
+} from './modals/avatar-modal.js?v=temp';
 
 // Quick Hide
-export { openQuickHideModal, closeQuickHideModal } from './modals/quick-hide-modal.js?v=260907';
+export { openQuickHideModal, closeQuickHideModal } from './modals/quick-hide-modal.js?v=temp';
 
 // Message Editor
-export { openMessageEditModal, closeMessageEditModal } from './modals/message-editor-modal.js?v=260907';
+export { openMessageEditModal, closeMessageEditModal } from './modals/message-editor-modal.js?v=temp';
 
 // Conversation Title Modal
-export { openConvTitleModal, closeConvTitleModal, setupConvTitleModalEvents } from './modals/conv-title-modal.js?v=260907';
+export { openConvTitleModal, closeConvTitleModal, setupConvTitleModalEvents } from './modals/conv-title-modal.js?v=temp';
 
 // Export Conversation Modal
 export { 
@@ -78,13 +78,13 @@ export {
     setupExportConvModalEvents, 
     updateExportModalFormState, 
     executeExportConversation 
-} from './modals/export-modal.js?v=260907';
+} from './modals/export-modal.js?v=temp';
 
 // Auto Summary Conflict Modal
 export {
     openAutoSummaryConflictModal,
     closeAutoSummaryConflictModal
-} from './modals/auto-summary-conflict-modal.js?v=260907';
+} from './modals/auto-summary-conflict-modal.js?v=temp';
 
 // Summary History & Rollback Modal
 export {
@@ -94,7 +94,7 @@ export {
     closeSummaryRollbackConfirmModal,
     initSummaryHistoryModal,
     updateHideSummaryHistoryCount
-} from './modals/summary-history-modal.js?v=260907';
+} from './modals/summary-history-modal.js?v=temp';
 
 // Simulate Send & Prompt Preview Modal
 export {
@@ -103,14 +103,14 @@ export {
     initSimulateSendModal,
     renderSimulateSendModal,
     buildSimulatedPayload
-} from './modals/simulate-send-modal.js?v=260907';
+} from './modals/simulate-send-modal.js?v=temp';
 
 // Branch Summary Rollback Confirm Modal
 export {
     openBranchSummaryConfirmModal,
     closeBranchSummaryConfirmModal,
     setupBranchSummaryConfirmModal
-} from './modals/branch-summary-confirm-modal.js?v=260907';
+} from './modals/branch-summary-confirm-modal.js?v=temp';
 
 
 

@@ -13,11 +13,11 @@
  * - 导出 closeFloorJumpPanel() 支持切换会话/分支时自动清理
  */
 
-import { state } from './state.js?v=260907';
-import { dom } from './dom.js?v=260907';
-import { scrollManager } from './scroll-manager.js?v=260907';
-import { regexPatterns } from './regex.js?v=260907';
-import { renderChatMessages } from './renderer.js?v=260907';
+import { state } from './state.js?v=temp';
+import { dom } from './dom.js?v=temp';
+import { scrollManager } from './scroll-manager.js?v=temp';
+import { regexPatterns } from './regex.js?v=temp';
+import { renderChatMessages } from './renderer.js?v=temp';
 
 /**
  * 楼层快速跳转管理器

@@ -4,9 +4,9 @@
  * 遵循高内聚、低耦合设计，提供分别导出会话/配置、一键全量备份与30天延期提醒。
  */
 
-import { getAllConversationIds } from '../db.js?v=260907';
-import { exportAllConversations, exportConfig } from '../utils.js?v=260907';
-import { notify } from '../ui-updater.js?v=260907';
+import { getAllConversationIds } from '../db.js?v=temp';
+import { exportAllConversations, exportConfig } from '../utils.js?v=temp';
+import { notify } from '../ui-updater.js?v=temp';
 
 const STORAGE_KEYS = {
     LAST_BACKUP_TIME: 'last_full_backup_time',
@@ -192,5 +192,12 @@ export function initBackupReminder() {
     // 延迟 1.2 秒检测，避免阻塞页面首屏渲染
     setTimeout(() => {
         checkBackupHealth();
+
+        // 绑定设置弹窗中“一键全量备份全部数据”按钮
+        const modalBackupBtn = document.getElementById('backup-all-data-modal-btn');
+        if (modalBackupBtn && !modalBackupBtn.dataset.bound) {
+            modalBackupBtn.dataset.bound = 'true';
+            modalBackupBtn.addEventListener('click', executeBackupAll);
+        }
     }, 1200);
 }

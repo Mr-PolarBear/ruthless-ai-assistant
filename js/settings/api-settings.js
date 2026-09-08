@@ -3,19 +3,19 @@
  * @description Handles API endpoint settings events.
  */
 
-import { dom } from '../dom.js?v=260907';
-import { state, API_PRESETS } from '../state.js?v=260907';
-import { saveToLocalStorage } from '../utils.js?v=260907';
+import { dom } from '../dom.js?v=temp';
+import { state, API_PRESETS } from '../state.js?v=temp';
+import { saveToLocalStorage } from '../utils.js?v=temp';
 import { 
     toggleApiFormFields,
     // Re-checking imports from original file:
     resetApiForm, renderApiEndpointsList, populateApiSelector,
     resetApiEditForm, openApiEditModal, toggleApiEditFormFields,
     closeApiEditModal,
-} from '../modals.js?v=260907';
-import { closeModalWithAnimation } from '../modal-events.js?v=260907';
-import { handleFetchModels } from '../main.js?v=260907';
-import { DraggableList } from '../draggable-list.js?v=260907';
+} from '../modals.js?v=temp';
+import { closeModalWithAnimation } from '../modal-events.js?v=temp';
+import { handleFetchModels } from '../main.js?v=temp';
+import { DraggableList } from '../draggable-list.js?v=temp';
 
 let lastApiCopyTime = 0;
 let apiEndpointDragInstance = null;

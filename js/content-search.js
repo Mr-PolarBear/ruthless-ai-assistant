@@ -3,11 +3,11 @@
  * @description 流式游标分批全文搜索（Cursor-Streamed Search）与【左右二级分栏 (Master-Detail)】双栏可拖拽浮窗
  */
 
-import { state } from './state.js?v=260907';
-import { dom } from './dom.js?v=260907';
-import { getAllConversationIds, getConversation } from './db.js?v=260907';
-import { escapeHtml } from './utils.js?v=260907';
-import { switchToConversation, switchBranchTo } from './main.js?v=260907';
+import { state } from './state.js?v=temp';
+import { dom } from './dom.js?v=temp';
+import { getAllConversationIds, getConversation } from './db.js?v=temp';
+import { escapeHtml } from './utils.js?v=temp';
+import { switchToConversation, switchBranchTo } from './main.js?v=temp';
 
 let contentSearchModalEl = null;
 let currentSearchToken = 0; // 防止旧搜索覆盖新搜索

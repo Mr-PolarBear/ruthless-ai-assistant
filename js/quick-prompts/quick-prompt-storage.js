@@ -3,7 +3,7 @@
  * @description 负责快捷提示数据的本地存储持久化、内置预设与兼容读取
  */
 
-import { state } from '../state.js?v=260907';
+import { state } from '../state.js?v=temp';
 
 export const QUICK_PROMPTS_STORAGE_KEY = 'quick_prompts';
 

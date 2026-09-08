@@ -4,8 +4,8 @@
  * 乌鸦：这是最终的、借鉴了SillyTavern经验的双引擎正则处理器。
  */
 
-import { state, DEFAULT_REGEX_RULES } from './state.js?v=260907';
-import { regexPatterns } from './regex.js?v=260907';
+import { state, DEFAULT_REGEX_RULES } from './state.js?v=temp';
+import { regexPatterns } from './regex.js?v=temp';
 
 // --- 内部辅助函数 ---
 

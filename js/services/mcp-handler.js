@@ -3,14 +3,14 @@
  * @description Handles MCP tool calls and execution logic.
  */
 
-import { state } from '../state.js?v=260907';
-import { dom } from '../dom.js?v=260907';
-import { scrollManager } from '../scroll-manager.js?v=260907';
-import { mcpSessionManager } from '../mcp-session-manager.js?v=260907';
-import { mcpExecutor, parseToolCalls } from '../mcp-core.js?v=260907';
-import { renderToolCallResult, showToolCallLoading } from '../mcp-renderer.js?v=260907';
-import { regexPatterns as regex } from '../regex.js?v=260907';
-import { escapeHtml } from '../utils.js?v=260907';
+import { state } from '../state.js?v=temp';
+import { dom } from '../dom.js?v=temp';
+import { scrollManager } from '../scroll-manager.js?v=temp';
+import { mcpSessionManager } from '../mcp-session-manager.js?v=temp';
+import { mcpExecutor, parseToolCalls } from '../mcp-core.js?v=temp';
+import { renderToolCallResult, showToolCallLoading } from '../mcp-renderer.js?v=temp';
+import { regexPatterns as regex } from '../regex.js?v=temp';
+import { escapeHtml } from '../utils.js?v=temp';
 
 /**
  * 乌鸦：处理AI回复中的工具调用
@@ -73,7 +73,7 @@ export async function handleToolCalls(content, messageElement, convId, msgIndex,
                 };
             }
 
-            import('../mcp-renderer.js?v=260907').then(({ renderToolCallResult }) => {
+            import('../mcp-renderer.js?v=temp').then(({ renderToolCallResult }) => {
                 renderToolCallResult(messageElement, activeBranch[msgIndex].toolCalls[i], i, false);
             }).catch(err => console.error("渲染工具结果失败:", err));
         }

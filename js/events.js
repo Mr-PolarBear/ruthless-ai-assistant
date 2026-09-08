@@ -3,20 +3,20 @@
  * @description Main event listener setup - coordinates all event handling modules.
  */
 
-import { dom } from './dom.js?v=260907';
-import { createNewConversation } from './main.js?v=260907';
-import { setupUIEvents } from './ui-events.js?v=260907';
-import { setupModalEvents } from './modal-events.js?v=260907';
-import { setupChatEvents } from './chat-events.js?v=260907';
-import { setupFileEvents } from './file-events.js?v=260907';
-import { setupSettingsEvents } from './settings-events.js?v=260907';
+import { dom } from './dom.js?v=temp';
+import { createNewConversation } from './main.js?v=temp';
+import { setupUIEvents } from './ui-events.js?v=temp';
+import { setupModalEvents } from './modal-events.js?v=temp';
+import { setupChatEvents } from './chat-events.js?v=temp';
+import { setupFileEvents } from './file-events.js?v=temp';
+import { setupSettingsEvents } from './settings-events.js?v=temp';
 
 /**
  * Sets up all event listeners for the application by coordinating different event modules.
  */
 export function setupEventListeners() {
     // 挂载隐藏按钮高亮与总 Token 徽章刷新函数到全局
-    import('./ui-updater.js?v=260907').then(mod => {
+    import('./ui-updater.js?v=temp').then(mod => {
         window.updateHideSummaryBtnColor = mod.updateHideSummaryBtnColor;
         window.updateSessionTokenBadge = mod.updateSessionTokenBadge;
     });
@@ -26,7 +26,7 @@ export function setupEventListeners() {
         dom.newChatBtn.addEventListener('click', async () => {
             await createNewConversation();
             if (window.innerWidth <= 768) {
-                const { closeSidebarMobile } = await import('./ui-events.js?v=260907');
+                const { closeSidebarMobile } = await import('./ui-events.js?v=temp');
                 closeSidebarMobile();
             }
         });

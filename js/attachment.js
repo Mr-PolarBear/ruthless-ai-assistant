@@ -3,11 +3,11 @@
  * @description Manages UI for file attachments, including previews and viewers.
  */
 
-import { dom } from './dom.js?v=260907';
-import { state } from './state.js?v=260907';
-import { escapeHtml } from './utils.js?v=260907';
+import { dom } from './dom.js?v=temp';
+import { state } from './state.js?v=temp';
+import { escapeHtml } from './utils.js?v=temp';
 // 乌鸦：导入文档类型和图标方法
-import { getDocumentIcon } from './services/file-parser.js?v=260907';
+import { getDocumentIcon } from './services/file-parser.js?v=temp';
 
 // ======================== 乌鸦：统一风格 SVG 图标常量 ========================
 

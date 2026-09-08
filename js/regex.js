@@ -36,6 +36,9 @@ export const regexPatterns = {
   multiWhitespaceGlobal: /\s+/g,
 
   // 楼层快速跳转：用于从用户输入中提取楼层纯数字（示例："#5" -> "5", "12楼" -> "12"）
-  floorInputNumber: /#?(\d+)/
+  floorInputNumber: /#?(\d+)/,
+
+  // 版本检测系统：用于从网页标题提取版本号字符串（示例："智能摸鱼 (v260907)" -> "260907"）
+  versionFromTitle: new RegExp(`\\(v([^)]+)\\)`)
 };
 

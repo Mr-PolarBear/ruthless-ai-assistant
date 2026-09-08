@@ -3,10 +3,10 @@
  * @description Handles the quick hide confirmation modal.
  */
 
-import { dom } from '../dom.js?v=260907';
-import { state } from '../state.js?v=260907';
-import { getHideSummaryForCurrentConversation } from '../main.js?v=260907';
-import { isMessageHidden } from '../utils.js?v=260907';
+import { dom } from '../dom.js?v=temp';
+import { state } from '../state.js?v=temp';
+import { getHideSummaryForCurrentConversation } from '../main.js?v=temp';
+import { isMessageHidden } from '../utils.js?v=temp';
 
 /**
  * 将有序楼层数组压缩为易读的区间描述列表

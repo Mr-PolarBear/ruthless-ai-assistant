@@ -4,10 +4,10 @@
  * @author 乌鸦
  */
 
-import { state } from './state.js?v=260907';
-import { mcpExecutor } from './mcp-core.js?v=260907';
-import { scrollManager } from './scroll-manager.js?v=260907';
-import { renderToolCallResult, showToolCallLoading, updateToolCallStatus } from './mcp-renderer.js?v=260907';
+import { state } from './state.js?v=temp';
+import { mcpExecutor } from './mcp-core.js?v=temp';
+import { scrollManager } from './scroll-manager.js?v=temp';
+import { renderToolCallResult, showToolCallLoading, updateToolCallStatus } from './mcp-renderer.js?v=temp';
 
 /**
  * 乌鸦：MCP会话管理器 - 处理多个MCP请求的并发执行和状态管理

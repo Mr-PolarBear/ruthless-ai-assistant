@@ -1,0 +1,275 @@
+/* ======================================================================
+   智能摸鱼 (Ruthless AI Assistant) - 版本检测与在线更新样式
+   支持桌面与移动端响应式，严格适配浅色模式与深色模式 (body[data-theme="dark"])
+   ====================================================================== */
+
+/* --- 1. 顶部全局版本更新横幅 --- */
+.version-update-banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 10050;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    background: rgba(240, 249, 255, 0.96);
+    border-bottom: 1px solid rgba(14, 165, 233, 0.35);
+    box-shadow: 0 4px 16px rgba(14, 165, 233, 0.12);
+    color: #0f172a;
+    animation: versionBannerSlideDown 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+body[data-theme="dark"] .version-update-banner {
+    background: rgba(15, 23, 42, 0.96);
+    border-bottom: 1px solid rgba(56, 189, 248, 0.3);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    color: #f1f5f9;
+}
+
+@keyframes versionBannerSlideDown {
+    from {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.version-update-banner.banner-hiding {
+    transform: translateY(-100%);
+    opacity: 0;
+}
+
+.version-banner-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+
+.version-banner-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    flex: 1 1 320px;
+}
+
+.version-banner-icon {
+    font-size: 1.35rem;
+    line-height: 1;
+    flex-shrink: 0;
+    animation: versionRocketBounce 1.8s ease-in-out infinite;
+}
+
+@keyframes versionRocketBounce {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-2px) rotate(6deg); }
+}
+
+.version-banner-text {
+    font-size: 0.88rem;
+    line-height: 1.4;
+    color: inherit;
+    word-break: break-word;
+}
+
+.version-banner-text strong {
+    font-weight: 600;
+}
+
+.version-banner-badge {
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 0.78rem;
+    font-family: var(--font-mono, monospace);
+    font-weight: 600;
+    background: rgba(14, 165, 233, 0.15);
+    color: #0284c7;
+    margin: 0 4px;
+}
+
+body[data-theme="dark"] .version-banner-badge {
+    background: rgba(56, 189, 248, 0.2);
+    color: #38bdf8;
+}
+
+.version-banner-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.version-btn-update {
+    padding: 6px 14px;
+    border: none;
+    border-radius: 6px;
+    background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+    color: #ffffff;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(14, 165, 233, 0.35);
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.version-btn-update:hover {
+    background: linear-gradient(135deg, #38bdf8 0%, #0ea5e9 100%);
+    box-shadow: 0 3px 12px rgba(14, 165, 233, 0.5);
+    transform: translateY(-1px);
+}
+
+.version-btn-update:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 4px rgba(14, 165, 233, 0.3);
+}
+
+.version-btn-snooze {
+    padding: 5px 10px;
+    border: 1px solid rgba(148, 163, 184, 0.4);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-secondary, #64748b);
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.version-btn-snooze:hover {
+    border-color: rgba(148, 163, 184, 0.8);
+    color: var(--text-primary, #0f172a);
+    background: rgba(0, 0, 0, 0.04);
+}
+
+body[data-theme="dark"] .version-btn-snooze:hover {
+    color: #f1f5f9;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+/* --- 2. 设置面板中的版本与在线更新卡片 --- */
+.version-settings-card {
+    margin-top: 1rem;
+    padding: 14px 16px;
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: var(--radius-md, 8px);
+    background: var(--bg-light, #f8fafc);
+    transition: border-color 0.2s ease;
+}
+
+body[data-theme="dark"] .version-settings-card {
+    background: rgba(30, 41, 59, 0.5);
+    border-color: rgba(71, 85, 105, 0.6);
+}
+
+.version-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.version-card-title-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.version-card-icon {
+    font-size: 1.3rem;
+    line-height: 1;
+}
+
+.version-card-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary, #0f172a);
+}
+
+body[data-theme="dark"] .version-card-title {
+    color: #f1f5f9;
+}
+
+.version-card-meta {
+    font-size: 0.78rem;
+    color: var(--text-secondary, #64748b);
+    margin-top: 2px;
+}
+
+.version-card-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.version-card-desc {
+    font-size: 0.8rem;
+    color: var(--text-secondary, #64748b);
+    margin-top: 10px;
+    line-height: 1.5;
+    padding-top: 8px;
+    border-top: 1px dashed var(--border-color, #e2e8f0);
+}
+
+body[data-theme="dark"] .version-card-desc {
+    border-top-color: rgba(71, 85, 105, 0.5);
+    color: #94a3b8;
+}
+
+.version-safe-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    color: #10b981;
+    font-weight: 600;
+}
+
+body[data-theme="dark"] .version-safe-tag {
+    color: #34d399;
+}
+
+/* --- 3. 移动端响应式适配 --- */
+@media (max-width: 600px) {
+    .version-banner-container {
+        padding: 8px 12px;
+        gap: 8px;
+    }
+
+    .version-banner-info {
+        flex: 1 1 100%;
+        gap: 8px;
+    }
+
+    .version-banner-text {
+        font-size: 0.82rem;
+    }
+
+    .version-banner-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+
+    .version-btn-update,
+    .version-btn-snooze {
+        padding: 5px 12px;
+        font-size: 0.8rem;
+    }
+
+    .version-card-actions {
+        width: 100%;
+        justify-content: flex-start;
+        margin-top: 6px;
+    }
+}
