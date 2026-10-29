@@ -79,7 +79,7 @@ Write-Host "[3/4] 正在复制纯净源代码并排除开发/临时/编译文件
 
 $excludeExactNames = @(
     '.git', '.idea', '.vscode', '.windsurf', 'node_modules', '_dist_build_temp',
-    'local.properties', '.gradle', 'build', 'intermediates', 'CLAUDE.md', 'GEMINI.md'
+    'local.properties', '.gradle', 'build', 'intermediates', 'CLAUDE.md', 'GEMINI.md', 'AGENTS.md'
 )
 
 $excludeExtensions = @('.zip', '.apk', '.log', '.tmp', '.iml')

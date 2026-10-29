@@ -12,6 +12,9 @@ import { clearAttachment } from './attachment.js?v=temp';
 import { renderQuickPromptMenu } from './quick-prompts.js?v=temp';
 import { updateFloatingButton } from './floating-button.js?v=temp';
 import { scrollManager } from './scroll-manager.js?v=temp';
+import { openChangelogModal } from './services/changelog-manager.js?v=temp';
+import { draftManager } from './services/draft-manager.js?v=temp';
+import { scrollPillManager } from './services/scroll-pill-manager.js?v=temp';
 
 function positionPopupNearButton(button, popup) {
     if (!button || !popup) return;
@@ -116,6 +119,8 @@ export function setupUIEvents() {
             const hasContent = dom.messageInput.value.trim().length > 0;
             const hasAttachment = state.attachedFiles && state.attachedFiles.length > 0;
             dom.clearInputBtn.classList.toggle('hidden', !hasContent && !hasAttachment);
+            // 乌鸦：输入框实时输入时，防抖暂存草稿并同步侧边栏 [草稿] 徽章
+            draftManager.handleInput(state.currentConversationId, dom.messageInput.value);
         });
     }
 
@@ -126,6 +131,8 @@ export function setupUIEvents() {
             dom.messageInput.rows = 1;
             dom.messageInput.style.height = 'auto';
             dom.clearInputBtn.classList.add('hidden');
+            // 乌鸦：手动点击清空按钮时，立即清空当前会话的草稿
+            draftManager.clearDraft(state.currentConversationId);
             dom.messageInput.focus();
         });
     }
@@ -144,6 +151,7 @@ export function setupUIEvents() {
         // 乌鸦：使用 forceScrollToBottom 同时重置 scrollIntention 为 'bottom'
         // 确保流式输出期间点击此按钮后能恢复自动跟随
         scrollManager.forceScrollToBottom();
+        scrollPillManager.notifyReachedBottom();
     });
 
     // General body click handlers
@@ -518,9 +526,9 @@ function setupChangelogEvents() {
 
     if (!btn || !modal) return;
 
-    // 点击按钮打开弹窗
+    // 点击按钮打开弹窗并规范重置为更新日志 Tab
     btn.addEventListener('click', () => {
-        modal.style.display = 'flex';
+        openChangelogModal();
     });
 
     // 关闭按钮

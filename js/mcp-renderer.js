@@ -117,13 +117,13 @@ function processDynamicExpressions(html) {
  * @param {number} round - 调用轮次（可选，多轮调用时用于渲染轮次分隔条）
  */
 export function renderToolCallResult(messageElement, toolCallResult, callIndex = 0, isInitiallyExpanded = false, round = 0) {
-    // 乌鸦：生成唯一标识符，防止重复渲染
+    // 乌鸦：生成稳定唯一标识符（按消息与调用序号隔离，避免名称变化导致失联）
     const messageId = messageElement.dataset.index || 'unknown';
-    const toolName = toolCallResult.tool || 'unknown';
-    const uniqueId = `${messageId}_${callIndex}_${toolName}`;
+    const uniqueId = `${messageId}_call_${callIndex}`;
 
-    // 乌鸦：检查是否已存在相同的工具调用块（方案1）
-    const existingBlock = messageElement.querySelector(`[data-tool-unique-id="${uniqueId}"]`);
+    // 乌鸦：检查是否已存在相同的工具调用块（双重稳健匹配）
+    const existingBlock = messageElement.querySelector(`[data-tool-unique-id="${uniqueId}"]`) ||
+                          messageElement.querySelector(`.tool-call-block[data-call-index="${callIndex}"]`);
     if (existingBlock) {
         //    console.log(`乌鸦：工具调用块 ${uniqueId} 已存在，检查是否需要更新内容`);
 
@@ -137,25 +137,15 @@ export function renderToolCallResult(messageElement, toolCallResult, callIndex =
 
             try {
                 existingBlock.parentNode.replaceChild(newToolBlock, existingBlock);
-                //    console.log(`乌鸦：成功更新现有工具调用块 ${uniqueId}`);
-
-                // 乌鸦：重新初始化交互功能，修复折叠功能失效问题
-                setTimeout(() => {
-                    initializeMCPResultInteraction(newToolBlock);
-                }, 10);
-
+                // 乌鸦：重新绑定所有交互功能（重试、查看错误、折叠与高亮）
+                bindToolBlockEvents(newToolBlock, messageElement, callIndex, toolCallResult);
                 return newToolBlock;
             } catch (error) {
                 console.error(`乌鸦：更新现有工具调用块失败 ${uniqueId}:`, error);
                 // 乌鸦：保底方案
                 existingBlock.innerHTML = newToolBlock.innerHTML;
                 existingBlock.className = newToolBlock.className;
-
-                // 乌鸦：保底方案下也要重新初始化交互功能
-                setTimeout(() => {
-                    initializeMCPResultInteraction(existingBlock);
-                }, 10);
-
+                bindToolBlockEvents(existingBlock, messageElement, callIndex, toolCallResult);
                 return existingBlock;
             }
         } else {
@@ -261,19 +251,9 @@ export function renderToolCallResult(messageElement, toolCallResult, callIndex =
         }
     }
 
-    // 乌鸦：只有在toolBlock存在时才绑定事件
+    // 乌鸦：统一为工具块绑定交互事件（重试、查看错误、折叠与高亮）
     if (toolBlock) {
-        // 乌鸦：绑定重试按钮事件
-        const retryBtn = toolBlock.querySelector('.retry-tool-call-btn');
-        if (retryBtn) {
-            retryBtn.addEventListener('click', () => {
-                const toolName = retryBtn.dataset.toolName;
-                handleToolRetry(messageElement, toolName, callIndex);
-            });
-        }
-
-        // 乌鸦：为MCP结果添加语法高亮和交互功能
-        initializeMCPResultInteraction(toolBlock);
+        bindToolBlockEvents(toolBlock, messageElement, callIndex, toolCallResult);
     }
 
     return toolBlock;
@@ -283,6 +263,73 @@ export function renderToolCallResult(messageElement, toolCallResult, callIndex =
  * 乌鸦：初始化MCP结果的交互功能（语法高亮、切换显示、复制）
  * @param {HTMLElement} toolBlock - 工具调用块元素
  */
+
+/**
+ * 乌鸦：统一为工具块绑定交互事件（重试、查看错误、折叠与高亮）
+ * 彻底消除 replaceChild 动态替换导致的事件监听器丢失问题
+ */
+function bindToolBlockEvents(toolBlock, messageElement, callIndex, toolCallResult) {
+    if (!toolBlock) return;
+
+    // 1. 初始化高亮与折叠交互
+    initializeMCPResultInteraction(toolBlock);
+
+    // 2. 在工具块容器上绑定事件委托（最高可靠性，防任何局部DOM替换或克隆导致的监听器丢失）
+    if (!toolBlock.dataset.delegationAttached) {
+        toolBlock.dataset.delegationAttached = 'true';
+        toolBlock.addEventListener('click', (e) => {
+            const retryBtn = e.target.closest('.retry-tool-call-btn');
+            if (retryBtn) {
+                e.stopPropagation();
+                e.preventDefault();
+                const toolName = retryBtn.dataset.toolName || toolCallResult?.tool;
+                handleToolRetry(messageElement, toolName, callIndex, toolCallResult);
+                return;
+            }
+
+            const errorBtn = e.target.closest('.view-mcp-error-btn');
+            if (errorBtn) {
+                e.stopPropagation();
+                e.preventDefault();
+                const toolName = toolCallResult?.tool || toolBlock.getAttribute('data-tool-name') || '未知工具';
+                const toolId = toolCallResult?.toolId || toolBlock.getAttribute('data-tool-id') || toolName;
+                const errorMsg = toolCallResult?.error || toolBlock.getAttribute('data-error-message') || '未知调用错误';
+
+                let parameters = toolCallResult?.parameters;
+                if (!parameters) {
+                    const paramsAttr = toolBlock.getAttribute('data-parameters');
+                    if (paramsAttr) {
+                        try { parameters = JSON.parse(paramsAttr); } catch (err) {}
+                    }
+                }
+
+                let errorData = toolCallResult?.data;
+                if (!errorData) {
+                    const dataAttr = toolBlock.getAttribute('data-error-data');
+                    if (dataAttr) {
+                        try { errorData = JSON.parse(dataAttr); } catch (err) {}
+                    }
+                }
+
+                import('./modals/mcp-error-modal.js?v=temp').then(({ openMcpErrorModal }) => {
+                    openMcpErrorModal({
+                        toolName,
+                        toolId,
+                        error: errorMsg,
+                        parameters,
+                        errorData,
+                        timestamp: toolCallResult?.timestamp || Date.now(),
+                        onRetry: () => handleToolRetry(messageElement, toolName, callIndex, toolCallResult)
+                    });
+                }).catch(err => {
+                    console.error('打开错误诊断弹窗失败:', err);
+                });
+                return;
+            }
+        });
+    }
+}
+
 function initializeMCPResultInteraction(toolBlock) {
     try {
         // 乌鸦：为所有JSON代码块添加语法高亮
@@ -420,23 +467,22 @@ function initializeMCPResultInteraction(toolBlock) {
             });
         });
 
-        // 乌鸦：绑定MCP折叠事件到整个头部
+        // 乌鸦：绑定MCP折叠事件到整个头部（防重复绑定且不使用破坏性的 cloneNode）
         const collapseHeaders = toolBlock.querySelectorAll('.tool-call-header');
         collapseHeaders.forEach(header => {
-            // 乌鸦：移除旧的监听器标记，确保重试后能重新绑定
-            delete header.dataset.listenerAttached;
+            if (header.dataset.collapseBound === 'true') return;
+            header.dataset.collapseBound = 'true';
 
-            header.dataset.listenerAttached = 'true';
+            header.addEventListener('click', (e) => {
+                // 如果用户点击的是 Header 内的业务按钮（查看错误、重试、原始数据等），绝不触发折叠
+                if (e.target.closest('button:not(.mcp-collapse-btn)')) {
+                    return;
+                }
 
-            // 乌鸦：移除旧的事件监听器（如果存在）
-            const newHeader = header.cloneNode(true);
-            header.parentNode.replaceChild(newHeader, header);
-
-            newHeader.addEventListener('click', (e) => {
-                const resultElement = newHeader.nextElementSibling;
+                const resultElement = header.nextElementSibling;
                 if (!resultElement || !resultElement.classList.contains('tool-call-result')) return;
 
-                const button = newHeader.querySelector('.mcp-collapse-btn');
+                const button = header.querySelector('.mcp-collapse-btn');
                 if (!button) return;
 
                 const isCollapsed = resultElement.style.display === 'none';
@@ -871,111 +917,115 @@ function showRawDataModal(toolName, rawData) {
  * @param {string} toolName - 工具名称
  * @param {number} callIndex - 调用索引
  */
-function handleToolRetry(messageElement, toolName, callIndex) {
+async function handleToolRetry(messageElement, toolName, callIndex, currentResult = null) {
     try {
-        // 乌鸦：获取原始调用参数
+        const toolBlock = messageElement.querySelector(`[data-call-index="${callIndex}"]`);
+        const { notify } = await import('./ui-updater.js?v=temp');
+
+        // 1. 获取准确的 toolId
         const allTools = {
             ...DEFAULT_TOOLS,
             ...(state.mcpCustomTools || {})
         };
-
-        const tool = Object.values(allTools).find(t =>
-            t.name === toolName || t.id === toolName
-        );
+        let toolId = currentResult?.toolId || toolBlock?.getAttribute('data-tool-id');
+        let tool = toolId ? allTools[toolId] : null;
 
         if (!tool) {
-            alert('找不到工具配置，请手动重新调用。');
+            tool = Object.values(allTools).find(t =>
+                t.name === toolName || t.id === toolName
+            );
+            if (tool) toolId = tool.id;
+        }
+
+        if (!tool && !toolId) {
+            notify.error('找不到工具配置，请重新选择工具或手动调用。');
             return;
         }
 
-        if (!tool.lastCallParams) {
-            alert('无法获取原始调用参数，请手动重新调用。');
-            return;
+        // 2. 提取原始调用参数 parameters（多级稳健兜底）
+        let params = currentResult?.parameters;
+        if (!params && toolBlock) {
+            const raw = toolBlock.getAttribute('data-parameters');
+            if (raw) {
+                try { params = JSON.parse(raw); } catch (e) {}
+            }
+        }
+        if (!params && tool?.lastCallParams) {
+            params = tool.lastCallParams;
         }
 
-        //    console.log(`乌鸦：重试工具 ${toolName}，参数:`, tool.lastCallParams);
+        // 尝试从当前会话的活跃消息分支中读取
+        const convId = state.currentConversationId;
+        const currentConv = state.conversations[convId];
+        const activeBranch = currentConv?.branches?.[currentConv.activeBranchIndex];
+        const msgEl = messageElement.closest('.message') || messageElement;
+        const msgIndex = (msgEl && msgEl.dataset && msgEl.dataset.index !== undefined) ? parseInt(msgEl.dataset.index, 10) : null;
+        if (!params && msgIndex !== null && activeBranch?.[msgIndex]?.toolCalls?.[callIndex]?.parameters) {
+            params = activeBranch[msgIndex].toolCalls[callIndex].parameters;
+        }
 
-        // 乌鸦：更新状态为加载中
-        const toolBlock = messageElement.querySelector(`[data-call-index="${callIndex}"]`);
+        if (!params) {
+            notify.warning('未获取到历史调用参数，将尝试使用默认参数重试');
+            params = {};
+        }
+
+        // 3. UI 进入 loading 态（防重复点击）
+        const retryBtns = toolBlock ? toolBlock.querySelectorAll('.retry-tool-call-btn') : [];
+        retryBtns.forEach(btn => {
+            btn.disabled = true;
+            btn.innerHTML = `<span class="spinner-mini" style="display:inline-block;width:12px;height:12px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin 0.8s linear infinite;margin-right:3px;"></span>重试中...`;
+        });
         if (toolBlock) {
             updateToolCallStatus(toolBlock, 'calling', '重试中...');
-
-            // 乌鸦：移除重试按钮
-            const retryBtn = toolBlock.querySelector('.retry-tool-call-btn');
-            if (retryBtn) {
-                retryBtn.remove();
-            }
         }
 
-        // 乌鸦：重新执行工具调用
-        import('./mcp-core.js?v=temp').then(async (mcpCore) => {
-            try {
-                //    console.log(`乌鸦：开始重试工具 ${toolName}，参数:`, tool.lastCallParams);
-                const result = await mcpCore.mcpExecutor.callTool(
-                    tool.id,
-                    tool.lastCallParams,
-                    { retry: true }
-                );
+        console.log(`乌鸦：开始重试工具 ${toolName || toolId}，参数:`, params);
 
-                //    console.log(`乌鸦：重试工具 ${toolName} 完成，结果:`, result);
+        // 4. 执行重试调用
+        const mcpCore = await import('./mcp-core.js?v=temp');
+        const result = await mcpCore.mcpExecutor.callTool(
+            toolId || tool.id,
+            params,
+            { retry: true }
+        );
 
-                // 乌鸦：检查结果状态
-                if (result.success) {
-                    //    console.log(`乌鸦：重试成功，工具 ${toolName} 调用成功`);
-                } else {
-                    //    console.log(`乌鸦：重试失败，工具 ${toolName} 调用失败，错误: ${result.error}`);
-                }
+        result._isRetry = true;
+        result.parameters = params;
+        result.toolId = toolId || tool.id;
 
-                // 乌鸦：添加重试标记，确保更新现有块而不是跳过
-                result._isRetry = true;
-
-                // 乌鸦：更新结果显示，确保自动展开
-                const newToolBlock = renderToolCallResult(messageElement, result, callIndex, true);
-                if (toolBlock && toolBlock.parentNode) {
-                    try {
-                        // 乌鸦：安全的DOM替换，避免卡死
-                        toolBlock.parentNode.replaceChild(newToolBlock, toolBlock);
-                        //    console.log(`乌鸦：重试成功替换工具调用块 ${callIndex}`);
-                    } catch (error) {
-                        console.error(`乌鸦：重试DOM替换失败，使用保底方案:`, error);
-                        // 乌鸦：保底方案 - 直接更新内容，避免卡死
-                        toolBlock.innerHTML = newToolBlock.innerHTML;
-                        toolBlock.className = newToolBlock.className;
-                        //    console.log(`乌鸦：重试保底方案成功`);
-                    }
-                } else {
-                    console.error(`乌鸦：重试后找不到原始工具块或父节点`);
-                }
-
-            } catch (error) {
-                console.error('重试失败:', error);
-                if (toolBlock) {
-                    // 乌鸦：重新添加重试按钮
-                    const header = toolBlock.querySelector('.tool-call-header');
-                    if (header && !header.querySelector('.retry-tool-call-btn')) {
-                        const retryBtn = document.createElement('button');
-                        retryBtn.className = 'retry-tool-call-btn';
-                        retryBtn.textContent = '重试';
-                        retryBtn.dataset.toolName = toolName;
-                        retryBtn.onclick = () => {
-                            handleToolRetry(messageElement, toolName, callIndex);
-                        };
-                        header.appendChild(retryBtn);
-                    }
-
-                    updateToolCallStatus(toolBlock, 'error', `重试失败: ${error.message}`);
-                } else {
-                    console.error(`乌鸦：重试失败后找不到工具块`);
-                }
+        // 5. 将新结果持久化回会话并保存到 IndexedDB
+        if (msgIndex !== null && activeBranch?.[msgIndex]) {
+            if (!activeBranch[msgIndex].toolCalls) {
+                activeBranch[msgIndex].toolCalls = [];
             }
-        }).catch(error => {
-            console.error('重试模块加载失败:', error);
-            alert('重试功能加载失败，请刷新页面后重试。');
-        });
+            activeBranch[msgIndex].toolCalls[callIndex] = result;
+            const { saveConversation } = await import('./db.js?v=temp');
+            await saveConversation(convId, currentConv);
+        }
+
+        // 6. 原地更新工具调用块（renderToolCallResult 内部已处理替换与事件重绑）
+        renderToolCallResult(messageElement, result, callIndex, true);
+
+        if (result.success) {
+            notify.success(`工具 ${toolName || toolId} 重试成功！`);
+        } else {
+            notify.error(`重试依然失败: ${result.error || '未知错误'}`);
+        }
 
     } catch (error) {
-        console.error('重试处理出错:', error);
-        alert('重试出错，请稍后再试。');
+        console.error('重试失败:', error);
+        const { notify } = await import('./ui-updater.js?v=temp');
+        notify.error(`重试异常: ${error.message || '网络或接口异常'}`);
+
+        const toolBlock = messageElement.querySelector(`[data-call-index="${callIndex}"]`);
+        if (toolBlock) {
+            const retryBtns = toolBlock.querySelectorAll('.retry-tool-call-btn');
+            retryBtns.forEach(btn => {
+                btn.disabled = false;
+                btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:2px;"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><polyline points="3 3 3 8 8 8"></polyline></svg>重试`;
+            });
+            updateToolCallStatus(toolBlock, 'error', `重试失败: ${error.message}`);
+        }
     }
 }
 
@@ -1014,14 +1064,18 @@ function createSuccessContent(toolName, data, timestamp, isInitiallyExpanded = f
 
     let content = `
         <div class="tool-call-header success">
-            <span class="tool-icon"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg></span>
-            <span class="tool-icon-text">MCP调用结果，来自: ${toolName}</span>
-            <span class="tool-name">${toolName}</span>
-            <span class="tool-status success">调用成功</span>
-            <span class="tool-time">${timestamp}</span>
-            <button class="mcp-collapse-btn" title="${buttonTitle}">
-                ${buttonIcon}
-            </button>
+            <div class="tool-header-left">
+                <span class="tool-icon"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg></span>
+                <span class="tool-name" title="${toolName}">${toolName}</span>
+                <span class="tool-source-badge">MCP</span>
+            </div>
+            <div class="tool-header-right">
+                <span class="tool-status success">调用成功</span>
+                <span class="tool-time">${timestamp}</span>
+                <button class="mcp-collapse-btn" type="button" title="${buttonTitle}">
+                    ${buttonIcon}
+                </button>
+            </div>
         </div>
         <div class="tool-call-result" style="display: ${displayStyle};">
     `;
@@ -1086,7 +1140,6 @@ function createErrorContent(toolName, error, timestamp, errorData = null, isInit
     const buttonIcon = isInitiallyExpanded ? '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>' : '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>';
     const buttonTitle = isInitiallyExpanded ? '折叠结果' : '展开结果';
 
-    // 乌鸦：大哥要求 - 当接口调用失败时，要把JSON展示出来
     let errorJsonDisplay = '';
     if (errorData && typeof errorData === 'object') {
         const jsonString = JSON.stringify(errorData, null, 2);
@@ -1106,9 +1159,7 @@ function createErrorContent(toolName, error, timestamp, errorData = null, isInit
                     </button>
                 </div>
                 
-                <div class="table-view" style="display: none;">
-                    <!-- 表格内容将在点击时动态生成 -->
-                </div>
+                <div class="table-view" style="display: none;"></div>
                 
                 <div class="code-view" style="display: block;">
                     <pre><code class="language-json">${escapeHtml(jsonString)}</code></pre>
@@ -1119,23 +1170,36 @@ function createErrorContent(toolName, error, timestamp, errorData = null, isInit
 
     return `
         <div class="tool-call-header error">
-            <span class="tool-icon"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg></span>
-            <span class="tool-icon-text">MCP调用结果，来自: ${toolName}</span>
-            <span class="tool-name">${toolName}</span>
-            <span class="tool-status error">调用失败</span>
-            <span class="tool-time">${timestamp}</span>
-            <button class="mcp-collapse-btn" title="${buttonTitle}">
-                ${buttonIcon}
-            </button>
+            <div class="tool-header-left">
+                <span class="tool-icon"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg></span>
+                <span class="tool-name" title="${toolName}">${toolName}</span>
+                <span class="tool-source-badge">MCP</span>
+            </div>
+            <div class="tool-header-right">
+                <span class="tool-status error">调用失败</span>
+                <span class="tool-time">${timestamp}</span>
+                <button class="mcp-collapse-btn" type="button" title="${buttonTitle}">
+                    ${buttonIcon}
+                </button>
+            </div>
         </div>
         <div class="tool-call-result error" style="display: ${displayStyle};">
-            <div class="error-message">
-                <strong>错误信息：</strong>${escapeHtml(error)}
+            <div class="error-callout">
+                <div class="error-callout-header">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                    <span>调用失败提示</span>
+                </div>
+                <div class="error-callout-body">
+                    ${escapeHtml(error || '未知调用错误')}
+                </div>
             </div>
             ${errorJsonDisplay}
             <div class="tool-call-actions">
-                <button class="retry-tool-call-btn" data-tool-name="${escapeHtml(toolName)}">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px;"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><polyline points="3 3 3 8 8 8"></polyline></svg>重试
+                <button class="view-mcp-error-btn" type="button" title="查看完整错误诊断报告">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>查看错误详情
+                </button>
+                <button class="retry-tool-call-btn" type="button" data-tool-name="${escapeHtml(toolName)}" title="重新执行该工具">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px;"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><polyline points="3 3 3 8 8 8"></polyline></svg>立即重试
                 </button>
             </div>
         </div>
@@ -1590,11 +1654,15 @@ export function showToolCallLoading(messageElement, toolName, callIndex = 0) {
     if (header) {
         header.className = 'tool-call-header calling';
         header.innerHTML = `
-            <span class="tool-icon">🔧</span>
-            <span class="tool-icon-text">MCP调用结果，来自: ${escapeHtml(toolName)}</span>
-            <span class="tool-name">${escapeHtml(toolName)}</span>
-            <span class="tool-status calling">调用中...</span>
-            <span class="tool-time">${new Date().toLocaleTimeString()}</span>
+            <div class="tool-header-left">
+                <span class="tool-icon">🔧</span>
+                <span class="tool-name" title="${escapeHtml(toolName)}">${escapeHtml(toolName)}</span>
+                <span class="tool-source-badge">MCP</span>
+            </div>
+            <div class="tool-header-right">
+                <span class="tool-status calling">调用中...</span>
+                <span class="tool-time">${new Date().toLocaleTimeString()}</span>
+            </div>
         `;
     }
 

@@ -745,6 +745,7 @@ class CodePreviewManager {
 
         const elementsToMove = [
             'api-selector',
+            'model-selector',
             'choose-db-btn',
             'choose-table-btn',
             'attachment-btn',

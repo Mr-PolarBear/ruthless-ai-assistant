@@ -10,6 +10,7 @@ import { DEFAULT_AVATAR } from './modals.js?v=temp';
 import { regexPatterns } from './regex.js?v=temp';
 import { escapeHtml } from './utils.js?v=temp';
 import { toggleConvSelection } from './batch-delete.js?v=temp';
+import { draftManager } from './services/draft-manager.js?v=temp';
 
 /**
  * Renders the conversation history list in the sidebar.
@@ -95,10 +96,43 @@ function renderHistoryGrouped() {
         });
     }
 
-    // 2. 按时间戆组
-    const groups = groupByTime(filteredIds, convs);
+    // 2. 区分置顶 vs 非置顶
+    const pinnedIds = filteredIds.filter(id => convs[id] && convs[id].pinned);
+    const unpinnedIds = filteredIds.filter(id => !convs[id] || !convs[id].pinned);
 
-    // 3. 渲染每个时间组
+    const sortByTime = (a, b) => {
+        const t1 = convs[a].lastModified || 0;
+        const t2 = convs[b].lastModified || 0;
+        return t2.localeCompare ? t2.localeCompare(t1) : t2 - t1;
+    };
+
+    // 3. 独立置顶专区（若存在置顶会话，置顶吸顶优先展示）
+    if (pinnedIds.length > 0) {
+        pinnedIds.sort(sortByTime);
+
+        const pinnedHeader = document.createElement('div');
+        pinnedHeader.className = 'history-group-header pinned-group-header';
+        pinnedHeader.innerHTML = `
+            <svg class="pinned-header-icon" xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="17" x2="12" y2="22"></line>
+                <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1v3.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"></path>
+            </svg>
+            <span>置顶会话</span>
+            <span class="pinned-count-badge">${pinnedIds.length}</span>
+        `;
+        groupedList.appendChild(pinnedHeader);
+
+        pinnedIds.forEach(convId => {
+            const conv = convs[convId];
+            const item = createHistoryItem(convId, conv);
+            groupedList.appendChild(item);
+        });
+    }
+
+    // 4. 非置顶会话按时间分组：今天 / 昨天 / 一周内 / 一周前
+    const groups = groupByTime(unpinnedIds, convs);
+
+    // 5. 渲染每个时间组
     groups.forEach(group => {
         // 添加组标题
         const groupHeader = document.createElement('div');
@@ -106,7 +140,7 @@ function renderHistoryGrouped() {
         groupHeader.textContent = group.label;
         groupedList.appendChild(groupHeader);
 
-        // 添加该组的流窗条目
+        // 添加该组的条目
         group.ids.forEach(convId => {
             const conv = convs[convId];
             const item = createHistoryItem(convId, conv);
@@ -222,12 +256,15 @@ function createHistoryItem(convId, conv) {
         </div>
     `;
 
+    const hasDraft = draftManager.hasDraft(convId);
+    const draftTagHtml = hasDraft ? '<span class="history-item-draft-tag" title="当前会话有未发送的草稿">[草稿]</span>' : '';
+
     // 乌鸦：侧边栏隐藏 API 标签展示，独享整行显示标题
     item.innerHTML = `
         ${checkboxHtml}
         ${avatarHtml}
         <div class="history-item-main">
-            <div class="history-item-title" title="${escapeHtml(conv.title)}">${escapeHtml(conv.title)}</div>
+            <div class="history-item-title" title="${escapeHtml(conv.title)}">${draftTagHtml}${escapeHtml(conv.title)}</div>
         </div>
         ${actionsHtml}
     `;

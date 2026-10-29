@@ -63,11 +63,17 @@ export async function handleToolCalls(content, messageElement, convId, msgIndex,
             const result = results[i];
             const toolCall = toolCalls[i];
             if (result.status === 'fulfilled' && result.value) {
-                activeBranch[msgIndex].toolCalls[i] = result.value;
+                activeBranch[msgIndex].toolCalls[i] = {
+                    ...result.value,
+                    toolId: result.value.toolId || toolCall.tool,
+                    parameters: result.value.parameters || toolCall.parameters
+                };
             } else {
                 activeBranch[msgIndex].toolCalls[i] = {
                     success: false,
                     tool: toolCall.tool,
+                    toolId: toolCall.tool,
+                    parameters: toolCall.parameters,
                     error: result.reason?.message || '未知错误',
                     timestamp: Date.now()
                 };

@@ -159,6 +159,8 @@ export class MCPExecutor {
             return {
                 success: isSuccess,
                 tool: tool.name,
+                toolId: tool.id,
+                parameters: validatedParams,
                 data: result,
                 timestamp: Date.now()
             };
@@ -176,6 +178,8 @@ export class MCPExecutor {
                     return {
                         success: false,
                         tool: tool ? tool.name : toolId, // 乌鸦：修复当工具不存在时，tool为undefined导致的异常
+                        toolId: tool ? tool.id : toolId,
+                        parameters: parameters,
                         error: error.message,
                         data: errorData, // 乌鸦：传递错误响应数据
                         timestamp: Date.now()

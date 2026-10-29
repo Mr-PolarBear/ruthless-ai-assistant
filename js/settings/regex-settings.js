@@ -12,13 +12,24 @@ import {
 import { parseRegex } from '../regex-engine.js?v=temp';
 import { renderChatMessages } from '../renderer.js?v=temp';
 import { DraggableList } from '../draggable-list.js?v=temp';
+import { initRegexExamplesModal } from '../modals/regex-examples-modal.js?v=temp';
 
 let lastRegexCopyTime = 0;
 let regexRuleDragInstance = null;
 
 export function setupRegexEvents() {
     if (dom.regexSaveBtn) dom.regexSaveBtn.addEventListener('click', saveRegexRule);
+    initRegexExamplesModal();
     if (dom.regexCancelBtn) dom.regexCancelBtn.addEventListener('click', resetRegexForm);
+
+    const addNewBtn = dom.addNewRegexBtn || document.getElementById('add-new-regex-btn');
+    if (addNewBtn) {
+        addNewBtn.addEventListener('click', () => startNewRegexRule('global'));
+    }
+    const formNewBtn = dom.regexFormNewBtn || document.getElementById('regex-form-new-btn');
+    if (formNewBtn) {
+        formNewBtn.addEventListener('click', () => startNewRegexRule('global'));
+    }
 
     const collapseAllBtn = document.getElementById('regex-collapse-all-btn');
     const expandAllBtn = document.getElementById('regex-expand-all-btn');
@@ -220,10 +231,22 @@ function handleRegexListActions(e) {
     }
 
     if (button) {
+        if (button.classList.contains('regex-group-add-btn')) {
+            e.preventDefault();
+            e.stopPropagation();
+            const groupType = button.dataset.groupType || 'global';
+            startNewRegexRule(groupType);
+            return;
+        }
+
         const id = button.dataset.id;
         if (button.classList.contains('regex-edit-btn')) {
             const rule = state.regexRules[id];
             populateRegexForm(rule);
+            const formBody = document.querySelector('.regex-form-body');
+            if (formBody) {
+                formBody.scrollTop = 0;
+            }
             const formTitle = document.getElementById('regex-form-title');
             if (formTitle) {
                 setTimeout(() => {
@@ -519,5 +542,54 @@ function handleRegexValidation() {
     } catch (e) {
         resultEl.classList.add('error');
         resultEl.textContent = `正则表达式错误: ${e.message}`;
+    }
+}
+
+/**
+ * 触发进入新建正则规则流程
+ * — 为什么这么写 —
+ * 1. 彻底解决大爷进入正则表达式页签找不到新增入口的问题，提供一键空白重置机制
+ * 2. 支持根据调用场景传入 'global' 或 'session' 自动预先勾选对应单选框，省去大爷二次操作
+ * 3. 针对移动端/窄屏(≤768px)自动平滑滚动定位至后置表单并聚焦输入框，优化长列表视觉沉底体验
+ * @param {'global'|'session'} [targetScope='global'] - 默认归属范围
+ */
+export function startNewRegexRule(targetScope = 'global') {
+    // 1. 重置表单所有控件为全新空白状态
+    resetRegexForm();
+
+    // 2. 根据目标范围预选单选框并触发联动
+    const globalRadio = document.getElementById('regex-scope-type-global');
+    const sessionRadio = document.getElementById('regex-scope-type-session');
+    const sessionHint = document.getElementById('regex-current-session-hint');
+    const sessionName = document.getElementById('regex-current-session-name');
+
+    if (targetScope === 'session') {
+        if (sessionRadio) sessionRadio.checked = true;
+        if (globalRadio) globalRadio.checked = false;
+        if (sessionHint) sessionHint.style.display = 'block';
+        if (sessionName) {
+            const currentConv = state.currentConversationId ? state.conversations[state.currentConversationId] : null;
+            sessionName.textContent = currentConv ? (currentConv.title || '当前会话') : '未选择会话';
+        }
+    } else {
+        if (globalRadio) globalRadio.checked = true;
+        if (sessionRadio) sessionRadio.checked = false;
+        if (sessionHint) sessionHint.style.display = 'none';
+    }
+
+    // 3. 将表单内容滚动体复位至顶部，聚焦输入框并在小屏或窄屏移动端下平滑滚动至右侧表单
+    const formBody = document.querySelector('.regex-form-body');
+    if (formBody) {
+        formBody.scrollTop = 0;
+    }
+    const nameInput = dom.regexNameInput || document.getElementById('regex-name-input');
+    const formContainer = document.querySelector('.regex-form-container');
+    if (formContainer && window.innerWidth <= 768) {
+        formContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    if (nameInput) {
+        setTimeout(() => {
+            nameInput.focus();
+        }, 120);
     }
 }

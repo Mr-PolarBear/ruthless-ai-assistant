@@ -7,6 +7,9 @@ import { dom } from './dom.js?v=temp';
 import { state, DEFAULT_REGEX_RULES } from './state.js?v=temp';
 import { escapeHtml } from './utils.js?v=temp';
 import { isPersonaBatchMode, getSelectedPersonaIds } from './persona-batch-delete.js?v=temp';
+import { populateModelSelector } from './model-selector-manager.js?v=temp';
+
+export { populateModelSelector };
 
 export function populateApiSelector() {
     const currentVal = dom.apiSelector.value;
@@ -40,6 +43,10 @@ export function populateApiSelector() {
             currentConv.apiEndpointId = dom.apiSelector.value;
         }
     }
+
+    // — 为什么这么写 —
+    // API 选择器填充完毕后，联动更新模型选择器，确保当前选中的 API 对应的模型列表即时渲染
+    populateModelSelector();
 }
 
 export function populatePersonaSelector() {
@@ -283,7 +290,10 @@ export function renderRegexRulesList() {
                     <span>自定义全局规则</span>
                     <span class="regex-count-badge">${customGlobalRules.length}</span>
                 </div>
-                <span class="drag-sort-hint">支持拖拽排序</span>
+                <div class="regex-header-actions" style="display: flex; align-items: center; gap: 8px; margin-left: auto;">
+                    <span class="drag-sort-hint">支持拖拽排序</span>
+                    <button type="button" class="regex-group-add-btn" data-group-type="global" title="添加新的自定义全局规则">+ 添加全局</button>
+                </div>
             </summary>
             <div class="regex-group-content">
                 ${customGlobalContentHTML}
@@ -297,6 +307,9 @@ export function renderRegexRulesList() {
                     <span>当前会话专属规则</span>
                     <span class="session-name-tag" style="font-size: 0.78em; color: #10b981; background: rgba(16, 185, 129, 0.12); padding: 1px 7px; border-radius: 4px; font-weight: normal; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">[${currentConvTitle}]</span>
                     <span class="regex-count-badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981;">${currentSessionRules.length}</span>
+                </div>
+                <div class="regex-header-actions" style="display: flex; align-items: center; gap: 8px; margin-left: auto;">
+                    <button type="button" class="regex-group-add-btn session" data-group-type="session" title="添加新的当前会话专属规则">+ 添加专属</button>
                 </div>
             </summary>
             <div class="regex-group-content">

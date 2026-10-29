@@ -14,6 +14,8 @@ import { saveConversation, getConversation, getAllConversationIds, deleteConvers
 import { formatMemoryForApi, normalizeHideSummaryConfig } from './summary-manager.js?v=temp';
 import { showBatchConflictResolutionDialog } from './modals/import-conflict-modal.js?v=temp';
 import { initDefaultPersonasIfEmpty } from './preset-personas.js?v=temp';
+import { resolveDynamicVariables } from './services/dynamic-variable-engine.js?v=temp';
+import { DEFAULT_TOOLS } from './mcp-tools-registry.js?v=temp';
 
 // --- Utility Functions ---
 
@@ -39,9 +41,19 @@ export function escapeHtml(text) {
  */
 export async function saveToLocalStorage() {
     try {
-        // 保证 worldBook 每条 entry 都有 sessionIds 字段
+        // 保证 worldBook 每条 entry 都有 sessionIds、tags、position 与 order 字段
+        let wbIndex = 0;
         Object.values(state.worldBook).forEach(entry => {
+            if (!entry || typeof entry !== 'object') return;
             if (!Array.isArray(entry.sessionIds)) entry.sessionIds = [];
+            if (!Array.isArray(entry.tags)) entry.tags = [];
+            if (!entry.position) entry.position = 'top';
+                entry.appendAllUser = Boolean(entry.appendAllUser);
+            entry.appendAllUser = Boolean(entry.appendAllUser);
+            if (typeof entry.order !== 'number') {
+                entry.order = typeof entry.depth === 'number' ? entry.depth : (wbIndex + 1) * 10;
+            }
+            wbIndex++;
         });
 
         // 其他设置仍保存到 localStorage
@@ -50,7 +62,10 @@ export async function saveToLocalStorage() {
         localStorage.setItem('ai-chat-api-endpoints-v1', JSON.stringify(state.apiEndpoints));
         localStorage.setItem('ai-chat-regex-rules-v1', JSON.stringify(state.regexRules));
         localStorage.setItem('ai-chat-hide-summary-v1', JSON.stringify(state.hideSummary || {}));
-        localStorage.setItem('ai-chat-mcp-settings-v1', JSON.stringify(state.mcpSettings || {})); // MCP设置
+        // MCP全局设置（剔除会话隔离的 selectedTools，杜绝全局持久化污染）
+        const mcpSettingsToSave = { ...(state.mcpSettings || {}) };
+        delete mcpSettingsToSave.selectedTools;
+        localStorage.setItem('ai-chat-mcp-settings-v1', JSON.stringify(mcpSettingsToSave)); // MCP设置
         localStorage.setItem('ai-chat-mcp-custom-tools-v1', JSON.stringify(state.mcpCustomTools || {})); // 乌鸦：MCP自定义工具
         localStorage.setItem('ai-chat-mcp-tool-states-v1', JSON.stringify(state.mcpToolStates || {})); // 乌鸦：MCP工具状态
         localStorage.setItem('quick_prompts', JSON.stringify(state.quickPrompts || [])); // 快捷提示持久化
@@ -153,9 +168,17 @@ export async function loadFromLocalStorage() {
         const rawWorldBook = localStorage.getItem('ai-chat-worldbook-v1');
         if (rawWorldBook) {
             const parsedWorldBook = JSON.parse(rawWorldBook);
-            // 兼容老数据，确保每条 entry 都有 sessionIds 字段且为数组
+            // 兼容老数据，确保每条 entry 都有 sessionIds 字段且为数组，并规范化补齐 order 与 position
+            let loadWbIndex = 0;
             for (const entry of Object.values(parsedWorldBook)) {
+                if (!entry || typeof entry !== 'object') continue;
                 if (!Array.isArray(entry.sessionIds)) entry.sessionIds = [];
+                if (!Array.isArray(entry.tags)) entry.tags = [];
+                if (!entry.position) entry.position = 'top';
+                if (typeof entry.order !== 'number') {
+                    entry.order = typeof entry.depth === 'number' ? entry.depth : (loadWbIndex + 1) * 10;
+                }
+                loadWbIndex++;
             }
             state.worldBook = parsedWorldBook;
         } else {
@@ -233,7 +256,9 @@ export async function loadFromLocalStorage() {
     try {
         const savedMcpSettings = localStorage.getItem('ai-chat-mcp-settings-v1');
         if (savedMcpSettings) {
-            state.mcpSettings = { ...state.mcpSettings, ...JSON.parse(savedMcpSettings) };
+            const parsed = JSON.parse(savedMcpSettings);
+            delete parsed.selectedTools; // 杜绝全局脏缓存恢复
+            state.mcpSettings = { ...state.mcpSettings, ...parsed, selectedTools: [] };
         }
     } catch (e) {
         console.error("Failed to load MCP settings:", e);
@@ -746,12 +771,21 @@ export async function importConfig(jsonString) {
         let importCount = 0;
         let skippedCount = 0;
 
-        // 规整导入项字段（确保正则 rules 的 scope 与 sessionIds 格式标准）
+        // 规整导入项字段（确保正则 rules 及 worldBook 字段格式标准与向后兼容）
         const normalizeImportedItem = (entry, newId, newName) => {
             const base = { ...entry.item, id: newId, name: newName };
             if (entry.category === 'regex') {
                 base.scope = base.scope || 'global';
                 base.sessionIds = Array.isArray(base.sessionIds) ? base.sessionIds : [];
+            } else if (entry.category === 'worldBook') {
+                base.position = base.position || 'top';
+                base.appendAllUser = Boolean(base.appendAllUser);
+                base.sessionIds = Array.isArray(base.sessionIds) ? base.sessionIds : [];
+                base.tags = Array.isArray(base.tags) ? base.tags : [];
+                if (typeof base.depth !== 'number') base.depth = 10;
+                if (typeof base.order !== 'number') {
+                    base.order = typeof base.depth === 'number' ? base.depth : Date.now();
+                }
             }
             return base;
         };
@@ -889,6 +923,7 @@ export async function importConversations(conversationsToImport, bundleMetadata 
             ...conv,
             id: newId,
             title: conv.title ? `${conv.title} (已导入)` : `对话 (已导入)`,
+            selectedMcpTools: Array.isArray(conv.selectedMcpTools) ? [...conv.selectedMcpTools] : [],
             lastModified: timestamp,
             importedAt: timestamp
         };
@@ -1148,6 +1183,14 @@ export function calculateConversationStats(conversation, hideSummaryConfig) {
             mainCharacters: 0, mainTokens: 0,
             thinkingCharacters: 0, thinkingTokens: 0,
             hiddenCharacters: 0, hiddenEstimatedTokens: 0,
+            actualSentCharacters: 0, actualSentEstimatedTokens: 0,
+            actualSentMainTokens: 0, actualSentMainCharacters: 0,
+            actualSentSystemTokens: 0, actualSentSystemCharacters: 0,
+            personaTokens: 0, personaCharacters: 0,
+            worldBookTokens: 0, worldBookCharacters: 0,
+            summaryTokens: 0, summaryCharacters: 0,
+            dbContextTokens: 0, dbContextCharacters: 0,
+            mcpToolsTokens: 0, mcpToolsCharacters: 0,
             mcpAnalysisCharacters: 0, mcpAnalysisTokens: 0, mcpToolDataCharacters: 0, mcpToolDataTokens: 0, totalToolCalls: 0,
             attachmentsCharacters: 0, attachmentsTokens: 0
         };
@@ -1301,15 +1344,18 @@ export function calculateConversationStats(conversation, hideSummaryConfig) {
         branchMessageStats.push({
             charCount: msgCharCount,
             tokenCount: msgTokenCount,
+            mainChars: msgMainChars,
+            mainTokens: msgMainTokens,
             isHidden
         });
     });
 
     // — 为什么这么写 —
-    // 实际发送 Token 统计：
+    // 实际发送 Token 统计 (Plan A 核心纠偏)：
     // 1. 过滤掉所有已标记隐藏的楼层；
     // 2. 若设置了“发送消息数量限制”（messageLimit），仅截取最近 N 条未隐藏消息；
-    // 3. 若启用了记忆总结，加上注入的系统级长期记忆提示词 Tokens。
+    // 3. 【核心纠偏 1】：历史消息发给 API 时，AI 回复只传递纯正文，思考过程（Thinking/Reasoning）绝不发给大模型，因此只累加 mainTokens 与 mainChars；
+    // 4. 【核心纠偏 2】：将真实注入模型上下文的系统级提示词（角色人设、备忘录、长期记忆总结、数据库上下文、MCP工具描述）全额纳入。
     const visibleStats = branchMessageStats.filter(item => !item.isHidden);
     const messageLimit = hideSummaryConfig && typeof hideSummaryConfig.messageLimit === 'number' && hideSummaryConfig.messageLimit > 0
         ? hideSummaryConfig.messageLimit
@@ -1319,21 +1365,123 @@ export function calculateConversationStats(conversation, hideSummaryConfig) {
         ? visibleStats.slice(-messageLimit)
         : visibleStats;
 
-    let actualSentCharacters = 0;
-    let actualSentEstimatedTokens = 0;
+    let actualSentMainCharacters = 0;
+    let actualSentMainTokens = 0;
 
     actualSentList.forEach(item => {
-        actualSentCharacters += item.charCount;
-        actualSentEstimatedTokens += item.tokenCount;
+        actualSentMainCharacters += item.mainChars;
+        actualSentMainTokens += item.mainTokens;
     });
 
+    // 1. 统计角色提示词 (Persona)
+    let personaCharacters = 0;
+    let personaTokens = 0;
+    if (conversation.personaId && state.personas && state.personas[conversation.personaId]) {
+        const personaPrompt = state.personas[conversation.personaId].prompt || '';
+        if (personaPrompt.trim()) {
+            personaCharacters = personaPrompt.length;
+            personaTokens = countTokens(personaPrompt);
+        }
+    }
+
+    // 2. 统计启用的备忘录 (WorldBook，支持宏解析求值)
+    let worldBookCharacters = 0;
+    let worldBookTokens = 0;
+    const convId = conversation.id || state.currentConversationId;
+    const enabledWorldBookEntries = Object.values(state.worldBook || {}).filter(entry => {
+        if (!entry) return false;
+        if (entry.enabled) return true;
+        if (Array.isArray(entry.sessionIds) && entry.sessionIds.includes(convId)) return true;
+        return false;
+    });
+
+    const dynamicContext = {
+        currentConv: conversation,
+        apiEndpoint: (state.apiEndpoints && conversation.apiEndpointId) ? state.apiEndpoints[conversation.apiEndpointId] : null
+    };
+
+    enabledWorldBookEntries.forEach(entry => {
+        const rawText = entry.content || '';
+        let resolvedText = rawText;
+        try {
+            resolvedText = resolveDynamicVariables(rawText, dynamicContext);
+        } catch (e) {
+            resolvedText = rawText;
+        }
+        if (resolvedText) {
+            worldBookCharacters += resolvedText.length;
+            worldBookTokens += countTokens(resolvedText);
+        }
+    });
+
+    // 3. 统计长期记忆总结 (HideSummary)
+    let summaryCharacters = 0;
+    let summaryTokens = 0;
     if (hideSummaryConfig && hideSummaryConfig.enabled) {
         const memoryPrompt = formatMemoryForApi(hideSummaryConfig);
         if (memoryPrompt && memoryPrompt.trim()) {
-            actualSentCharacters += memoryPrompt.length;
-            actualSentEstimatedTokens += countTokens(memoryPrompt);
+            summaryCharacters = memoryPrompt.length;
+            summaryTokens = countTokens(memoryPrompt);
         }
     }
+
+    // 4. 统计数据库上下文 (DB Context)
+    let dbContextCharacters = 0;
+    let dbContextTokens = 0;
+    if (conversation.dbId && conversation.dbSelections && conversation.dbSelections[conversation.dbId]) {
+        const selectedTables = conversation.dbSelections[conversation.dbId];
+        if (Array.isArray(selectedTables) && selectedTables.length > 0) {
+            let contextContent = `【当前数据库上下文】\n已选数据表：${selectedTables.join(', ')}\n\n`;
+            if (conversation.dbTableInfos) {
+                const structures = selectedTables
+                    .filter(name => conversation.dbTableInfos[name])
+                    .map(name => `表名: ${name}\n表结构信息:\n${conversation.dbTableInfos[name]}`)
+                    .join('\n\n');
+                if (structures) {
+                    contextContent += `【数据表详细结构】\n${structures}\n\n`;
+                }
+            }
+            contextContent += `指令：请根据上述提供的表结构回答问题或生成 SQL。如果对任何字段的含义不明确，或者发现有任何可能影响 SQL 执行结果准确性的问题（如关联关系不明、数据类型歧义等），你必须先提出疑问，禁止直接生成可能错误的 SQL，请等待用户补充信息。`;
+            dbContextCharacters = contextContent.length;
+            dbContextTokens = countTokens(contextContent);
+        }
+    }
+
+    // 5. 统计 MCP 工具描述 (MCP Tools)（优先从当前目标会话专属勾选中统计）
+    let mcpToolsCharacters = 0;
+    let mcpToolsTokens = 0;
+    const conversationTools = (conversation && Array.isArray(conversation.selectedMcpTools))
+        ? conversation.selectedMcpTools
+        : (state.mcpSettings?.selectedTools || []);
+    if (state.mcpSettings && state.mcpSettings.enabled && conversationTools.length > 0) {
+        const selectedToolIds = conversationTools;
+        const allTools = { ...DEFAULT_TOOLS, ...(state.mcpCustomTools || {}) };
+        const tools = Object.values(allTools).filter(tool => tool.enabled && selectedToolIds.includes(tool.id));
+        if (tools.length > 0) {
+            let description = '\n[可用工具]\n';
+            tools.forEach(tool => {
+                description += `\n**${tool.name}** (${tool.id}):\n${tool.description}\n参数:\n`;
+                Object.entries(tool.parameters || {}).forEach(([paramName, paramConfig]) => {
+                    const required = paramConfig.required ? '(必需)' : '(可选)';
+                    description += `- ${paramName} ${required}: ${paramConfig.description}\n`;
+                });
+            });
+            description += '\n使用工具时(如多个工具结果不影响，请一次性使用多个工具，减少用户等待时间，请使用数组格式或者每个工具使用单独的代码块包裹)，请用以下格式：\n';
+            description += '```tool_call\n{"tool": "工具ID", "parameters": {"参数名": "参数值"}}\n```\n';
+            description += '\n**重要:** 如果你希望在工具执行后，能够看到并分析工具返回的结果(或者用户要求进行结果分析)，请在JSON中增加一个\x60"process_result": true\x60字段。系统会在工具执行完毕后，将结果返回给你进行下一步处理。例如：\n';
+            description += '```tool_call\n{"tool": "工具ID", "parameters": {"参数名": "参数值"}, "process_result": true}\n```\n';
+            mcpToolsCharacters = description.length;
+            mcpToolsTokens = countTokens(description);
+        }
+    }
+
+    // 汇总系统级上下文
+    const actualSentSystemCharacters = personaCharacters + worldBookCharacters + summaryCharacters + dbContextCharacters + mcpToolsCharacters;
+    const actualSentSystemTokens = personaTokens + worldBookTokens + summaryTokens + dbContextTokens + mcpToolsTokens;
+
+    // 实际发送总计
+    const actualSentCharacters = actualSentMainCharacters + actualSentSystemCharacters;
+    const actualSentEstimatedTokens = actualSentMainTokens + actualSentSystemTokens;
 
     return {
         totalCharacters, totalEstimatedTokens,
@@ -1341,6 +1489,13 @@ export function calculateConversationStats(conversation, hideSummaryConfig) {
         thinkingCharacters, thinkingTokens,
         hiddenCharacters, hiddenEstimatedTokens,
         actualSentCharacters, actualSentEstimatedTokens,
+        actualSentMainTokens, actualSentMainCharacters,
+        actualSentSystemTokens, actualSentSystemCharacters,
+        personaTokens, personaCharacters,
+        worldBookTokens, worldBookCharacters,
+        summaryTokens, summaryCharacters,
+        dbContextTokens, dbContextCharacters,
+        mcpToolsTokens, mcpToolsCharacters,
         mcpAnalysisCharacters, mcpAnalysisTokens, mcpToolDataCharacters, mcpToolDataTokens, totalToolCalls,
         attachmentsCharacters, attachmentsTokens
     };

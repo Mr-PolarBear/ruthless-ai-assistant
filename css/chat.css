@@ -79,7 +79,7 @@
 }
 
 .input-area {
-    padding: 1.5rem;
+    padding: 0.5rem;
     border-top: 1px solid var(--border-color);
     background: var(--input-area-bg, var(--bg-deep));
 }
@@ -103,9 +103,11 @@
 
 .input-controls {
     display: flex;
+    flex-wrap: wrap; /* 乌鸦：改为换行分层架构，彻底解决横向抢占挤压问题 */
     align-items: center;
     width: 100%;
     gap: 8px;
+    position: relative;
 }
 
 .input-controls-secondary {
@@ -122,19 +124,55 @@
     display: flex;
 }
 
+/* 乌鸦：输入框独占整行上方，100% 宽阔打字视野 */
 #message-input {
-    flex-grow: 1;
+    order: 1;
+    width: 100%;
+    flex: 1 1 100%;
     background-color: transparent;
     color: var(--text-primary);
-    padding: 0.5rem 1rem;
+    padding: 0.4rem 2.2rem 0.4rem 0.4rem; /* 右侧为清空按钮预留空间 */
     resize: none;
     line-height: 1.5;
+    min-height: 44px;
     max-height: 200px;
     overflow-y: auto;
+    box-sizing: border-box;
+    border: none;
+    outline: none;
 }
 
 #message-input::placeholder {
     color: var(--text-secondary);
+}
+
+/* 清空输入按钮绝对定位在输入框右上角 */
+#clear-input-btn {
+    order: 2;
+    position: absolute;
+    right: 4px;
+    top: 4px;
+    z-index: 2;
+    padding: 3px;
+    background: var(--bg-deep);
+    border-radius: 50%;
+}
+
+/* 底部操作工具栏所有按钮与选择器统一排列在第二行 */
+.input-controls > select,
+.input-controls > button:not(#send-button):not(#clear-input-btn),
+.input-controls > div:not(#attachment-preview) {
+    order: 3;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* 发送按钮靠右下角自适应对齐 */
+#send-button {
+    order: 4;
+    margin-left: auto !important;
+    flex-shrink: 0;
 }
 
 /* --- Chat Message Bubbles --- */
@@ -258,6 +296,8 @@
 
 .message-wrapper.ai .sender-line {
     justify-content: flex-start;
+    flex-wrap: nowrap;
+    min-width: 0;
 }
 
 .sender-line .sender-name {
@@ -286,6 +326,37 @@
 .message-wrapper.ai .sender-line .sender-name {
     background: linear-gradient(90deg, var(--accent-blue) 60%, var(--accent-blue-hover) 100%);
     color: #fff;
+    display: inline-block;
+    vertical-align: middle;
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex-shrink: 1;
+}
+
+/* 乌鸦：Plan C 来源 API 端点轻量副标 */
+.sender-api-sub {
+    display: inline-block;
+    vertical-align: middle;
+    font-size: 0.82em;
+    color: var(--text-secondary);
+    opacity: 0.85;
+    font-weight: 500;
+    margin-left: 6px;
+    margin-right: 4px;
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex-shrink: 2; /* 窄屏时优先压缩副标 */
+    user-select: none;
+    line-height: 1.4;
+}
+
+/* 深色模式适配（严格遵循主题规范） */
+body[data-theme="dark"] .sender-api-sub {
+    color: var(--text-secondary, #9aa0a6);
 }
 
 .message-wrapper .sender-line img {
@@ -295,6 +366,7 @@
     object-fit: cover !important;
     border: 1px solid var(--border-color) !important;
     background: #eee !important;
+    flex-shrink: 0;
 }
 
 .message-floor {
@@ -304,6 +376,33 @@
     margin-left: 8px;
     font-weight: bold;
     text-align: center;
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+/* 屏幕过窄挤压适配：模型名与 API 副标自适应只展示可见的前 n 个字 */
+@media (max-width: 768px) {
+    .message-wrapper.ai .sender-line .sender-name {
+        max-width: 130px;
+    }
+    .sender-api-sub {
+        max-width: 85px;
+        font-size: 0.78em;
+        margin-left: 4px;
+        margin-right: 2px;
+    }
+}
+
+@media (max-width: 480px) {
+    .message-wrapper.ai .sender-line .sender-name {
+        max-width: 95px;
+    }
+    .sender-api-sub {
+        max-width: 60px;
+        font-size: 0.74em;
+        margin-left: 3px;
+        margin-right: 2px;
+    }
 }
 
 /* 乌鸦：MCP 工具调用数量徽章 */
@@ -321,6 +420,7 @@
     transition: all 0.2s ease;
     white-space: nowrap;
     box-shadow: 0 1px 4px rgba(67, 160, 71, 0.25);
+    flex-shrink: 0;
 }
 
 .mcp-tool-badge:hover {
@@ -679,29 +779,42 @@ body.fullscreen-active #chat-messages {
     background-color: var(--bg-light);
 }
 
-/* Style for the moved API selector */
-#api-selector {
-    /* 乌鸦：让选择器宽度在合理范围内自适应，而不是写死 */
+/* Style for the API & Model selectors */
+#api-selector,
+#model-selector {
+    /* 乌鸦：让选择器宽度在合理范围内自适应，保持精致紧凑 */
     width: auto;
-    min-width: 90px;
-    /* 保证最短也有90px，不会缩成一团 */
-    max-width: 180px;
-    /* 最宽不超过180px，避免API名字太长时撑爆布局 */
+    min-width: 70px;
+    max-width: 130px;
 
-    /* 乌鸦：Flex布局策略，不许伸展，也不许压缩，保持自己的尺寸 */
+    /* 乌鸦：Flex布局策略，允许在极端小屏幕时收缩，保持自身适度比例 */
     flex-grow: 0;
-    flex-shrink: 0;
+    flex-shrink: 1;
 
-    /* 乌鸦：使用正确的主题变量，确保主题适配 */
-    height: 36px;
+    /* 乌鸦：使用正确的主题变量，确保深浅主题自适应 */
+    height: 32px;
     border-radius: var(--radius-md);
     border: 1px solid var(--border-color);
     background-color: var(--bg-deep);
-    /* 乌鸦：使用正确的主题背景变量 */
     color: var(--text-primary);
-    /* 乌鸦：使用正确的主题文字变量 */
     padding: 0 8px;
-    font-size: 14px;
+    font-size: 12px;
+    cursor: pointer;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    transition: border-color 0.2s ease;
+}
+
+#api-selector:focus,
+#model-selector:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+#model-selector:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
 /* --- Quick Prompt Menu --- */
@@ -1142,4 +1255,84 @@ body[data-theme="light"] .reasoning-container {
 .backup-action-btn.text-btn:hover {
     color: var(--text-primary);
     text-decoration: underline;
+}
+
+/* ==========================================================================
+   划选文本浮动「引用」追问胶囊 (Quote Selection Popover)
+   ========================================================================== */
+.quote-selection-popover {
+    position: fixed;
+    z-index: 1050;
+    display: none;
+    pointer-events: auto;
+    filter: drop-shadow(0 4px 14px rgba(0, 0, 0, 0.12));
+    animation: quotePopIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.quote-selection-popover.visible {
+    display: block;
+}
+
+.quote-selection-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: var(--bg-surface, #ffffff);
+    color: var(--text-primary, #1e293b);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: var(--radius-full, 9999px);
+    padding: 5px 12px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transition: all 0.15s ease;
+    white-space: nowrap;
+    user-select: none;
+    line-height: 1;
+}
+
+.quote-selection-btn:hover {
+    background: var(--accent-blue, #1976d2);
+    color: #ffffff;
+    border-color: var(--accent-blue, #1976d2);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(25, 118, 210, 0.25);
+}
+
+.quote-selection-btn:active {
+    transform: translateY(0);
+}
+
+.quote-selection-btn svg {
+    flex-shrink: 0;
+}
+
+body[data-theme="dark"] .quote-selection-popover {
+    filter: drop-shadow(0 4px 18px rgba(0, 0, 0, 0.5));
+}
+
+body[data-theme="dark"] .quote-selection-btn {
+    background: var(--bg-medium, #1e293b);
+    color: #f1f5f9;
+    border-color: rgba(255, 255, 255, 0.14);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+}
+
+body[data-theme="dark"] .quote-selection-btn:hover {
+    background: var(--accent-blue, #3b82f6);
+    color: #ffffff;
+    border-color: var(--accent-blue, #3b82f6);
+    box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35);
+}
+
+@keyframes quotePopIn {
+    from {
+        opacity: 0;
+        transform: translateY(-4px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
 }

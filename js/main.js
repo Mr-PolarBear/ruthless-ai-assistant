@@ -12,13 +12,15 @@ window.API_PRESETS = API_PRESETS;
 window.state = state;
 import { prepareRequest, handleStream, handleNonStreamResponse, fetchModels } from './api.js?v=temp';
 import {
-    renderChatMessages, formatMessagePipeline, renderFormattedContent, displayMessage, displayError, populateApiSelector, populatePersonaSelector
+    renderChatMessages, formatMessagePipeline, renderFormattedContent, displayMessage, displayError, populateApiSelector, populateModelSelector, populatePersonaSelector
 } from './renderer.js?v=temp';
+import { initModelSelectorEvents } from './model-selector-manager.js?v=temp';
 import { renderHistory } from './sidebar.js?v=temp';
 import { initBatchDelete } from './batch-delete.js?v=temp';
 import {
     toggleSendButton, updateBranchNavigator, scrollToBottom, adjustTextareaHeight,
-    updateWorldBookButton, updateSendButtonState, updateAllDynamicUI, showLoadingOverlay, hideLoadingOverlay
+    updateWorldBookButton, updateSendButtonState, updateAllDynamicUI, showLoadingOverlay, hideLoadingOverlay,
+    updateSessionTokenBadge
 } from './ui-updater.js?v=temp';
 import {
     addOrUpdateMessageFooter, updateMessageActions, updateSingleMessageCollapseState
@@ -31,6 +33,9 @@ import { setupEventListeners } from './events.js?v=temp';
 import { shouldBlockConversationSwitch } from './chat-events.js?v=temp';
 import { saveConversation, openDB, getIndexedDBUsage, clearAllAvatars } from './db.js?v=temp';
 import { initDatabaseSettings } from './db-settings.js?v=temp';
+import { draftManager } from './services/draft-manager.js?v=temp';
+import { scrollPillManager } from './services/scroll-pill-manager.js?v=temp';
+import { viewportManager } from './services/viewport-manager.js?v=temp';
 // 乌鸦：导入代码预览管理器，用于新建会话时关闭侧边栏
 import { codePreviewManager } from './code-preview-manager.js?v=temp';
 // 乌鸦：导入工具箱管理器
@@ -41,11 +46,13 @@ import { initializeQuickPrompts } from './quick-prompts.js?v=temp';
 import { regexPatterns } from './regex.js?v=temp';
 import { setupUserAvatarUI } from './modals.js?v=temp';
 import { MCPToolsRegistry, DEFAULT_TOOLS } from './mcp-tools-registry.js?v=temp';
-import { initMCPToolsSelector } from './mcp-tools-selector.js?v=temp';
+import { initMCPToolsSelector, syncMcpToolsForConversation } from './mcp-tools-selector.js?v=temp';
+import { initMcpErrorModal } from './modals/mcp-error-modal.js?v=temp';
 import { initMCPManagement } from './mcp-management.js?v=temp';
 import { initStoragePersistence, updateStoragePersistenceUI } from './services/storage-persistence.js?v=temp';
 import { initBackupReminder } from './services/backup-reminder.js?v=temp';
 import { initVersionChecker } from './services/version-checker.js?v=temp';
+import { checkAndShowChangelogOnStartup } from './services/changelog-manager.js?v=temp';
 import { applyBubbleCustomStyles } from './settings/bubble-settings.js?v=temp';
 import { scrollManager } from './scroll-manager.js?v=temp';
 import { mcpSessionManager } from './mcp-session-manager.js?v=temp';
@@ -180,12 +187,17 @@ export async function handleSendMessage(options = {}) {
         dom.messageInput.value = '';
         adjustTextareaHeight();
         clearAttachment();
+        draftManager.clearDraft(currentConv.id);
         renderChatMessages();
     }
 
     // 乌鸦：修复多会话停止按钮 - 按会话 ID 管理 AbortController
     state.abortControllers[currentConv.id] = new AbortController();
     toggleSendButton(true);
+
+    // 乌鸦：固化记录本次请求所用的具体模型，确保日后切换模型时历史消息不被篡改
+    const activeEndpoint = currentConv.apiEndpointId ? (state.apiEndpoints[currentConv.apiEndpointId] || window.API_PRESETS?.[currentConv.apiEndpointId]) : null;
+    const currentModelName = (currentConv && currentConv.model) || (activeEndpoint && activeEndpoint.model) || '';
 
     const aiMessage = {
         id: `msg_${Date.now()}`,
@@ -199,7 +211,8 @@ export async function handleSendMessage(options = {}) {
             duration: null,
             tokensPerSecond: null
         },
-        apiEndpointId: currentConv.apiEndpointId
+        apiEndpointId: currentConv.apiEndpointId,
+        model: currentModelName
     };
     addMessageToActiveBranch(aiMessage);
 
@@ -345,9 +358,11 @@ export async function createNewConversation() {
         title: "", // 初始为空，便于自动设置为用户消息前10字
         lastModified: new Date().toISOString(),
         apiEndpointId: dom.apiSelector.value,
+        model: (dom.modelSelector && dom.modelSelector.value && !dom.modelSelector.value.startsWith('__')) ? dom.modelSelector.value : '',
         branches: [[]],
         activeBranchIndex: 0,
         personaId: null,
+        selectedMcpTools: [], // 乌鸦：新建会话默认不勾选任何MCP工具，严格会话隔离
         pinned: false // 乌鸦：新增置顶属性
     };
 
@@ -416,10 +431,19 @@ export function switchToConversation(convId) {
             showLoadingOverlay(); // 使用通用加载覆盖层
         }
 
+        // 乌鸦：切换会话前，即时保存当前会话的未发送输入草稿，防止内容丢失
+        draftManager.saveCurrentInput();
+
         setTimeout(async () => {
             const oldConversationId = state.currentConversationId; // 乌鸦：保存旧会话 ID
             state.currentConversationId = convId;
             const conv = state.conversations[convId];
+
+            // 乌鸦：恢复目标会话的输入草稿，自适应高度并联动按钮状态
+            draftManager.restoreDraftToInput(convId);
+
+            // 乌鸦：严格按会话隔离恢复目标会话专属勾选的 MCP 工具
+            syncMcpToolsForConversation(convId);
 
             // 乌鸦：修复问题2 - 通知MCP会话管理器会话切换
             if (typeof window.mcpSessionManager !== 'undefined' && window.mcpSessionManager) {
@@ -452,6 +476,8 @@ export function switchToConversation(convId) {
 
             if (conv) {
                 dom.apiSelector.value = conv.apiEndpointId;
+                // 乌鸦：切换会话时，联动刷新模型选择器并恢复该会话保存的模型
+                populateModelSelector(conv.apiEndpointId, conv.model);
                 dom.personaSelector.value = conv.personaId || 'default';
                 dom.personaSelector.disabled = false;
                 // 切换会话时同步数据库按钮状态
@@ -621,9 +647,11 @@ export async function initialize() {
 
     initDom();
 
-    // 初始化智能悬浮按钮与楼层快速跳转
+    // 初始化智能悬浮按钮、楼层跳转、回底感知胶囊与移动端视口自适应
     initFloatingCollapseButton();
     initFloorJump();
+    scrollPillManager.init();
+    viewportManager.init();
 
     // 将必要的函数挂载到window对象，供其他模块调用
     window.saveToLocalStorage = saveToLocalStorage;
@@ -646,25 +674,26 @@ export async function initialize() {
     function handleApiSelectorChange() {
         const apiId = dom.apiSelector.value;
         const api = state.apiEndpoints[apiId] || API_PRESETS[apiId];
+        const currentConv = state.conversations[state.currentConversationId];
 
-        // 1. 更新数据库按钮可见性 (保留原功能)
-        // 乌鸦：数据库按钮现已改为常驻
-        /*
-        if (api && api.type === 'sse') {
-            dom.chooseDbBtn.style.display = '';
-            if (dom.chooseTableBtn) dom.chooseTableBtn.style.display = '';
-        } else {
-            dom.chooseDbBtn.style.display = 'none';
-            if (dom.chooseTableBtn) dom.chooseTableBtn.style.display = 'none';
+        if (currentConv && currentConv.apiEndpointId !== apiId) {
+            currentConv.apiEndpointId = apiId;
         }
-        */
 
-        // 2. 更新当前会话的API端点 (核心修复)
-        if (state.currentConversationId && state.conversations[state.currentConversationId]) {
-            const currentConv = state.conversations[state.currentConversationId];
-            if (currentConv.apiEndpointId !== apiId) {
-                currentConv.apiEndpointId = apiId;
-                console.log(`乌鸦：当前会话 ${state.currentConversationId} 的API端点已切换为 ${apiId}`);
+        // 乌鸦：API 切换时联动重新填充模型选择器
+        populateModelSelector(apiId);
+
+        // 2. 更新当前会话的API端点与模型 (核心修复)
+        if (currentConv) {
+            let changed = false;
+            currentConv.apiModels = currentConv.apiModels || {};
+            if (dom.modelSelector && dom.modelSelector.value && !dom.modelSelector.value.startsWith('__')) {
+                currentConv.model = dom.modelSelector.value;
+                currentConv.apiModels[apiId] = dom.modelSelector.value;
+                changed = true;
+            }
+            if (changed) {
+                console.log(`乌鸦：当前会话 ${state.currentConversationId} 的API端点已切换为 ${apiId}，模型为 ${currentConv.model}`);
 
                 // 重新渲染侧边栏历史记录，以更新API徽章
                 renderHistory();
@@ -679,10 +708,10 @@ export async function initialize() {
         dom.apiSelector.addEventListener('change', handleApiSelectorChange);
     }
 
-    // 选择数据库弹窗逻辑
+    // 选择数据库与表合并弹窗逻辑
     // — 为什么这么写 —
-    // 配合系统启动时不加载最后一个会话的策略，如果用户在欢迎页点击选择数据库，
-    // 在用户确认选中后自动新建会话承接该 dbId，防止因无活跃会话导致数据库选择丢失。
+    // 1. 将原有的“选库”和“选表”两个独立按钮合并为单入口：先选数据库，确认选库后自动无缝呼出选表弹窗，精简输入区空间；
+    // 2. 配合系统启动时不加载最后一个会话的策略，如果用户在欢迎页点击选择数据库，在用户确认选中后自动新建会话承接。
     if (dom.chooseDbBtn) {
         dom.chooseDbBtn.onclick = async function () {
             const currentConv = state.conversations[state.currentConversationId];
@@ -695,9 +724,22 @@ export async function initialize() {
                 }
                 if (targetConv) {
                     targetConv.dbId = selectedDbId;
+                    if (!selectedDbId) {
+                        targetConv.dbSelections = {};
+                    }
                     await saveConversation(targetConv.id, targetConv);
                     await saveToLocalStorage();
                     updateAllDynamicUI();
+
+                    // 选完库后且库有效，自动顺畅拉起选表弹窗
+                    if (selectedDbId) {
+                        try {
+                            const { showTableChooseModal } = await import('./db-table-choose.js?v=temp');
+                            showTableChooseModal();
+                        } catch (err) {
+                            console.error('打开选表弹窗失败:', err);
+                        }
+                    }
                 }
             });
         };
@@ -726,6 +768,7 @@ export async function initialize() {
         try {
             // 初始化MCP工具选择器
             initMCPToolsSelector();
+            initMcpErrorModal();
             console.log('乌鸦：MCP工具选择器初始化完成，自定义工具数量:', Object.keys(state.mcpCustomTools || {}).length);
 
             // 乌鸦：初始化MCP会话管理器并设置全局引用
@@ -758,6 +801,7 @@ export async function initialize() {
     }
 
     setupEventListeners();
+    initModelSelectorEvents();
 
     // 乌鸦：初始化工具箱
     toolsManager.init();
@@ -887,6 +931,11 @@ export async function initialize() {
     // 初始化版本检测与防缓存在线无损更新机制
     initVersionChecker();
 
+    // — 为什么这么写 —
+    // 首次进入新版本或发版后首次加载时，主动展示版本更新日志弹窗；
+    // 延时 400ms 避开首屏繁忙渲染，并记录当前版本号至 localStorage，当前版本后续不再弹出。
+    checkAndShowChangelogOnStartup(400);
+
     // 乌鸦：新增页面卸载前的清理工作，用于释放头像缓存占用的内存
     window.addEventListener('beforeunload', () => {
         if (state.avatarUrlCache && state.avatarUrlCache.size > 0) {
@@ -918,6 +967,11 @@ export function setHideSummaryForConversation(convId, data) {
         ...data
     };
     saveToLocalStorage();
+
+    // 乌鸦：若更新的是当前活动会话，顺手触发 Token 徽章刷新，保证全局数据状态一致
+    if (convId === state.currentConversationId) {
+        updateSessionTokenBadge();
+    }
 }
 
 /**
@@ -972,12 +1026,25 @@ export async function handleFetchModels(apiUrl = null, apiKey = null, modelInput
         if (models.length === 0) {
             modelListContainer.textContent = '未找到可用模型。';
         } else {
+            // 乌鸦：拉取到模型列表后，自动沉淀到当前正在编辑的端点配置中
+            const editingId = dom.apiEditIdInput?.value;
+            if (editingId && state.apiEndpoints[editingId]) {
+                state.apiEndpoints[editingId].models = models;
+                saveToLocalStorage();
+            }
+
             models.forEach(modelId => {
                 const modelItem = document.createElement('div');
                 modelItem.className = 'model-list-item';
                 modelItem.textContent = modelId;
                 modelItem.addEventListener('click', () => {
                     targetModelInput.value = modelId;
+                    if (editingId && state.apiEndpoints[editingId]) {
+                        state.apiEndpoints[editingId].model = modelId;
+                        state.apiEndpoints[editingId].models = models;
+                        saveToLocalStorage();
+                        populateModelSelector(editingId, modelId);
+                    }
                     // 乌鸦：关闭弹窗 - 需要移除visible类和设置display为none
                     dom.modelListModal.classList.remove('visible');
                     dom.modelListModal.style.display = 'none';

@@ -13,6 +13,7 @@ export function initDom() {
     dom.sidebar = document.querySelector('.sidebar');
     dom.sidebarToggleBtn = document.getElementById('sidebar-toggle-btn');
     dom.apiSelector = document.getElementById('api-selector');
+    dom.modelSelector = document.getElementById('model-selector');
     dom.historyList = document.getElementById('history-list');
     dom.historyGroupedList = document.getElementById('history-grouped-list'); // 乌鸦：时间分组列表
     dom.chatMessages = document.getElementById('chat-messages');
@@ -192,6 +193,8 @@ export function initDom() {
     dom.streamModeToggle = document.getElementById('stream-mode-toggle'); // 乌鸦：流式模式开关
 
     // Regex elements
+    dom.addNewRegexBtn = document.getElementById('add-new-regex-btn');
+    dom.regexFormNewBtn = document.getElementById('regex-form-new-btn');
     dom.regexRuleList = document.getElementById('regex-rule-list');
     dom.regexFormTitle = document.getElementById('regex-form-title');
     dom.regexIdInput = document.getElementById('regex-id-input');
@@ -240,8 +243,14 @@ export function initDom() {
     dom.worldBookNameInput = document.getElementById('worldbook-name-input');
     dom.worldBookContentInput = document.getElementById('worldbook-content-input');
     dom.worldBookCharCounter = document.getElementById('worldbook-char-counter');
+    dom.worldBookDepthGroup = document.getElementById('worldbook-depth-group');
+    dom.worldBookAppendAllGroup = document.getElementById('worldbook-append-all-group');
+    dom.worldBookAppendAllToggle = document.getElementById('worldbook-append-all-toggle');
     dom.worldBookDepthInput = document.getElementById('worldbook-depth-input');
     dom.worldBookRoleSelector = document.getElementById('worldbook-role-selector');
+    dom.worldBookPositionSelector = document.getElementById('worldbook-position-selector');
+    dom.worldBookDepthLabelText = document.getElementById('worldbook-depth-label-text');
+    dom.worldBookMacroBar = document.getElementById('worldbook-macro-bar');
     dom.worldBookEnabledToggle = document.getElementById('worldbook-enabled-toggle');
     dom.worldBookSessionToggleInput = document.getElementById('worldbook-session-toggle-input');
     dom.worldBookSessionToggleContainer = document.getElementById('worldbook-session-toggle-container');
@@ -322,6 +331,7 @@ export function initDom() {
     dom.hideSummaryResult = document.getElementById('hide-summary-result');
     dom.hideSummaryHistoryBtn = document.getElementById('hide-summary-history-btn');
     dom.hideSummaryHistoryCount = document.getElementById('hide-summary-history-count');
+    dom.summaryMemoryTotalBadge = document.getElementById('summary-memory-total-badge');
     dom.hideSummarySaveBtn = document.getElementById('hide-summary-save-btn');
     dom.hideSummaryClearBtn = document.getElementById('hide-summary-clear-btn');
     dom.hideSummaryPromptCharCounter = document.getElementById('hide-summary-prompt-char-counter');
@@ -449,6 +459,8 @@ export function initDom() {
     dom.simCopyJsonBtn = document.getElementById('sim-copy-json-btn');
     dom.actualSentTokens = document.getElementById('actual-sent-tokens');
     dom.actualSentCharacters = document.getElementById('actual-sent-characters');
+    dom.actualSentMainTokens = document.getElementById('actual-sent-main-tokens');
+    dom.actualSentSystemTokens = document.getElementById('actual-sent-system-tokens');
     dom.totalEstimatedTokens = document.getElementById('total-estimated-tokens');
     dom.totalCharacters = document.getElementById('total-characters');
     dom.mainTokens = document.getElementById('main-tokens');
@@ -493,6 +505,7 @@ export function initDom() {
     dom.mcpToolsBtn = document.getElementById('mcp-tools-btn');
     dom.mcpToolsMenu = document.getElementById('mcp-tools-menu');
     dom.mcpSelectedCount = document.getElementById('mcp-selected-count');
+    dom.mcpErrorModal = document.getElementById('mcp-error-modal');
 
     // 乌鸦：更新日志弹窗
     dom.changelogBtn = document.getElementById('changelog-btn');

@@ -88,7 +88,8 @@ export function normalizeHideSummaryConfig(config = {}) {
         hiddenFloors: Array.isArray(config.hiddenFloors) ? config.hiddenFloors : [],
         start: Number(config.start) || 1,
         end: Number(config.end) || 1,
-        history: Array.isArray(config.history) ? config.history : []
+        history: Array.isArray(config.history) ? config.history : [],
+        lastAutoSummaryFloor: Number(config.lastAutoSummaryFloor) || 0
     };
 }
 
@@ -677,7 +678,8 @@ export async function applySummaryResult(convId, summaryText, summarizedMessages
         enabled: true,
         hiddenFloors,
         start: hiddenFloors.length > 0 ? Math.min(...hiddenFloors) : 1,
-        end: hiddenFloors.length > 0 ? Math.max(...hiddenFloors) : 1
+        end: hiddenFloors.length > 0 ? Math.max(...hiddenFloors) : 1,
+        lastAutoSummaryFloor: activeBranch ? activeBranch.length : 0 // 记录当前总结保存时的最新分支总楼层
     };
 
     if (mode === 'recursive') {
@@ -775,7 +777,39 @@ export async function checkAndTriggerAutoSummary(convId, branchIndex) {
     let shouldTrigger = false;
 
     if (autoType === 'floors') {
-        if (visibleItems.length >= floorInterval) {
+        // — 为什么这么写 —
+        // 1. “每隔 N 楼自动总结一次”的本质是新增楼层的步进增量（Interval），而非简单的可见消息池当前容量；
+        // 2. 若用户开启了“保留最后 K 楼不隐藏”，每次归档后池中已有 K 楼残留；如果只按 visibleItems.length >= interval 计算，
+        //    会导致后续只需再聊 (N - K) 楼就再次触发，造成 32 楼内反复触发 3 次（如 16-8=8 楼就触发一次），严重偏离预期；
+        // 3. 同时，若用户未开启“自动隐藏楼层”，按池容量计算会导致达到 N 楼后每一楼都持续触发死循环；
+        // 4. 因此，基于当前分支的总长度与上次总结完成时的基准楼层计算步进增量：
+        //    deltaFloors = currentTotalFloors - lastFloor >= floorInterval；
+        // 5. 健壮性防呆与分支回退校准：
+        //    a. 若当前总楼层小于记录的上次楼层（用户从此重发、回滚截断或切换到了较短的分支），
+        //       自动将基准校准为当前分支的最大已隐藏楼层（无隐藏则为0），防止步进增量变为负数长久不触发；
+        //    b. 若会话升级或首次使用尚未记录 lastAutoSummaryFloor，但已有历史总结快照，
+        //       优先读取最新快照的发生楼层作为基准，平滑平移老会话；
+        //    c. 兜底必须存在可见未隐藏消息（visibleItems.length > 0）。
+        const currentTotalFloors = activeBranch.length;
+        let lastFloor = Number(hideConfig.lastAutoSummaryFloor) || 0;
+
+        if (currentTotalFloors < lastFloor) {
+            const hiddenMax = (Array.isArray(hideConfig.hiddenFloors) && hideConfig.hiddenFloors.length > 0)
+                ? Math.max(...hideConfig.hiddenFloors)
+                : 0;
+            lastFloor = Math.min(hiddenMax, currentTotalFloors);
+        }
+
+        if (!hideConfig.lastAutoSummaryFloor && hideConfig.history && hideConfig.history.length > 0) {
+            const latestSnap = hideConfig.history[0];
+            const snapFloor = latestSnap?.maxFloor || (latestSnap?.hiddenFloors?.length ? Math.max(...latestSnap.hiddenFloors) : 0);
+            if (snapFloor > 0 && snapFloor <= currentTotalFloors) {
+                lastFloor = snapFloor;
+            }
+        }
+
+        const deltaFloors = currentTotalFloors - lastFloor;
+        if (deltaFloors >= floorInterval && visibleItems.length > 0) {
             shouldTrigger = true;
         }
     } else if (autoType === 'tokens') {

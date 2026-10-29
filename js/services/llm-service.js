@@ -19,6 +19,7 @@ import { renderToolCallResult } from '../mcp-renderer.js?v=temp';
 import { regexPatterns as regex } from '../regex.js?v=temp';
 import { notify, updateScrollButtonsVisibility, updateAllDynamicUI } from '../ui-updater.js?v=temp';
 import { checkAndTriggerAutoSummary } from '../summary-manager.js?v=temp';
+import { scrollPillManager } from './scroll-pill-manager.js?v=temp';
 
 /**
  * 乌鸦：创建调试响应日志
@@ -98,6 +99,7 @@ export async function handleNonStreamResponse(response, aiMessageId, convId, bra
     }
     const element = bubble.querySelector('.message-content');
     element.classList.add('typing-cursor');
+    scrollPillManager.notifyGenerationStarted();
 
     const conv = state.conversations[convId];
     if (!conv) return { finalContent: '', reasoningContent: '' };
@@ -245,6 +247,7 @@ export async function handleNonStreamResponse(response, aiMessageId, convId, bra
         }
 
         updateScrollButtonsVisibility();
+        scrollPillManager.notifyGenerationEnded();
         const conv = state.conversations[convId];
         if (conv) await saveConversation(convId, conv);
 
@@ -556,11 +559,17 @@ async function _executeToolsForRound(toolCalls, messageElement, convId, branchIn
         const globalIdx = baseIndex + i;
 
         if (result.status === 'fulfilled' && result.value) {
-            activeBranch[msgIndex].toolCalls[globalIdx] = result.value;
+            activeBranch[msgIndex].toolCalls[globalIdx] = {
+                ...result.value,
+                toolId: result.value.toolId || toolCall.tool,
+                parameters: result.value.parameters || toolCall.parameters
+            };
         } else {
             activeBranch[msgIndex].toolCalls[globalIdx] = {
                 success: false,
                 tool: toolCall.tool,
+                toolId: toolCall.tool,
+                parameters: toolCall.parameters,
                 error: result.reason?.message || '未知错误',
                 timestamp: Date.now()
             };
@@ -638,6 +647,7 @@ function _formatToolResults(toolCallsData, count) {
 export async function handleStream(response, aiMessageId, convId, branchIndex, msgIndex, options = {}) {
     state.streamingConversationId = convId;
     updateAllDynamicUI();
+    scrollPillManager.notifyGenerationStarted();
     const { isFollowUp = false, initialContent = '' } = options;
 
     let initialBubble = dom.chatMessages.querySelector(`.message-bubble[data-id="${aiMessageId}"]`);
@@ -925,6 +935,7 @@ export async function handleStream(response, aiMessageId, convId, branchIndex, m
         }
 
         updateScrollButtonsVisibility();
+        scrollPillManager.notifyGenerationEnded();
 
         if (!isFollowUp) {
             const conv = state.conversations[convId];

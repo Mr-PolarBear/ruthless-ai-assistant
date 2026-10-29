@@ -7,6 +7,7 @@ import { state } from './state.js?v=temp';
 import { dom } from './dom.js?v=temp';
 import { DEFAULT_TOOLS } from './mcp-tools-registry.js?v=temp';
 import { saveToLocalStorage } from './utils.js?v=temp';
+import { saveConversation } from './db.js?v=temp';
 
 /**
  * 乌鸦：初始化MCP工具选择器
@@ -17,30 +18,8 @@ export function initMCPToolsSelector() {
         return;
     }
 
-    // 乌鸦：强制重置 selectedTools 为空数组，解决数字显示错误问题
-    if (!state.mcpSettings.selectedTools || !Array.isArray(state.mcpSettings.selectedTools)) {
-        state.mcpSettings.selectedTools = [];
-    }
-
-    // 乌鸦：检查并清理无效的工具ID
-    if (state.mcpSettings.selectedTools.length > 0) {
-        const allTools = {
-            ...DEFAULT_TOOLS,
-            ...(state.mcpCustomTools || {})
-        };
-
-        // 乌鸦：过滤掉不存在或已禁用的工具
-        const validTools = state.mcpSettings.selectedTools.filter(toolId => {
-            const tool = allTools[toolId];
-            return tool && tool.enabled !== false;
-        });
-
-        if (validTools.length !== state.mcpSettings.selectedTools.length) {
-            console.log(`乌鸦：清理无效工具，从 ${state.mcpSettings.selectedTools.length} 个减少到 ${validTools.length} 个`);
-            state.mcpSettings.selectedTools = validTools;
-            saveToLocalStorage();
-        }
-    }
+    // 乌鸦：从当前会话同步专属 MCP 工具勾选状态
+    syncMcpToolsForConversation(state.currentConversationId);
 
     console.log('乌鸦：MCP工具选择器初始化，当前选中工具数量:', state.mcpSettings.selectedTools.length);
 
@@ -115,7 +94,7 @@ function hideMCPToolsMenu() {
 /**
  * 乌鸦：渲染MCP工具菜单
  */
-function renderMCPToolsMenu() {
+export function renderMCPToolsMenu() {
     // 乌鸦：获取所有工具（内置 + 自定义）
     const allTools = {
         ...(DEFAULT_TOOLS || {}),
@@ -229,6 +208,15 @@ function handleToolItemClick(e) {
     // 乌鸦：根据选择的工具数量自动调整并发控制设置
     updateMCPConcurrencySettings();
 
+    // 乌鸦：同步持久化到当前会话中（实现会话间隔离）
+    if (state.currentConversationId && state.conversations[state.currentConversationId]) {
+        const currentConv = state.conversations[state.currentConversationId];
+        currentConv.selectedMcpTools = [...state.mcpSettings.selectedTools];
+        saveConversation(state.currentConversationId, currentConv).catch(err => {
+            console.error('保存会话MCP工具选择失败:', err);
+        });
+    }
+
     console.log('MCP工具选择更新:', state.mcpSettings.selectedTools);
 }
 
@@ -277,7 +265,7 @@ function updateMCPConcurrencySettings() {
 /**
  * 乌鸦：更新选择数量徽章
  */
-function updateSelectedBadge() {
+export function updateSelectedBadge() {
     const selectedCount = (state.mcpSettings.selectedTools || []).length;
     const badge = document.getElementById('mcp-selected-count');
 
@@ -397,9 +385,52 @@ function clearMCPToolSelection() {
     // 乌鸦：重新渲染菜单
     renderMCPToolsMenu();
 
+    // 乌鸦：同步清空当前会话中的 selectedMcpTools
+    if (state.currentConversationId && state.conversations[state.currentConversationId]) {
+        const currentConv = state.conversations[state.currentConversationId];
+        currentConv.selectedMcpTools = [];
+        saveConversation(state.currentConversationId, currentConv).catch(err => {
+            console.error('清空会话MCP工具选择失败:', err);
+        });
+    }
+
     console.log('乌鸦：已清空MCP工具选择');
 }
 
 // 乌鸦：将管理函数暴露到全局作用域
 window.openMCPManagement = openMCPManagement;
 window.clearMCPToolSelection = clearMCPToolSelection;
+
+/**
+ * 乌鸦：同步指定会话的 MCP 工具勾选状态到内存与 UI
+ * @param {string|null} convId - 会话ID
+ */
+export function syncMcpToolsForConversation(convId) {
+    // — 为什么这么写 —
+    // 1. 严格实现会话隔离：每个对话拥有自己独立的 selectedMcpTools
+    // 2. 新建会话或历史旧会话如果没有配置，默认一律为空数组 []，绝不跨会话污染
+    const conv = convId ? state.conversations[convId] : null;
+    const tools = (conv && Array.isArray(conv.selectedMcpTools)) ? [...conv.selectedMcpTools] : [];
+
+    // 过滤掉当前环境中已经不存在或被禁用的工具
+    const allTools = {
+        ...(DEFAULT_TOOLS || {}),
+        ...(state.mcpCustomTools || {})
+    };
+    if (!state.mcpSettings) {
+        state.mcpSettings = {};
+    }
+    state.mcpSettings.selectedTools = tools.filter(id => {
+        const t = allTools[id];
+        return t && t.enabled !== false;
+    });
+
+    // 联动调整并发控制配置
+    updateMCPConcurrencySettings();
+
+    // 联动刷新下拉菜单 DOM 与底栏数字徽章
+    renderMCPToolsMenu();
+    updateSelectedBadge();
+}
+
+window.syncMcpToolsForConversation = syncMcpToolsForConversation;

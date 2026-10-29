@@ -1,4 +1,50 @@
-/**
+
+// 全局单例问号悬浮提示浮层管理器
+let globalWbTooltipEl = null;
+
+function showWbTooltip(targetEl) {
+    const text = targetEl.dataset.tooltip || targetEl.title;
+    if (!text) return;
+
+    if (!globalWbTooltipEl) {
+        globalWbTooltipEl = document.createElement('div');
+        globalWbTooltipEl.className = 'global-wb-floating-tooltip';
+        document.body.appendChild(globalWbTooltipEl);
+    }
+
+    globalWbTooltipEl.textContent = text;
+    globalWbTooltipEl.style.display = 'block';
+
+    const rect = targetEl.getBoundingClientRect();
+    const tooltipRect = globalWbTooltipEl.getBoundingClientRect();
+
+    let top = rect.top - tooltipRect.height - 8;
+    let left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
+
+    // 屏幕顶部边界检测：若顶部放不下，翻转到下方
+    if (top < 10) {
+        top = rect.bottom + 8;
+    }
+
+    // 屏幕左右边界检测
+    if (left < 10) left = 10;
+    if (left + tooltipRect.width > window.innerWidth - 10) {
+        left = window.innerWidth - tooltipRect.width - 10;
+    }
+
+    globalWbTooltipEl.style.top = `${top}px`;
+    globalWbTooltipEl.style.left = `${left}px`;
+    globalWbTooltipEl.classList.add('visible');
+}
+
+function hideWbTooltip() {
+    if (globalWbTooltipEl) {
+        globalWbTooltipEl.classList.remove('visible');
+        globalWbTooltipEl.style.display = 'none';
+    }
+}
+
+﻿/**
  * @file worldbook-settings.js
  * @description Handles World Book (Memo) settings events.
  */
@@ -8,14 +54,62 @@ import { state } from '../state.js?v=temp';
 import { saveToLocalStorage, saveAppSettings, escapeHtml } from '../utils.js?v=temp';
 import { 
     renderWorldBookList, resetWorldBookForm, updateCharCounter,
-    openWorldBookModal, renderWorldBookTagsPanel, filterWorldBookByTags,
-    updateFormSessionToggleState, setWorldBookMobileView, toggleWorldBookContentExpand
+    openWorldBookModal, renderWorldBookTagsPanel, filterWorldBookByTags, sortWorldBookEntries,
+    updateFormSessionToggleState, getSafeActiveConversationId, setWorldBookMobileView, toggleWorldBookContentExpand
 } from '../modals.js?v=temp';
-import { updateAllDynamicUI, updateWorldBookButton } from '../ui-updater.js?v=temp';
+import { updateAllDynamicUI, updateWorldBookButton, notify } from '../ui-updater.js?v=temp';
 import { DraggableList } from '../draggable-list.js?v=temp';
+import { createNewConversation } from '../main.js?v=temp';
 
 let lastWorldBookCopyTime = 0;
 let worldBookDragInstance = null;
+
+/**
+ * 联动更新注入位置与深度、角色、每条合并开关的表单交互状态
+ * @param {string} position 
+ * @param {boolean} appendAllUser - 是否每条用户发言都合并（仅在 append_to_user 时生效）
+ */
+export function updatePositionFormLinkage(position = 'top', appendAllUser = false) {
+    if (!dom.worldBookPositionSelector) return;
+    dom.worldBookPositionSelector.value = position;
+
+    if (position === 'append_to_user') {
+        // 隐藏深度组，显示每条合并切换开关
+        if (dom.worldBookDepthGroup) dom.worldBookDepthGroup.style.display = 'none';
+        if (dom.worldBookAppendAllGroup) dom.worldBookAppendAllGroup.style.display = 'flex';
+        if (dom.worldBookAppendAllToggle) dom.worldBookAppendAllToggle.checked = Boolean(appendAllUser);
+
+        if (dom.worldBookDepthInput) {
+            dom.worldBookDepthInput.disabled = true;
+            dom.worldBookDepthInput.value = 0;
+        }
+        if (dom.worldBookRoleSelector) {
+            dom.worldBookRoleSelector.disabled = true;
+            dom.worldBookRoleSelector.value = 'user';
+        }
+    } else {
+        // 显示深度组，隐藏每条合并切换开关
+        if (dom.worldBookDepthGroup) dom.worldBookDepthGroup.style.display = '';
+        if (dom.worldBookAppendAllGroup) dom.worldBookAppendAllGroup.style.display = 'none';
+
+        if (dom.worldBookDepthInput) {
+            dom.worldBookDepthInput.disabled = false;
+        }
+        if (dom.worldBookRoleSelector) {
+            dom.worldBookRoleSelector.disabled = false;
+        }
+
+        if (position === 'chat_end') {
+            if (dom.worldBookDepthLabelText) {
+                dom.worldBookDepthLabelText.textContent = '倒数深度';
+            }
+        } else {
+            if (dom.worldBookDepthLabelText) {
+                dom.worldBookDepthLabelText.textContent = '挂载深度';
+            }
+        }
+    }
+}
 
 // 初始化或重新初始化拖拽实例
 function initWorldBookDragInstance(enabled = true) {
@@ -29,20 +123,68 @@ function initWorldBookDragInstance(enabled = true) {
     worldBookDragInstance = new DraggableList(dom.worldBookList, {
         itemSelector: '.worldbook-item',
         onDrop: (fromIndex, toIndex) => {
-            const entries = Object.values(state.worldBook).sort((a, b) => a.depth - b.depth);
-            
-            if (fromIndex < entries.length && toIndex < entries.length) {
-                const [movedEntry] = entries.splice(fromIndex, 1);
-                entries.splice(toIndex, 0, movedEntry);
-                
-                entries.forEach((entry, index) => {
-                    entry.depth = (index + 1) * 10;
+            if (fromIndex === toIndex) return;
+
+            // 1. 获取当前可见 DOM 列表中的卡片 ID
+            const currentItemEls = Array.from(dom.worldBookList.querySelectorAll('.worldbook-item'));
+            const currentVisibleIds = currentItemEls.map(el => el.dataset.id).filter(Boolean);
+            if (currentVisibleIds.length === 0) return;
+
+            // 2. 获取全局所有条目按 order 升序排序的数组
+            const allEntries = sortWorldBookEntries(Object.values(state.worldBook));
+
+            // 如果当前在全部标签且无筛选，直接按 DOM 顺序重新赋予全局 order
+            const isFullList = currentVisibleIds.length === allEntries.length;
+
+            if (isFullList) {
+                currentVisibleIds.forEach((id, index) => {
+                    if (state.worldBook[id]) {
+                        state.worldBook[id].order = (index + 1) * 10;
+                    }
                 });
-                
-                saveToLocalStorage();
-                renderWorldBookList(); 
-                renderWorldBookTagsPanel(); 
-                updateWorldBookButton(); 
+            } else {
+                // 在标签筛选状态下拖拽：
+                // 被移动的项是 currentVisibleIds[toIndex]（因为 DOM 已在 drop 前就位）
+                const movedId = currentVisibleIds[toIndex];
+                if (!movedId) return;
+
+                const movedIdx = allEntries.findIndex(e => e.id === movedId);
+                if (movedIdx === -1) return;
+                const [movedEntry] = allEntries.splice(movedIdx, 1);
+
+                if (toIndex === 0) {
+                    const nextVisibleId = currentVisibleIds[1];
+                    const nextGlobalIdx = allEntries.findIndex(e => e.id === nextVisibleId);
+                    if (nextGlobalIdx !== -1) {
+                        allEntries.splice(nextGlobalIdx, 0, movedEntry);
+                    } else {
+                        allEntries.unshift(movedEntry);
+                    }
+                } else {
+                    const prevVisibleId = currentVisibleIds[toIndex - 1];
+                    const prevGlobalIdx = allEntries.findIndex(e => e.id === prevVisibleId);
+                    if (prevGlobalIdx !== -1) {
+                        allEntries.splice(prevGlobalIdx + 1, 0, movedEntry);
+                    } else {
+                        allEntries.push(movedEntry);
+                    }
+                }
+
+                allEntries.forEach((entry, index) => {
+                    entry.order = (index + 1) * 10;
+                });
+            }
+
+            // 绝不篡改用户的 entry.depth！
+            saveToLocalStorage();
+            
+            // 保持当前标签筛选状态不变
+            filterWorldBookByTags();
+            updateWorldBookButton();
+
+            // 专属明确 Toast 提示
+            if (typeof notify !== 'undefined' && notify.success) {
+                notify.success('✅ 已更新备忘录顺序（同深度/同位置下优先按此顺序发送，不影响设定深度）');
             }
         }
     });
@@ -77,6 +219,64 @@ export function setupWorldBookEvents() {
         resetWorldBookForm();
         setWorldBookMobileView('list');
         toggleWorldBookContentExpand(false);
+    });
+    // 注入位置与表单联动
+    const posSelector = document.getElementById('worldbook-position-selector');
+    if (posSelector) {
+        posSelector.addEventListener('change', (e) => {
+            const curAppendAll = dom.worldBookAppendAllToggle ? dom.worldBookAppendAllToggle.checked : false;
+            updatePositionFormLinkage(e.target.value, curAppendAll);
+        });
+    }
+
+    // 动态宏变量快捷插入（事件委托到模态框或直接监听容器）
+    const macroBar = document.getElementById('worldbook-macro-bar');
+    if (macroBar) {
+        macroBar.addEventListener('click', (e) => {
+            const chip = e.target.closest('.wb-macro-chip');
+            if (!chip) return;
+            const macro = chip.dataset.macro;
+            const textarea = document.getElementById('worldbook-content-input');
+            if (!macro || !textarea) return;
+
+            const start = textarea.selectionStart || 0;
+            const end = textarea.selectionEnd || 0;
+            const currentVal = textarea.value;
+
+            textarea.value = currentVal.substring(0, start) + macro + currentVal.substring(end);
+            textarea.selectionStart = textarea.selectionEnd = start + macro.length;
+            textarea.focus();
+            updateCharCounter();
+        });
+    }
+
+    // 圆形问号说明点击 (尤其移动端友好弹出提示)
+    
+    // 圆形问号说明：鼠标悬停即现浮层
+    document.addEventListener('mouseover', (e) => {
+        const tooltipEl = e.target.closest('.wb-help-tooltip');
+        if (tooltipEl) {
+            showWbTooltip(tooltipEl);
+        }
+    });
+
+    document.addEventListener('mouseout', (e) => {
+        const tooltipEl = e.target.closest('.wb-help-tooltip');
+        if (tooltipEl) {
+            hideWbTooltip();
+        }
+    });
+
+    document.addEventListener('click', (e) => {
+        const tooltipEl = e.target.closest('.wb-help-tooltip');
+        if (tooltipEl) {
+            e.preventDefault();
+            e.stopPropagation();
+            const text = tooltipEl.dataset.tooltip || tooltipEl.title;
+            if (text && typeof notify !== 'undefined' && notify.info) {
+                notify.info(text, { duration: 6000 });
+            }
+        }
     });
     
     // 文本输入框全屏放大/缩小按钮
@@ -145,14 +345,52 @@ export function setupWorldBookEvents() {
     });
     
     // 表单内全局生效开关变更时，联动更新局部生效开关的禁用与选中状态
+    
+    // 监听局部生效开关容器点击
+    if (dom.worldBookSessionToggleContainer) {
+        dom.worldBookSessionToggleContainer.addEventListener('click', async (e) => {
+            const isGlobal = dom.worldBookEnabledToggle && dom.worldBookEnabledToggle.checked;
+            if (isGlobal) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (notify && notify.info) {
+                    notify.info('ℹ️ 当前已开启「全局生效」（已在所有会话生效）；若想仅限某个会话，请先关闭左侧的「全局」开关');
+                }
+                return;
+            }
+
+            let currentConvId = (typeof getSafeActiveConversationId === 'function') ? getSafeActiveConversationId() : state.currentConversationId;
+            // 意图驱动（Plan A）：若当前未选择任何会话（空白态/未发消息），点击局部生效时自动创建新会话！
+            if (!currentConvId) {
+                e.preventDefault();
+                e.stopPropagation();
+                try {
+                    const newConv = await createNewConversation();
+                    if (newConv && newConv.id) {
+                        currentConvId = newConv.id;
+                        updateFormSessionToggleState(false, true);
+                        if (notify && notify.success) {
+                            notify.success('✨ 已自动为您创建新会话，局部生效已开启！');
+                        }
+                    }
+                } catch (err) {
+                    console.error('自动创建新会话失败:', err);
+                }
+            }
+        });
+    }
+
     if (dom.worldBookEnabledToggle) {
         dom.worldBookEnabledToggle.addEventListener('change', () => {
             const isGlobal = dom.worldBookEnabledToggle.checked;
-            const currentConvId = state.currentConversationId;
+            const currentConvId = (typeof getSafeActiveConversationId === 'function') ? getSafeActiveConversationId() : state.currentConversationId;
             const editingId = dom.worldBookIdInput?.value;
             let wasSessionChecked = false;
             if (editingId && state.worldBook[editingId] && Array.isArray(state.worldBook[editingId].sessionIds)) {
                 wasSessionChecked = Boolean(currentConvId && state.worldBook[editingId].sessionIds.includes(currentConvId));
+            } else if (!editingId) {
+                // 新建条目关闭全局时，意图通常是针对当前会话生效，默认保持勾选
+                wasSessionChecked = true;
             }
             updateFormSessionToggleState(isGlobal, wasSessionChecked);
         });
@@ -427,16 +665,27 @@ function updateWorldBookTags() {
     });
 }
 
-function saveWorldBookEntry() {
+async function saveWorldBookEntry() {
     const id = dom.worldBookIdInput.value;
     const name = dom.worldBookNameInput.value.trim();
     const content = dom.worldBookContentInput.value.trim();
-    const depth = parseInt(dom.worldBookDepthInput.value, 10);
-    const role = dom.worldBookRoleSelector.value;
+    const position = dom.worldBookPositionSelector?.value || 'top';
+    const appendAllUser = (position === 'append_to_user') ? Boolean(dom.worldBookAppendAllToggle?.checked) : false;
+    let depth = parseInt(dom.worldBookDepthInput.value, 10);
+    let role = dom.worldBookRoleSelector.value;
     const enabled = dom.worldBookEnabledToggle.checked;
 
     if (!name || !content) return alert('名称和内容不能为空！');
-    if (isNaN(depth) || depth < 1 || depth > 100) return alert('挂载深度必须是1到100之间的数字！');
+
+    // 智能深度与角色校验
+    if (position === 'append_to_user') {
+        depth = 0;
+        role = 'user';
+    } else {
+        if (isNaN(depth) || depth < 0 || depth > 100) {
+            return alert('挂载深度必须是 0 到 100 之间的数字！');
+        }
+    }
 
     const tagsInput = dom.worldBookTagsInput?.value || '';
     const tags = tagsInput
@@ -447,7 +696,8 @@ function saveWorldBookEntry() {
     const entryId = id || `wb_${Date.now()}`;
     let sessionIds = [];
     let createdAt = Date.now();
-    
+    let order = Date.now();
+
     if (state.worldBook[entryId]) {
         if (Array.isArray(state.worldBook[entryId].sessionIds)) {
             sessionIds = [...state.worldBook[entryId].sessionIds];
@@ -455,43 +705,78 @@ function saveWorldBookEntry() {
         if (state.worldBook[entryId].createdAt) {
             createdAt = state.worldBook[entryId].createdAt;
         }
+        if (typeof state.worldBook[entryId].order === 'number') {
+            order = state.worldBook[entryId].order;
+        }
     }
-    
-    // — 为什么这么写 —
-    // 若未开启全局生效，根据表单中局部生效开关将当前会话 ID 加入或移出 sessionIds
-    const currentConvId = state.currentConversationId;
-    if (currentConvId && dom.worldBookSessionToggleInput) {
-        if (!enabled) {
-            const isSessionChecked = dom.worldBookSessionToggleInput.checked;
-            if (isSessionChecked) {
-                if (!sessionIds.includes(currentConvId)) {
-                    sessionIds.push(currentConvId);
+
+    // 会话局部关联处理
+    let currentConvId = (typeof getSafeActiveConversationId === 'function') ? getSafeActiveConversationId() : state.currentConversationId;
+    if (!enabled && dom.worldBookSessionToggleInput) {
+        const isSessionChecked = dom.worldBookSessionToggleInput.checked;
+        if (isSessionChecked) {
+            // 意图驱动（Plan A）：若关闭全局且想在当前新会话生效，但此时底层未生成会话，自动为大爷创建新会话！
+            if (!currentConvId) {
+                try {
+                    const newConv = await createNewConversation();
+                    if (newConv && newConv.id) {
+                        currentConvId = newConv.id;
+                    }
+                } catch (err) {
+                    console.error('保存条目时自动创建会话失败:', err);
                 }
-            } else {
+            }
+            if (currentConvId && !sessionIds.includes(currentConvId)) {
+                sessionIds.push(currentConvId);
+            }
+        } else {
+            if (currentConvId) {
                 sessionIds = sessionIds.filter(cid => cid !== currentConvId);
             }
         }
     }
-    
+
     state.worldBook[entryId] = { 
         id: entryId, 
         name, 
         content, 
         depth, 
         role, 
+        position,
+        appendAllUser,
+        order,
         enabled, 
         sessionIds,
         tags,
         createdAt
     };
-    
+
     saveToLocalStorage();
     renderWorldBookTagsPanel();
     filterWorldBookByTags();
-    resetWorldBookForm();
-    setWorldBookMobileView('list');
-    toggleWorldBookContentExpand(false);
+
+    // — 为什么这么写 —
+    // 依大爷要求：保存后不直接清空，而是停留在当前条目继续编辑状态
+    // 1. 将表单 id 设置为当前条目 ID，标题切换为编辑状态
+    // 2. 显示取消编辑按钮，方便用户随时切换新建
+    // 3. 弹出成功 Toast，保持流程连续性
+    dom.worldBookIdInput.value = entryId;
+    dom.worldBookFormTitle.textContent = '编辑条目';
+    if (dom.wbMobileFormTabText) dom.wbMobileFormTabText.textContent = '编辑条目';
+    if (dom.worldBookCancelBtn) dom.worldBookCancelBtn.style.display = 'inline-flex';
+
+    // 保存后，立即同步刷新表单内局部生效开关的最新状态与可用性，以及注入位置与每条合并联动
+    updateFormSessionToggleState(enabled, Boolean(currentConvId && sessionIds.includes(currentConvId)));
+    updatePositionFormLinkage(position, appendAllUser);
+
     updateWorldBookButton();
+
+    // 专属 Toast 通知
+    if (notify && notify.success) {
+        notify.success(`✅ 备忘录「${name}」保存成功！`);
+    } else if (typeof window !== 'undefined' && window.notify && window.notify.success) {
+        window.notify.success(`✅ 备忘录「${name}」保存成功！`);
+    }
 }
 
 function handleWorldBookListActions(e) {
@@ -520,12 +805,36 @@ function handleWorldBookListActions(e) {
         const entry = state.worldBook[id];
         if (!entry) return;
         if (!Array.isArray(entry.sessionIds)) entry.sessionIds = [];
-        const convId = state.currentConversationId;
-        if (!convId) return;
+        let convId = (typeof getSafeActiveConversationId === 'function') ? getSafeActiveConversationId() : state.currentConversationId;
+        
         if (sessionSwitch.checked) {
+            // 如果勾选但此时没有活动会话，自动为大爷创建新会话！
+            if (!convId) {
+                (async () => {
+                    try {
+                        const newConv = await createNewConversation();
+                        if (newConv && newConv.id) {
+                            convId = newConv.id;
+                            if (!entry.sessionIds.includes(convId)) entry.sessionIds.push(convId);
+                            saveToLocalStorage();
+                            renderWorldBookTagsPanel();
+                            filterWorldBookByTags();
+                            updateWorldBookButton();
+                            if (notify && notify.success) {
+                                notify.success('✨ 已自动创建新会话，该条目已在此会话生效！');
+                            }
+                        }
+                    } catch (err) {
+                        console.error('列表勾选局部时自动创建会话失败:', err);
+                    }
+                })();
+                return;
+            }
             if (!entry.sessionIds.includes(convId)) entry.sessionIds.push(convId);
         } else {
-            entry.sessionIds = entry.sessionIds.filter(cid => cid !== convId);
+            if (convId) {
+                entry.sessionIds = entry.sessionIds.filter(cid => cid !== convId);
+            }
         }
         if (!entry.enabled && entry.sessionIds.length === 0) {
             sessionSwitch.checked = false;
@@ -544,12 +853,14 @@ function handleWorldBookListActions(e) {
             dom.worldBookIdInput.value = entry.id;
             dom.worldBookNameInput.value = entry.name;
             dom.worldBookContentInput.value = entry.content;
-            dom.worldBookDepthInput.value = entry.depth;
-            dom.worldBookRoleSelector.value = entry.role;
+            // 联动回显注入位置与深度、角色的可用性，以及每条合并开关
+            updatePositionFormLinkage(entry.position || 'top', Boolean(entry.appendAllUser));
+            dom.worldBookDepthInput.value = (typeof entry.depth === 'number') ? entry.depth : 10;
+            dom.worldBookRoleSelector.value = entry.role || 'system';
             dom.worldBookEnabledToggle.checked = entry.enabled;
             
             // 回显局部生效开关状态与可用性
-            const currentConvId = state.currentConversationId;
+            const currentConvId = (typeof getSafeActiveConversationId === 'function') ? getSafeActiveConversationId() : state.currentConversationId;
             const isSessionChecked = entry.enabled || (currentConvId && Array.isArray(entry.sessionIds) && entry.sessionIds.includes(currentConvId));
             updateFormSessionToggleState(entry.enabled, isSessionChecked);
             
@@ -579,6 +890,8 @@ function handleWorldBookListActions(e) {
                 const newEntry = JSON.parse(JSON.stringify(entryToCopy));
                 newEntry.id = `wb_${Date.now()}`;
                 newEntry.name = `${entryToCopy.name}_copy`;
+                newEntry.createdAt = Date.now();
+                newEntry.order = Date.now();
                 state.worldBook[newEntry.id] = newEntry;
                 saveToLocalStorage();
                 renderWorldBookTagsPanel();

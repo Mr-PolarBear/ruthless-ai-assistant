@@ -1,6 +1,6 @@
 <!-- Settings Modal -->
 <div id="settings-modal" class="modal-overlay">
-    <div class="modal-content" style="max-width:1200px;">
+    <div class="modal-content" style="width: 92vw; max-width: 1360px;">
         <div class="modal-header">
             <h2>设置</h2>
             <button class="modal-close-btn" title="关闭">&times;</button>
@@ -181,7 +181,7 @@
                 <div class="form-group storage-persist-card" style="margin-top: 1rem; padding: 12px 14px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--bg-light);">
                     <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
                         <div style="display: flex; align-items: center; gap: 8px;">
-                            <span style="font-size: 1.25rem;">🛡️</span>
+                            <span style="font-size: 1.25rem; display: flex; align-items: center; color: var(--accent-blue);"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg></span>
                             <div>
                                 <strong style="font-size: 0.95rem; color: var(--text-primary);">数据防清理保护 (持久化存储)</strong>
                                 <div id="storage-persist-quota" style="font-size: 0.76rem; color: var(--text-secondary); margin-top: 2px;"></div>
@@ -200,7 +200,7 @@
                 <div class="form-group version-settings-card">
                     <div class="version-card-header">
                         <div class="version-card-title-group">
-                            <span class="version-card-icon">🚀</span>
+                            <span class="version-card-icon" style="display: flex; align-items: center; color: var(--accent-blue);"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"></path><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"></path><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"></path><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"></path></svg></span>
                             <div>
                                 <div class="version-card-title">系统版本与在线更新</div>
                                 <div class="version-card-meta">
@@ -215,8 +215,8 @@
                             <button id="force-app-reload-btn" type="button" class="action-button" style="padding: 5px 12px; font-size: 0.82rem;" title="直接绕过手机浏览器本地缓存，强制加载最新页面资源">强制刷新(穿透缓存)</button>
                         </div>
                     </div>
-                    <div class="version-card-desc">
-                        <span class="version-safe-tag">🛡️ 零数据损失保障：</span>
+                    <div class="version-card-desc" style="display: flex; align-items: center; gap: 4px;">
+                        <span class="version-safe-tag" style="display: inline-flex; align-items: center; gap: 4px;"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #10b981;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>零数据损失保障：</span>
                         手机端发布新版本若未自动生效，点击“强制刷新”将带时间戳穿透手机本地缓存并载入最新代码，<strong>绝对不会删除您的对话记录与 API 配置</strong>。
                     </div>
                 </div>
@@ -329,6 +329,7 @@
                                 <input type="text" id="api-model-input" placeholder="例如：llama3 或 deepseek-reasoner">
                                 <button type="button" id="fetch-models-btn" class="btn-in-input">获取模型</button>
                             </div>
+                            <small style="display:block;margin-top:5px;font-size:12px;color:var(--text-secondary);line-height:1.4;">💡 该模型为默认模型，可在会话中切换不同模型</small>
                         </div>
                         <div class="form-group api-openai-field">
                             <label for="api-key-input">API Key (可选)</label>
@@ -380,9 +381,17 @@
                 </div>
             </div>
             <div id="regex-settings" class="tab-content">
-                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 0.5rem;">
-                    <p class="settings-hint" style="margin: 0;">按规则顺序，对符合作用域的消息进行查找和替换。</p>
-                    <div class="regex-collapse-controls" style="display: flex; gap: 6px;">
+                <div class="regex-toolbar" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 0.75rem;">
+                    <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                        <button type="button" id="add-new-regex-btn" class="primary-button" style="padding: 5px 14px; font-size: 0.88em; font-weight: 600; display: inline-flex; align-items: center; gap: 5px; border-radius: var(--radius-full, 9999px); cursor: pointer;">
+                            <span>➕</span> <span>添加新规则</span>
+                        </button>
+                        <p class="settings-hint" style="margin: 0;">按规则顺序，对符合作用域的消息进行查找和替换。</p>
+                    </div>
+                    <div class="regex-collapse-controls" style="display: flex; gap: 6px; align-items: center;">
+                        <button type="button" id="regex-examples-btn" class="secondary-button" style="padding: 5px 11px; font-size: 0.8em; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; color: var(--accent-blue);">
+                            <span>📖</span> <span>正则示例与说明</span>
+                        </button>
                         <button type="button" id="regex-collapse-all-btn" class="secondary-button" style="padding: 3px 9px; font-size: 0.8em;">全部折叠</button>
                         <button type="button" id="regex-expand-all-btn" class="secondary-button" style="padding: 3px 9px; font-size: 0.8em;">全部展开</button>
                     </div>
@@ -395,11 +404,17 @@
                     <!-- 右侧：规则编辑与新增表单 -->
                     <div class="regex-settings-right">
                         <div class="regex-form-container">
-                            <h3 id="regex-form-title">添加/编辑规则</h3>
-                            <div id="regex-default-readonly-hint" style="display: none; padding: 10px 14px; margin-bottom: 14px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.35); border-radius: var(--radius-md); color: #ef4444; font-size: 0.86em; line-height: 1.55; font-weight: 500;">
-                                ⚠️ 系统默认规则不可直接修改。如需定制，请点击左侧列表中对应项的“复制”按钮，将其复制到“自定义全局规则”区进行修改，并在此关闭本默认规则。
+                            <div class="regex-form-header">
+                                <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+                                    <h3 id="regex-form-title" style="margin: 0;">添加新规则</h3>
+                                    <button type="button" id="regex-form-new-btn" class="secondary-button" style="display: none; padding: 3px 9px; font-size: 0.8em; white-space: nowrap;">➕ 新建空白规则</button>
+                                </div>
+                                <div id="regex-default-readonly-hint" style="display: none; padding: 8px 12px; margin-top: 10px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.35); border-radius: var(--radius-md); color: #ef4444; font-size: 0.84em; line-height: 1.5; font-weight: 500;">
+                                    ⚠️ 系统默认规则不可直接修改。如需定制，请点击左侧列表中对应项的“复制”按钮，将其复制到“自定义全局规则”区进行修改，并在此关闭本默认规则。
+                                </div>
                             </div>
-                            <input type="hidden" id="regex-id-input">
+                            <div class="regex-form-body">
+                                <input type="hidden" id="regex-id-input">
 
                             <div class="form-group" id="regex-scope-type-group">
                                 <label>规则归属 / 生效范围</label>
@@ -499,9 +514,10 @@
                                     <span class="slider round"></span>
                                 </label>
                             </div>
-                            <div class="modal-actions">
+                            </div>
+                            <div class="modal-actions regex-form-actions">
                                 <button id="regex-cancel-btn" class="cancel-button" style="display: none;">取消编辑</button>
-                                <button id="regex-save-btn">保存规则</button>
+                                <button id="regex-save-btn" class="primary-button">保存规则</button>
                             </div>
                         </div>
                     </div>
@@ -591,11 +607,11 @@
                 <div class="modal-section" style="background: var(--bg-light); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px 14px;">
                     <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
                         <div>
-                            <h4 style="margin: 0 0 4px 0; display: flex; align-items: center; gap: 6px;">📦 一键备份全部数据</h4>
+                            <h4 style="margin: 0 0 4px 0; display: flex; align-items: center; gap: 6px;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent-blue);"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path><path d="m3.3 7 8.7 5 8.7-5"></path><path d="M12 22V12"></path></svg>一键备份全部数据</h4>
                             <p class="settings-hint" style="margin: 0;">同时导出全局配置与所有本地历史会话记录（防止浏览器清理或换机丢失）。</p>
                         </div>
                         <div class="modal-actions" style="margin-top: 0;">
-                            <button id="backup-all-data-modal-btn" style="background: linear-gradient(135deg, var(--accent-blue) 0%, #2563eb 100%); color: #fff; font-weight: 600;">🚀 一键备份全部</button>
+                            <button id="backup-all-data-modal-btn" style="background: linear-gradient(135deg, var(--accent-blue) 0%, #2563eb 100%); color: #fff; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>一键备份全部</button>
                         </div>
                     </div>
                 </div>
@@ -1170,21 +1186,64 @@
                                 </div>
                                 <textarea id="worldbook-content-input" rows="6" placeholder="输入备忘录条目的具体内容..."></textarea>
                             </div>
+                            <!-- 动态变量快捷插入栏 -->
+                            <div class="wb-macro-bar" id="worldbook-macro-bar">
+                                <span class="wb-macro-label">动态变量:</span>
+                                <div class="wb-macro-chips">
+                                    <button type="button" class="wb-macro-chip" data-macro="{{datetime}}" title="当前完整时间：年-月-日 时:分:秒">+时间</button>
+                                    <button type="button" class="wb-macro-chip" data-macro="{{date}}" title="当前日期：年-月-日">+日期</button>
+                                    <button type="button" class="wb-macro-chip" data-macro="{{weekday}}" title="当前星期：如 星期四">+星期</button>
+                                    <button type="button" class="wb-macro-chip" data-macro="{{model}}" title="当前使用的模型名称">+模型</button>
+                                    <button type="button" class="wb-macro-chip" data-macro="{{conversation_title}}" title="当前会话主题标题">+会话标题</button>
+                                    <button type="button" class="wb-macro-chip" data-macro="{{platform}}" title="当前运行平台：Windows/Android">+平台</button>
+                                </div>
+                            </div>
                             <div class="worldbook-params-row">
-                                <div class="form-group param-tags-group">
-                                    <label for="worldbook-tags-input">标签 (逗号/回车)</label>
-                                    <input id="worldbook-tags-input" type="text" placeholder="如：代码, 参考, Python" class="tag-input">
+                                <div class="form-group param-position-group">
+                                    <label for="worldbook-position-selector">
+                                        注入位置
+                                        <span class="wb-help-tooltip" data-tooltip="决定条目在请求上下文中的插入锚点：&#10;• 顶部系统区：排在历史之前（若开启合并发送，则合入 System 消息）&#10;• 对话历史前：放在第一条历史对话之前&#10;• 对话历史流/底部：按深度从对话末尾向前回溯插入（如深度 1 插在最新消息前）&#10;• 跟随用户发言：作为脚标直接拼接到每次用户发言末尾" title="点击或悬浮查看注入位置说明">?</span>
+                                    </label>
+                                    <select id="worldbook-position-selector">
+                                        <option value="top">顶部系统 (默认)</option>
+                                        <option value="chat_start">对话历史前</option>
+                                        <option value="chat_end">历史流 (倒数)</option>
+                                        <option value="append_to_user">跟随用户发言</option>
+                                    </select>
                                 </div>
-                                <div class="form-group param-depth-group">
-                                    <label for="worldbook-depth-input">挂载深度</label>
-                                    <input type="number" id="worldbook-depth-input" min="1" max="100" value="10">
+                                <div class="form-group param-depth-group" id="worldbook-depth-group">
+                                    <label for="worldbook-depth-input">
+                                        <span id="worldbook-depth-label-text">挂载深度</span>
+                                        <span class="wb-help-tooltip" data-tooltip="• 在顶部模式下：决定多条备忘录之间的排序前后（数值越小越靠前）&#10;• 在对话历史流模式下：决定插入倒数第几条消息之前（0 = 最末尾，1 = 最新消息之前，2 = 倒数第2条前）" title="点击或悬浮查看挂载深度说明">?</span>
+                                    </label>
+                                    <input type="number" id="worldbook-depth-input" min="0" max="100" value="10">
                                 </div>
-                                <div class="form-group param-role-group">
-                                    <label for="worldbook-role-selector">发送角色</label>
+                                <div class="form-group-toggle param-toggle-group" id="worldbook-append-all-group" style="display: none;" title="开启后每条历史用户发言均拼接此脚标（梳理时间线）；关闭则仅在最新发言末尾追加">
+                                    <label for="worldbook-append-all-toggle">
+                                        <span>每条合并</span>
+                                        <span class="wb-help-tooltip" data-tooltip="• 开启：在每条历史用户发言末尾均拼上此脚标，并按每条消息真实发送时间解析动态宏（如时间戳），构建完整对话时间线&#10;• 关闭：仅在最新（最后）一条用户发言末尾拼接此脚标" title="点击或悬浮查看说明">?</span>
+                                    </label>
+                                    <label class="theme-switch small">
+                                        <input type="checkbox" id="worldbook-append-all-toggle">
+                                        <span class="slider round"></span>
+                                    </label>
+                                </div>
+                                <div class="form-group param-role-group" id="worldbook-role-group">
+                                    <label for="worldbook-role-selector">
+                                        发送角色
+                                        <span class="wb-help-tooltip" data-tooltip="以独立消息插入时的角色身份：&#10;• System：系统级背景/硬性约束指令（推荐）&#10;• User：模拟用户补充信息发送" title="点击或悬浮查看发送角色说明">?</span>
+                                    </label>
                                     <select id="worldbook-role-selector">
                                         <option value="system">System</option>
                                         <option value="user">User</option>
                                     </select>
+                                </div>
+                                <div class="form-group param-tags-group">
+                                    <label for="worldbook-tags-input">
+                                        标签
+                                        <span class="wb-help-tooltip" data-tooltip="分类与过滤备忘录。输入后按英文逗号或回车生成胶囊标签；在左侧筛选面板中可多选组合过滤。" title="点击或悬浮查看标签说明">?</span>
+                                    </label>
+                                    <input id="worldbook-tags-input" type="text" placeholder="如: 代码, 论文" class="tag-input">
                                 </div>
                                 <div class="form-group-toggle param-toggle-group" title="在所有会话中都生效">
                                     <label for="worldbook-enabled-toggle">全局</label>
@@ -1353,8 +1412,8 @@
                     <label for="hide-summary-prompt" style="font-weight: 600; font-size: 13px; margin: 0;">
                         <span id="hide-summary-prompt-label">总结提示词 (当前模式专属)</span>
                     </label>
-                    <button id="hide-summary-reset-prompt-btn" type="button" class="summary-aux-btn" title="恢复当前模式官方默认提示词">
-                        🔄 恢复默认提示词
+                    <button id="hide-summary-reset-prompt-btn" type="button" class="summary-aux-btn" title="恢复当前模式官方默认提示词" style="display: inline-flex; align-items: center; gap: 4px;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>恢复默认提示词
                     </button>
                 </div>
                 <textarea id="hide-summary-prompt" rows="3" placeholder="请输入总结提示词..."></textarea>
@@ -1381,9 +1440,14 @@
             <!-- 记忆内容展示与编辑区（根据模式自适应） -->
             <div class="form-group" style="margin-bottom: 10px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                    <label style="font-weight: 600; font-size: 13px; margin: 0;">
-                        <span id="summary-content-section-title">当前记忆内容</span>
-                    </label>
+                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                        <label style="font-weight: 600; font-size: 13px; margin: 0;">
+                            <span id="summary-content-section-title">当前记忆内容</span>
+                        </label>
+                        <span id="summary-memory-total-badge" class="summary-memory-total-badge" title="当前记忆内容实际发送给大模型时的总字数与预估Tokens">
+                            0 字符 · 预估 0 Tokens
+                        </span>
+                    </div>
                     <button id="hide-summary-history-btn" type="button" class="summary-history-btn" title="查看历史总结版本与回滚">
                         📜 历史版本 (<span id="hide-summary-history-count">0</span>)
                     </button>
@@ -1519,7 +1583,7 @@
 <div id="summary-rollback-confirm-modal" class="modal-overlay" style="display:none;">
     <div class="modal-content" style="max-width: 460px;">
         <div class="modal-header">
-            <h2>🔄 回滚历史总结确认</h2>
+            <h2 style="display: flex; align-items: center; gap: 6px;"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-orange, #e6a23c);"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>回滚历史总结确认</h2>
             <button class="modal-close-btn" id="summary-rollback-close-btn" title="关闭">&times;</button>
         </div>
         <div class="modal-body">
@@ -1724,6 +1788,7 @@
                     <input type="text" id="api-edit-model-input" placeholder="例如：llama3 或 deepseek-reasoner">
                     <button type="button" id="api-edit-fetch-models-btn" class="btn-in-input">获取模型</button>
                 </div>
+                <small style="display:block;margin-top:5px;font-size:12px;color:var(--text-secondary);line-height:1.4;">💡 该模型为默认模型，可在会话中切换不同模型</small>
             </div>
             <div class="form-group api-edit-openai-field">
                 <label for="api-edit-key-input">API Key (可选)</label>
@@ -1840,7 +1905,7 @@
             <button class="modal-close-btn" title="关闭">&times;</button>
         </div>
         <div class="session-stats-bar">
-            <p>实际发送Token: <span id="actual-sent-tokens" style="font-weight:bold;color:var(--accent-blue);">0</span> <small style="opacity:0.85;font-size:0.9em;">(实际发送字符: <span id="actual-sent-characters">0</span>)</small></p>
+            <p>实际发送Token: <span id="actual-sent-tokens" style="font-weight:bold;color:var(--accent-blue);">0</span> <small style="opacity:0.85;font-size:0.9em;">(消息正文: <span id="actual-sent-main-tokens">0</span> / 设定与备忘: <span id="actual-sent-system-tokens">0</span> / 字符: <span id="actual-sent-characters">0</span>)</small></p>
             <p>总预估Token: <span id="total-estimated-tokens">0</span> <small style="opacity:0.85;font-size:0.9em;">(已隐藏: <span id="hidden-tokens">0</span> / 正文: <span id="main-tokens">0</span> / 思考: <span id="thinking-tokens">0</span>)</small></p>
             <p>总字符数量: <span id="total-characters">0</span> <small style="opacity:0.85;font-size:0.9em;">(已隐藏: <span id="hidden-characters">0</span> / 正文: <span id="main-characters">0</span> / 思考: <span id="thinking-characters">0</span>)</small></p>
             <p>附件数据: <span id="attachments-tokens">0</span> tokens / <span id="attachments-chars">0</span> 字符</p>
@@ -1900,6 +1965,125 @@
         <div class="modal-body" style="max-height: 65vh; overflow-y: auto;">
             <!-- 更新日志标签内容 -->
             <div id="changelog-content" class="changelog-tab-content active">
+                <!-- v2.9.10 -->
+                <div class="changelog-version">
+                    <div class="changelog-version-header">
+                        <span class="changelog-version-tag">v2.9.10</span>
+                        <span class="changelog-version-date">2026-10-29</span>
+                    </div>
+                    <ul class="changelog-list">
+                        <li class="changelog-item feat">【正则表达式全方位体验升级】顶栏新增「➕ 添加新规则」常驻按钮；折叠分组栏新增「+ 添加全局」与「+ 添加专属」快捷胶囊，自动预选归属范围；编辑或查看态表单头部提供「➕ 新建空白规则」快捷切换；</li>
+                        <li class="changelog-item feat">【表单三段式常驻底栏】右侧表单重构为固定头部、独立滚动表单体与常驻底栏，「保存规则」与「取消编辑」按钮始终吸附常驻可见，告别滚动半天找保存的痛点；</li>
+                        <li class="changelog-item fix">【双栏黄金比例与防挤压重构】设置弹窗放宽至 92vw / 1360px，网格比例重构为保底 420px (42%)，作用域药丸强制防词内断行，规则标题舒展展示，配备 6px 现代半透明细滚动条；</li>
+                        <li class="changelog-item feat">【正则示例与速查指南上线】新增「📖 正则示例与说明」独立弹窗，内置 18 组 7 大分类高频实用正则，支持关键字实时检索、分类筛选、一键复制正则/替换与「⚡ 一键套用到编辑表单」。</li>
+                    </ul>
+                </div>
+
+                <!-- v2.9.9 -->
+                <div class="changelog-version">
+                    <div class="changelog-version-header">
+                        <span class="changelog-version-tag">v2.9.9</span>
+                        <span class="changelog-version-date">2026-10-29</span>
+                    </div>
+                    <ul class="changelog-list">
+                        <li class="changelog-item fix">【自动总结步进节奏重构】将“每隔 N 楼自动总结一次”判定算法重构为基于分支总长度与上次总结基准的真实步进增量（ΔFloors = currentTotalFloors - lastFloor ≥ N），彻底解耦可见消息池容量；</li>
+                        <li class="changelog-item fix">【根除保留楼层频繁触发缺陷】彻底解决勾选“归档时保留最后 K 楼不隐藏”时，因池中残留 K 楼导致实际触发节奏严重缩水至 (N - K) 楼（如设 16 楼却仅隔 8 楼就触发一次、32 楼内触发 3 次）的逻辑偏差，严格保证每 N 楼精准触发；</li>
+                        <li class="changelog-item fix">【根除不隐藏时的死循环缺陷】彻底解决未勾选“总结后自动隐藏历史楼层”时，达到阈值后每一楼都连环触发自动总结的严重死循环问题；</li>
+                        <li class="changelog-item feat">【分叉回滚与快照因果同步】覆盖首次升级平滑过渡、截断重发自动校准，以及历史快照回滚和分叉重发时的因果一致性状态同步；</li>
+                        <li class="changelog-item feat">【恢复默认提示词防误触确认】点击「恢复默认提示词」增加智能防呆校验与显式二次确认弹窗，坚决保护大爷精心微调的提示词心血不被误覆盖；</li>
+                        <li class="changelog-item feat">【全模式实时总Tokens与字符胶囊】在「当前记忆内容」标题旁新增实时高对比度胶囊徽章（方案 A），全面覆盖跑团双表、卡片流与递归模式，表格单元格打字、增删行与源码编辑毫秒级联动重算，深浅双主题色自适应。</li>
+                    </ul>
+                </div>
+
+                                <!-- v2.9.8 -->
+                <div class="changelog-version">
+                    <div class="changelog-version-header">
+                        <span class="changelog-version-tag">v2.9.8</span>
+                        <span class="changelog-version-date">2026-10-29</span>
+                    </div>
+                    <ul class="changelog-list">
+                        <li class="changelog-item feat">【MCP会话专属隔离】废除MCP工具勾选全局共享机制，转为会话专属私有状态；新建对话默认干净无勾选，切换对话即时联动底栏徽章与菜单，导出会话JSON与复制会话全链路持久化；</li>
+                        <li class="changelog-item fix">【执行失败重试修复】攻克DOM动态替换导致的事件绑定丢失与异常时参数丢失两大顽疾，全DOM分支统一事件委托，调用参数全生命周期持久固化，断网/跨轮次/刷新后均可100%成功重试；</li>
+                        <li class="changelog-item feat">【精细卡片化排版与诊断弹窗】全新重构现代内敛卡片排版（Plan A），顶栏纯净展现元信息杜绝文字重复与按钮堆叠错位，底部集成查看错误详情与立即重试专注操作栏；新增独立诊断弹窗，结构化代码高亮展示调用参数、服务端响应体与排查指引，支持一键复制完整排查报告；</li>
+                        <li class="changelog-item style">【双主题色深度适配】彻底移除MCP失败条与错误信息硬编码的浅粉白底色，浅色与深色模式（Dark Mode）下全面自适应半透明高对比度警示风格，杜绝突兀大白块。</li>
+                    </ul>
+                </div>
+
+<!-- v2.9.7 -->
+                <div class="changelog-version">
+                    <div class="changelog-version-header">
+                        <span class="changelog-version-tag">v2.9.7</span>
+                        <span class="changelog-version-date">2026-10-29</span>
+                    </div>
+                    <ul class="changelog-list">
+                        <li class="changelog-item feat">【动态变量宏】备忘录新增动态变量引擎，支持一键快捷插入 <code>{{date}}</code>、<code>{{time}}</code>、<code>{{datetime}}</code>、<code>{{weekday}}</code>、<code>{{model}}</code>、<code>{{conversation_title}}</code>、<code>{{platform}}</code> 等动态上下文宏；</li>
+                        <li class="changelog-item feat">【锚点深度分流】备忘录全面支持 4 类注入锚点：顶部系统区（支持合并）、对话历史前、历史流倒数插入（支持自定义倒数深度回溯插入）、跟随用户发言；</li>
+                        <li class="changelog-item feat">【时间线自动梳理】「跟随用户发言」新增「每条合并」开关：遍历历史每条用户消息提取其当时真实发送时间戳动态解析宏，为大模型真实还原多轮会话时间跨度与演进脉络；</li>
+                        <li class="changelog-item feat">【意图驱动体验】在空白未发消息的会话界面配置局部备忘录时，系统自动无感创建并绑定新会话，彻底根除拦截警告；</li>
+                        <li class="changelog-item opt">【解耦排序与深度】彻底解耦备忘录展示顺序（order）与插入深度（depth），修复标签筛选下拖拽排序错乱问题；条目左下角新增字符数与预估 Tokens 实时统计；</li>
+                        <li class="changelog-item fix">【多模态安全防御】重构消息脚标追加函数，深度防御多模态带图带附件消息，杜绝转为 <code>[object Object]</code> 引发 API 报错；修复参数栏在切换不同注入位置时的输入框错位问题。</li>
+                        <li class="changelog-item fix">【实际发送纠偏】彻底纠偏会话详情与外部徽章「实际发送Token」算法：严格剥离历史 AI 消息思考过程（API 仅传纯正文不发思考），全额计入角色人设、启用的备忘录（含宏解析）、总结与上下文，弹窗新增正文/设定/字符三维细分透视。</li>
+                    </ul>
+                </div>
+                <!-- v2.9.6 -->
+                <div class="changelog-version">
+                    <div class="changelog-version-header">
+                        <span class="changelog-version-tag">v2.9.6</span>
+                        <span class="changelog-version-date">2026-10-18</span>
+                    </div>
+                    <ul class="changelog-list">
+                        <li class="changelog-item feat">【长图海报】消息一键生成「优雅长图 / 海报分享卡片」：支持将单条消息渲染为高颜值海报，内置极光、极简、落日、赛博四套艺术主题；提供自由编辑标题、切换时间与楼层展示的响应式配置条；离线化集成 html2canvas 解决跨域导出，支持一键复制到剪贴板与保存 PNG 图片；</li>
+                        <li class="changelog-item feat">【思维导图】长文本 AI 回答一键转「思维导图 (Mindmap)」与 100% 全景无损导出：消息操作栏新增思维导图按钮，支持拖拽平移、平滑缩放与全屏沉浸展示；支持 AI 智能提炼增强，实时感知深度思考与输出流；攻克仅导出可见切片的难题，基于节点边界推导算法实现 100% 全貌无截断全景画幅导出；</li>
+                        <li class="changelog-item feat">【模型展示】AI 消息气泡头部突出显示具体模型与来源 API (Plan C)：药丸胶囊核心突出显示驱动回答的具体模型名称（如 deepseek-chat），次级展示来源渠道（via API端点名），支持重名智能去重与历史模型快照固化；深浅双主题深度适配；</li>
+                        <li class="changelog-item opt">【界面自适应】气泡头部窄屏防挤压截断与悬浮导航按钮靠右对齐：小窗口与移动端挤压时，模型与 API 副标自适应缩短截断为前 n 个字 + 省略号，hover 可查完整全称；悬浮回底与楼层导航按钮容器重构为靠右对齐（align-items: flex-end），彻底消除上方圆形按钮与下方展开胶囊的错位割裂；</li>
+                        <li class="changelog-item fix">【状态隔离】修复跨 API 切换模型状态残留 BUG：彻底修复在同一会话中切换 API 端点时，前一个 API 私有的模型选择残留在下拉列表中导致 400 报错的问题，实现多 API 模型配置隔离。</li>
+                    </ul>
+                </div>
+                <!-- v2.9.5 -->
+                <div class="changelog-version">
+                    <div class="changelog-version-header">
+                        <span class="changelog-version-tag">v2.9.5</span>
+                        <span class="changelog-version-date">2026-10-17</span>
+                    </div>
+                    <ul class="changelog-list">
+                        <li class="changelog-item feat">【输入草稿】多会话输入草稿自动暂存与隔离：切换会话自动暂存当前输入文本，切换回对应会话丝滑无损回填；侧边栏实时呈现琥珀金 [草稿] 标识，消息发送或会话删除时原子清理；</li>
+                        <li class="changelog-item feat">【极速回溯】输入框为空时按键盘 ↑ 键回填上一条消息：无需手动重新输入，秒级抓取上一条发送文本，光标自动落入末尾，支持多模态与高度自适应；</li>
+                        <li class="changelog-item feat">【引用追问】划选内容一键「引用追问」与智能避障：鼠标划选即浮出圆润胶囊，一键生成快照 Markdown 引用格式填入输入框；穿透 Shadow DOM 隔离边界全面兼容正文与思考展开区；智能落点算法默认定位在鼠标正下方，彻底避开 Chromium 浏览器自带的上方搜索/复制迷你工具栏冲突；</li>
+                        <li class="changelog-item feat">【动态感知】悬浮回底按钮升级为「生成态动态感知胶囊」：离开底部时动态感知 AI 生成状态，平滑展开为圆角胶囊伴随绿色呼吸脉冲光晕，直观显示「生成中 ↓」与「新回复 ↓」，触底自动复位隐藏；</li>
+                        <li class="changelog-item feat">【会话置顶】时间分组模式下「置顶会话」独立吸顶专区：置顶会话不再散落于时间分类中，而是独立提取至最上方 📌 置顶会话 专属吸顶专区，并配备数量徽标与高亮样式，永远吸顶；</li>
+                        <li class="changelog-item feat">【移动适配】移动端软键盘弹起高度自适应（Visual Viewport 适配）：原生监听 window.visualViewport 动态高度，键盘升起时精确收缩 #app 物理高度，彻底杜绝头部 Header 被顶出屏幕或工具栏被遮挡；</li>
+                        <li class="changelog-item opt">【交互精简】选择数据库与数据表按钮二合一整合：将输入区原独立的选表按钮无缝收敛至选择数据库按钮，选库确认后自动无缝拉起选表弹窗，单按钮动态呈现已绑定库名与已选表数量；</li>
+                        <li class="changelog-item opt">【空间提效】输入区外边框间距优化：主聊天输入区 .input-area 内边距 padding 从 1.5rem 缩减为 0.5rem，垂直空白大幅收窄，聊天可视区更加舒展；</li>
+                        <li class="changelog-item opt">【配置引导】API 端点配置模型名称增加引导提示：在添加与编辑 API 端点表单的模型名称下方添加清晰引导「💡 该模型为默认模型，可在会话中切换不同模型」。</li>
+                    </ul>
+                </div>
+                <!-- v2.9.4 -->
+                <div class="changelog-version">
+                    <div class="changelog-version-header">
+                        <span class="changelog-version-tag">v2.9.4</span>
+                        <span class="changelog-version-date">2026-10-17</span>
+                    </div>
+                    <ul class="changelog-list">
+                        <li class="changelog-item feat">【模型选择】输入区 API 与模型快捷选择器解耦重构：由单一下拉选框升级为两枚独立快捷按钮，左侧选 API 端点、右侧直选该 API 下的具体模型（Model），支持实时无缝切换与按会话持久化存储；</li>
+                        <li class="changelog-item feat">【输入交互】现代 AI 对话两层堆叠输入区布局：第一层为 100% 满宽自由伸缩的多行文本输入框；第二层为独立工具栏，彻底解决窄屏与手机端输入框被挤压狭窄问题；</li>
+                        <li class="changelog-item feat">【触屏体验】移动端与触屏会话列表防误触重构（Plan A）：通过现代媒体查询强制隔离触屏环境，触碰会话条目彻底禁止弹出密集 6 按钮，根除点选切换会话时误删、误改的重大隐患；</li>
+                        <li class="changelog-item feat">【手势交互】会话列表新增 500ms 长按手势交互：按住条目 500ms 触发微震动反馈并唤起底部 Action Sheet 抽屉面板；具备滑动防误判（位移 >10px 取消）与松手防误切拦截机制；右侧常驻一枚小巧独立的 32px「···」操作按钮；</li>
+                        <li class="changelog-item fix">【实时联动】修复在「隐藏与总结」弹窗中调节发送消息数量限制滑动条时，会话头部 Token 统计徽章未实时联动的 BUG；</li>
+                        <li class="changelog-item opt">【视觉升级】全局 Emoji 表情全面替换为现代精简的 Lucide 风格矢量 SVG 轮廓图标，杜绝跨平台系统渲染风格割裂。</li>
+                    </ul>
+                </div>
+                <!-- v2.9.3 -->
+                <div class="changelog-version">
+                    <div class="changelog-version-header">
+                        <span class="changelog-version-tag">v2.9.3</span>
+                        <span class="changelog-version-date">2026-09-27</span>
+                    </div>
+                    <ul class="changelog-list">
+                        <li class="changelog-item feat">【版本感知】新增「版本更新自动感知与主动弹窗」机制，新版本首次打开时主动呈现更新日志，本地自动持久化记录已读状态，同版本后续不重复打扰；</li>
+                        <li class="changelog-item feat">【文档导出】新增单条消息纯前端导出 Word (.doc) 与 Excel (.xlsx) 功能，支持代码块高保真语法着色与复杂表格结构混排解析；</li>
+                        <li class="changelog-item opt">【规范升级】规范化项目 AI 协同指南为项目根目录 `AGENTS.md`，新增重大变更主动提醒更新日志机制。</li>
+                    </ul>
+                </div>
                 <!-- v2.9.2 -->
                 <div class="changelog-version">
                     <div class="changelog-version-header">
@@ -2638,7 +2822,8 @@
     <div class="modal-content" style="max-width: 520px; width: 92%; max-height: 80vh; display: flex; flex-direction: column; border-radius: var(--radius-lg); box-shadow: var(--shadow-lg);">
         <div class="modal-header" style="padding: 1rem 1.5rem 0.6rem 1.5rem;">
             <h3 style="display: flex; align-items: center; gap: 8px; font-size: 1.1em; color: var(--accent-blue);">
-                <span>🚀 复制规则到指定会话</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                <span>复制规则到指定会话</span>
             </h3>
             <button class="modal-close-btn" id="regex-copy-session-close-btn">&times;</button>
         </div>
@@ -2666,6 +2851,124 @@
             <div style="display: flex; gap: 8px;">
                 <button id="regex-copy-session-cancel-btn" class="cancel-button">取消</button>
                 <button id="regex-copy-session-confirm-btn" class="primary-button">确认复制</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- 常用正则表达式示例与速查指南弹窗 -->
+<div id="regex-examples-modal" class="modal-overlay" style="z-index: 2210; display: none;">
+    <div class="modal-content regex-examples-modal-content" style="max-width: 860px; width: 92vw; max-height: 86vh; display: flex; flex-direction: column; border-radius: var(--radius-lg); box-shadow: var(--shadow-lg);">
+        <div class="modal-header" style="padding: 1rem 1.5rem 0.75rem 1.5rem; flex-shrink: 0;">
+            <h3 style="display: flex; align-items: center; gap: 8px; margin: 0; font-size: 1.15em; color: var(--accent-blue);">
+                <span>📖</span>
+                <span>常用正则表达式示例与速查指南</span>
+            </h3>
+            <button class="modal-close-btn" id="regex-examples-close-btn">&times;</button>
+        </div>
+
+        <!-- 搜索与分类工具栏 -->
+        <div class="regex-examples-toolbar">
+            <div class="regex-examples-search-wrap">
+                <input type="text" id="regex-examples-search-input" placeholder="🔍 搜索示例名称、说明、正则或替换内容..." />
+            </div>
+            <div class="regex-examples-categories" id="regex-examples-categories">
+                <!-- 动态生成分类筛选按钮 -->
+            </div>
+        </div>
+
+        <!-- 示例卡片列表主体 -->
+        <div class="modal-body regex-examples-list-body" id="regex-examples-list">
+            <!-- 动态生成丰富示例卡片 -->
+        </div>
+
+        <!-- 底部说明与关闭 -->
+        <div class="modal-actions" style="margin: 0; padding: 0.75rem 1.5rem; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: var(--bg-surface); flex-shrink: 0;">
+            <span style="font-size: 0.82em; color: var(--text-secondary);">💡 提示：点击「⚡ 一键套用」可直接将正则填入右侧规则表单并自动配置作用域与阶段。</span>
+            <button type="button" id="regex-examples-bottom-close-btn" class="secondary-button" style="padding: 5px 14px; font-size: 0.85em;">关闭</button>
+        </div>
+    </div>
+</div>
+
+<!-- MCP Error Detail Modal -->
+<div id="mcp-error-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-content mcp-error-modal-content" style="max-width: 640px; width: 92vw; max-height: 85vh; display: flex; flex-direction: column;">
+        <div class="modal-header">
+            <h2 style="display: flex; align-items: center; font-size: 1.15rem; margin: 0;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:8px;color:var(--danger-color, #dc3545);"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>MCP 工具调用错误详情
+            </h2>
+            <button class="modal-close-btn" title="关闭">&times;</button>
+        </div>
+        <div class="modal-body" style="padding: 1rem 1.25rem; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 14px;">
+            <!-- 基础元信息条 -->
+            <div class="mcp-error-meta-box">
+                <div class="meta-row">
+                    <span class="meta-label">工具名称:</span>
+                    <strong id="mcp-error-tool-name" class="meta-value">--</strong>
+                    <span class="meta-label" style="margin-left: 12px;">工具ID:</span>
+                    <code id="mcp-error-tool-id" class="meta-value meta-code">--</code>
+                </div>
+                <div class="meta-row" style="margin-top: 6px;">
+                    <span class="meta-label">发生时间:</span>
+                    <span id="mcp-error-time" class="meta-value">--</span>
+                </div>
+            </div>
+
+            <!-- 错误摘要 -->
+            <div class="mcp-error-section">
+                <div class="mcp-error-section-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"></polygon><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                    错误信息 (Error Message)
+                </div>
+                <div id="mcp-error-summary-text" class="mcp-error-summary-box">--</div>
+            </div>
+
+            <!-- 调用参数 -->
+            <div class="mcp-error-section">
+                <div class="mcp-error-section-title" style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="display: flex; align-items: center; gap: 6px;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+                        调用参数 (Parameters)
+                    </span>
+                    <button id="mcp-error-copy-params-btn" class="mcp-copy-btn-mini" type="button" title="复制参数">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> 复制
+                    </button>
+                </div>
+                <pre class="mcp-error-code-wrapper"><code id="mcp-error-params-code" class="language-json">{}</code></pre>
+            </div>
+
+            <!-- 服务端返回原始数据 -->
+            <div class="mcp-error-section">
+                <div class="mcp-error-section-title" style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="display: flex; align-items: center; gap: 6px;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                        响应数据 (Response Data)
+                    </span>
+                    <button id="mcp-error-copy-response-btn" class="mcp-copy-btn-mini" type="button" title="复制响应">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> 复制
+                    </button>
+                </div>
+                <pre class="mcp-error-code-wrapper"><code id="mcp-error-response-code" class="language-json">无返回数据</code></pre>
+            </div>
+
+            <!-- 排查建议 -->
+            <div class="mcp-error-section mcp-troubleshoot-tips">
+                <div class="mcp-error-section-title">💡 常见排查指引</div>
+                <ul id="mcp-error-tips-list" style="margin: 4px 0 0 18px; padding: 0; font-size: 0.82rem; line-height: 1.5; color: var(--text-secondary);">
+                    <li>若提示 <code>Failed to fetch</code>：请检查接口地址是否可联网、目标服务是否支持 CORS 跨域，或当前内网防火墙拦截。</li>
+                    <li>若提示 <code>HTTP 401 / 403</code>：通常为该工具依赖的 API Key 未配置、已过期或无权调用。</li>
+                    <li>若提示 <code>缺少必填参数</code>：说明大模型生成调用代码时漏填了关键字段，可点击【重试】或在对话中提示 AI 补齐参数。</li>
+                </ul>
+            </div>
+        </div>
+        <div class="modal-actions" style="padding: 0.85rem 1.25rem; border-top: 1px solid var(--border-color); display: flex; align-items: center; gap: 8px;">
+            <button id="mcp-error-copy-all-btn" type="button" class="action-btn-outline" style="padding: 7px 12px; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 4px;" title="复制完整排查报告">
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>复制排查报告
+            </button>
+            <div style="margin-left: auto; display: flex; gap: 8px;">
+                <button id="mcp-error-close-action-btn" type="button" class="cancel-button modal-close-btn" style="padding: 7px 14px; font-size: 0.85rem;">关闭</button>
+                <button id="mcp-error-retry-action-btn" type="button" class="primary-button" style="padding: 7px 14px; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 4px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><polyline points="3 3 3 8 8 8"></polyline></svg>立即重试
+                </button>
             </div>
         </div>
     </div>

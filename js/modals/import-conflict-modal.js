@@ -61,7 +61,8 @@ function formatItemSummary(item, category) {
     } else if (category === 'worldBook') {
         const keysPreview = Array.isArray(item.keys) ? item.keys.join(', ') : (item.keys || '');
         const contentPreview = (item.content || '').trim();
-        html += `<div class="diff-field-row"><span class="diff-field-label">触发词:</span> <code>${escapeHtml(keysPreview)}</code></div>`;
+        const posDesc = item.position === 'chat_start' ? '历史前' : (item.position === 'chat_end' ? (`历史后[深:${item.depth || 0}]`) : (item.position === 'append_to_user' ? '跟随发言' : (`顶部[深:${item.depth || 10}]`)));
+        html += `<div class="diff-field-row"><span class="diff-field-label">注入位置:</span> <code>${escapeHtml(posDesc)}</code></div>`;
         html += `<div class="diff-field-row"><span class="diff-field-label">条目内容:</span> <code>${escapeHtml(contentPreview.slice(0, 80))}${contentPreview.length > 80 ? '...' : ''}</code></div>`;
     }
     return html;

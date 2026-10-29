@@ -109,6 +109,7 @@ export function setupBranchSummaryConfirmModal() {
                 config.summary = snap.summary || '';
                 if (snap.summaryList) config.summaryList = JSON.parse(JSON.stringify(snap.summaryList));
                 if (snap.tableData) config.tableData = JSON.parse(JSON.stringify(snap.tableData));
+                config.lastAutoSummaryFloor = snap.maxFloor || (snap.hiddenFloors?.length ? Math.max(...snap.hiddenFloors) : 0);
                 
                 setHideSummaryForConversation(convId, config);
                 await saveToLocalStorage();
@@ -120,6 +121,7 @@ export function setupBranchSummaryConfirmModal() {
                 config.summary = '';
                 config.summaryList = [];
                 config.tableData = { eventHistory: [], characterInfo: [] };
+                config.lastAutoSummaryFloor = 0;
                 
                 setHideSummaryForConversation(convId, config);
                 await saveToLocalStorage();

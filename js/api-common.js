@@ -1,3 +1,4 @@
+import { resolveDynamicVariables } from './services/dynamic-variable-engine.js?v=temp';
 import { state } from './state.js?v=temp';
 import { getSelectedToolsDescription } from './mcp-tools-selector.js?v=temp';
 import { parseRegex, getActiveRegexRules } from './regex-engine.js?v=temp';
@@ -62,7 +63,7 @@ export function processMessageContent(message, index) {
         ? messageContent[0].text  // 乌鸦：纯文本消息保持原有格式
         : messageContent;         // 乌鸦：混合内容使用Vision API格式
 
-    return { role: message.role, content: finalContent, _idx: index + 1 };
+    return { role: message.role, content: finalContent, _idx: index + 1, timestamp: message.timestamp };
 }
 
 /**
@@ -206,11 +207,36 @@ export function assembleSystemMessages(chatHistoryMessages, currentConv, apiEndp
         }
     }
 
-    // 3. 添加备忘录 (World Book)
-    if (enabledWorldBookEntries && enabledWorldBookEntries.length > 0) {
+    // 3. 动态解析并按注入位置（Anchor）分流备忘录条目
+    const dynamicContext = { currentConv, apiEndpoint };
+    const resolvedEntries = (enabledWorldBookEntries || []).map(entry => ({
+        ...entry,
+        rawContent: entry.content || '',
+        content: resolveDynamicVariables(entry.content || '', dynamicContext)
+    }));
+
+    const topEntries = [];
+    const chatStartEntries = [];
+    const chatEndEntries = [];
+    const appendToUserEntries = [];
+
+    resolvedEntries.forEach(entry => {
+        const pos = entry.position || 'top';
+        if (pos === 'chat_start') {
+            chatStartEntries.push(entry);
+        } else if (pos === 'chat_end') {
+            chatEndEntries.push(entry);
+        } else if (pos === 'append_to_user') {
+            appendToUserEntries.push(entry);
+        } else {
+            topEntries.push(entry);
+        }
+    });
+
+    // 3.1 注入顶部备忘录 (Top)
+    if (topEntries.length > 0) {
         if (state.appSettings.mergeWorldBook) {
-            // 合并模式：将所有备忘录条目合并为一条系统消息
-            const mergedWorldBookContent = enabledWorldBookEntries
+            const mergedWorldBookContent = topEntries
                 .map(entry => entry.content + '; ')
                 .join('')
                 .trim();
@@ -218,43 +244,148 @@ export function assembleSystemMessages(chatHistoryMessages, currentConv, apiEndp
                 finalMessages.push({ role: 'system', content: mergedWorldBookContent });
             }
         } else {
-            // 非合并模式：每个条目都是一条单独的消息
-            const worldBookMessages = enabledWorldBookEntries.map(entry => ({
-                role: entry.role,
+            const worldBookMessages = topEntries.map(entry => ({
+                role: entry.role || 'system',
                 content: entry.content
             }));
             finalMessages.push(...worldBookMessages);
         }
     }
 
-    // 4. 添加聊天记录
-    finalMessages.push(...chatHistoryMessages);
-
-    // 5. 乌鸦：如果勾选了"合并发送"，将所有 system 消息合并为一条
-    // 这样可以减少 token 开销，同时保证所有上下文（角色/MCP/数据库/备忘录/隐藏总结）
-    // 统一以一条 system 消息的形式发给 AI
+    // 3.2 如果勾选了"合并发送"，在此处仅合并顶部区域的 system 消息
+    // — 为什么这么写 —
+    // 顶部合并仅针对角色、MCP、数据库与顶部备忘录；插在对话历史流内部的条目具备精确的倒数深度语义，绝不可被抽走合入顶部
     if (state.appSettings.mergeWorldBook) {
-        const systemContents = [];
+        const topSystemContents = [];
         const nonSystemMessages = [];
 
         for (const msg of finalMessages) {
             if (msg.role === 'system' && typeof msg.content === 'string' && msg.content.trim()) {
-                systemContents.push(msg.content.trim());
+                topSystemContents.push(msg.content.trim());
             } else {
                 nonSystemMessages.push(msg);
             }
         }
 
-        if (systemContents.length > 0) {
-            // 乌鸦：合并所有 system 内容，用分隔符连接，保持可读性
-            const mergedSystemMessage = {
-                role: 'system',
-                content: systemContents.join('\n\n---\n\n')
-            };
-            return [mergedSystemMessage, ...nonSystemMessages];
+        if (topSystemContents.length > 0) {
+            finalMessages = [
+                { role: 'system', content: topSystemContents.join('\n\n---\n\n') },
+                ...nonSystemMessages
+            ];
         }
     }
 
+    // 4. 组装对话历史流（支持回溯深度插入与跟随发言注入）
+    let chatStream = (chatHistoryMessages || []).map(msg => ({ ...msg }));
+
+/**
+ * 安全追加脚标文本到消息内容中（深度防御：同时支持 string 格式与多模态 array 格式）
+ * @param {object} msg - 消息对象
+ * @param {string} textToAppend - 要追加的脚标文本
+ */
+function appendTextToMessageContent(msg, textToAppend) {
+    if (!textToAppend || !msg) return;
+    if (typeof msg.content === 'string') {
+        msg.content = msg.content ? `${msg.content}\n${textToAppend}` : textToAppend;
+    } else if (Array.isArray(msg.content)) {
+        // 多模态数组格式（例如带图片时）：定位到第一个文本块追加，若无则新增文本块
+        const textItem = msg.content.find(item => item && item.type === 'text');
+        if (textItem && typeof textItem.text === 'string') {
+            textItem.text = textItem.text ? `${textItem.text}\n${textToAppend}` : textToAppend;
+        } else {
+            msg.content.push({ type: 'text', text: textToAppend });
+        }
+    }
+}
+
+    // 4.1 跟随用户发言 (append_to_user)：支持“每条合并”与“仅末条合并”
+    // — 为什么这么写 —
+    // 1. 每条合并 (appendAllUser = true)：遍历历史每条用户消息，提取该消息当时的 msg.timestamp 动态求值
+    //    让 AI 在阅读多轮上下文时，能看到真实发生的时间差，精准梳理对话时间线！
+    // 2. 仅末条合并 (appendAllUser = false)：保持轻量脚标模式，仅在最新一条用户发言末尾追加。
+    // 3. 无论哪种模式，统一采用 appendTextToMessageContent 防御性追加，保证多模态附件不被破坏。
+    if (appendToUserEntries.length > 0) {
+        const appendAllEntries = appendToUserEntries.filter(e => e.appendAllUser);
+        const appendLatestEntries = appendToUserEntries.filter(e => !e.appendAllUser);
+
+        const userMsgIndices = [];
+        for (let i = 0; i < chatStream.length; i++) {
+            if (chatStream[i].role === 'user') {
+                userMsgIndices.push(i);
+            }
+        }
+
+        const lastUserIdx = userMsgIndices.length > 0 ? userMsgIndices[userMsgIndices.length - 1] : -1;
+
+        // 1. 每条合并：遍历历史每条用户消息按其各自时间戳求值拼接
+        if (appendAllEntries.length > 0 && userMsgIndices.length > 0) {
+            for (const idx of userMsgIndices) {
+                const msg = chatStream[idx];
+                let msgDate = new Date();
+                if (msg.timestamp) {
+                    const parsedD = new Date(msg.timestamp);
+                    if (!isNaN(parsedD.getTime())) {
+                        msgDate = parsedD;
+                    }
+                }
+                
+                const allText = appendAllEntries
+                    .map(e => resolveDynamicVariables(e.rawContent || e.content, { ...dynamicContext, nowDate: msgDate }))
+                    .filter(Boolean)
+                    .join('\n');
+
+                if (allText) {
+                    appendTextToMessageContent(msg, allText);
+                }
+            }
+        }
+
+        // 2. 仅最新合并：追加到最后一条用户消息
+        if (appendLatestEntries.length > 0 && lastUserIdx !== -1) {
+            const latestText = appendLatestEntries
+                .map(e => e.content)
+                .filter(Boolean)
+                .join('\n');
+
+            if (latestText) {
+                appendTextToMessageContent(chatStream[lastUserIdx], latestText);
+            }
+        }
+    }
+
+    // 4.2 对话历史流内深度插入 (chat_end)
+    // 深度说明：0 = 插在最后一条之后；1 = 插在倒数第1条（最新消息）之前；2 = 倒数第2条前
+    if (chatEndEntries.length > 0) {
+        const depthGroups = new Map();
+        chatEndEntries.forEach(entry => {
+            const d = typeof entry.depth === 'number' && !isNaN(entry.depth) ? Math.max(0, entry.depth) : 0;
+            if (!depthGroups.has(d)) depthGroups.set(d, []);
+            depthGroups.get(d).push(entry);
+        });
+
+        // 深度从大到小插入，保证先插前方的，后方索引不受影响
+        const sortedDepths = Array.from(depthGroups.keys()).sort((a, b) => b - a);
+        for (const d of sortedDepths) {
+            const group = depthGroups.get(d);
+            const groupMessages = group.map(entry => ({
+                role: entry.role || 'system',
+                content: entry.content
+            }));
+            const insertIndex = Math.max(0, chatStream.length - d);
+            chatStream.splice(insertIndex, 0, ...groupMessages);
+        }
+    }
+
+    // 4.3 对话历史前插入 (chat_start)
+    if (chatStartEntries.length > 0) {
+        const startMessages = chatStartEntries.map(entry => ({
+            role: entry.role || 'system',
+            content: entry.content
+        }));
+        chatStream.unshift(...startMessages);
+    }
+
+    finalMessages.push(...chatStream);
     return finalMessages;
 }
 
@@ -496,7 +627,12 @@ export function getWorldBookContent(options = {}) {
                 if (Array.isArray(entry.sessionIds) && entry.sessionIds.includes(convId)) return true;
                 return false;
             })
-            .sort((a, b) => a.depth - b.depth); // 排序必须在这里再做一次，保证万无一失！
+            .sort((a, b) => {
+                const orderA = typeof a.order === 'number' ? a.order : (typeof a.depth === 'number' ? a.depth : 0);
+                const orderB = typeof b.order === 'number' ? b.order : (typeof b.depth === 'number' ? b.depth : 0);
+                if (orderA !== orderB) return orderA - orderB;
+                return (a.createdAt || 0) - (b.createdAt || 0);
+            });
     }
 
     // 返回所有世界书条目
@@ -543,8 +679,8 @@ export function buildApiRequest(options = {}) {
     // 处理正则替换规则
     const processedMessages = applyRegex ? applyRequestRegex(finalMessages) : finalMessages;
 
-    // 最终检查：确保最后传递的每一条记录都是合法且有内容的
-    const cleanedMessages = filterInvalidMessagesForApi(processedMessages);
+    // 最终检查：确保最后传递的每一条记录都是合法且有内容的，并彻底清洗掉内部临时辅助字段（如 timestamp）
+    const cleanedMessages = filterInvalidMessagesForApi(processedMessages).map(({ timestamp, ...rest }) => rest);
 
     // 根据API端点类型构建请求
     if (apiEndpoint.type === 'sse') {
@@ -599,7 +735,7 @@ export function buildApiRequest(options = {}) {
         // 3. 参数用驼峰命名 (topP, topK)
         // 4. 需要 sessionId 和 output_modalities 字段
         if (apiEndpoint.isOmniModel) {
-            const body = buildOmniRequestBody(apiEndpoint, cleanedMessages, endpointParams);
+            const body = buildOmniRequestBody(apiEndpoint, cleanedMessages, endpointParams, currentConv);
 
             return {
                 url: finalUrl,
@@ -608,8 +744,12 @@ export function buildApiRequest(options = {}) {
             };
         }
 
+        // — 为什么这么写 —
+        // 优先使用当前会话用户选中的模型（currentConv.model）；若未设置，则使用 API 端点默认模型；最后保底为 'default-model'
+        const selectedModel = (currentConv && currentConv.model) || apiEndpoint.model || 'default-model';
+
         const body = {
-            model: apiEndpoint.model || 'default-model',
+            model: selectedModel,
             messages: cleanedMessages,
             stream: endpointParams.streamMode !== undefined 
                 ? !!endpointParams.streamMode 
@@ -674,7 +814,7 @@ export function buildApiRequest(options = {}) {
  * @param {Object} endpointParams - 参数配置
  * @returns {Object} Omni 格式的请求体
  */
-function buildOmniRequestBody(apiEndpoint, messages, endpointParams) {
+function buildOmniRequestBody(apiEndpoint, messages, endpointParams, currentConv = null) {
     // 转换消息的 content 格式
     const omniMessages = messages.map(msg => {
         const converted = { role: msg.role };
@@ -703,7 +843,7 @@ function buildOmniRequestBody(apiEndpoint, messages, endpointParams) {
     // 乌鸦：裸包策略确认可用，Omni 模型只需 model + messages + stream
     // 那些破参数 (sessionId/topP/topK/output_modalities/repetitionPenalty) 统统不传
     const body = {
-        model: apiEndpoint.model || 'default-model',
+        model: (currentConv && currentConv.model) || apiEndpoint.model || 'default-model',
         messages: omniMessages,
         stream: endpointParams.streamMode !== undefined 
             ? !!endpointParams.streamMode 
