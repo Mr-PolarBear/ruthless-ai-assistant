@@ -195,6 +195,11 @@ function setupModalCloseButtons() {
                 case 'file-viewer-modal':
                     closeModalWithAnimation(dom.fileViewerModal, closeFileViewer);
                     break;
+                case 'mcp-error-modal':
+                    closeModalWithAnimation(modal, () => {
+                        import('./modals/mcp-error-modal.js?v=temp').then(m => m.closeMcpErrorModal());
+                    });
+                    break;
                 default:
                     closeModalWithAnimation(modal);
                     break;
@@ -235,6 +240,8 @@ function setupHideSummaryModal() {
     let currentTableSubtab = 'history'; // 'history' | 'character'
     let isTableRawMode = false;
     let currentTableRowLines = parseInt(localStorage.getItem('ruthless_summary_table_row_lines'), 10) || 3;
+    let currentSummaryList = [];
+    let currentTableData = { eventHistory: [], characterInfo: [] };
 
     function updateClearBtnState(isUndo) {
         if (!dom.hideSummaryClearBtn) return;
@@ -253,17 +260,51 @@ function setupHideSummaryModal() {
         }
     }
 
+    // — 为什么这么写 —
+    // 动态提取当前激活记忆视图中大模型实际会收到的完整记忆文本：
+    // 1. 递归模式：直接读取当前文本框的输入内容；
+    // 2. 列表拼接模式：将当前卡片流按阶段序列化为拼接列表文本；
+    // 3. 跑团双表模式：源码模式直接读 textarea，可视化模式将当前 tableData 格式化为标准 Markdown 表格。
+    function getMemoryContentForCurrentView() {
+        if (currentMemoryMode === 'recursive') {
+            return dom.hideSummaryResult ? dom.hideSummaryResult.value : '';
+        } else if (currentMemoryMode === 'append') {
+            return formatSummaryListToText(currentSummaryList);
+        } else if (currentMemoryMode === 'table') {
+            if (isTableRawMode && dom.summaryTableRawTextarea) {
+                return dom.summaryTableRawTextarea.value;
+            }
+            return formatTablesToMarkdown(currentTableData.eventHistory, currentTableData.characterInfo);
+        }
+        return '';
+    }
+
     function updateHideSummaryCharCounters() {
         if (dom.hideSummaryPrompt && dom.hideSummaryPromptCharCounter) {
             dom.hideSummaryPromptCharCounter.textContent = `${dom.hideSummaryPrompt.value.length} 字`;
         }
         if (dom.hideSummaryResult && dom.hideSummaryResultCharCounter) {
-            dom.hideSummaryResultCharCounter.textContent = `${dom.hideSummaryResult.value.length} 字`;
+            const resLen = dom.hideSummaryResult.value.length;
+            const resTokens = countTokens(dom.hideSummaryResult.value);
+            dom.hideSummaryResultCharCounter.textContent = `${resLen} 字 · 预估 ${resTokens} Tokens`;
+        }
+        if (dom.summaryMemoryTotalBadge) {
+            const memoryText = getMemoryContentForCurrentView();
+            const charCount = memoryText.length;
+            const tokenCount = countTokens(memoryText);
+
+            dom.summaryMemoryTotalBadge.textContent = `📊 ${charCount.toLocaleString()} 字符 · 预估 ${tokenCount.toLocaleString()} Tokens`;
+            if (charCount > 0) {
+                dom.summaryMemoryTotalBadge.classList.add('has-content');
+            } else {
+                dom.summaryMemoryTotalBadge.classList.remove('has-content');
+            }
         }
     }
 
     // 渲染模式 2 卡片流列表
     function renderAppendCardsList(summaryList = []) {
+        currentSummaryList = summaryList;
         if (!dom.summaryAppendCardsList) return;
         if (dom.summaryAppendCount) dom.summaryAppendCount.textContent = summaryList.length;
 
@@ -301,6 +342,7 @@ function setupHideSummaryModal() {
                     config.summaryList = summaryList;
                     setHideSummaryForCurrentConversation(config);
                     renderAppendCardsList(summaryList);
+                    updateHideSummaryCharCounters();
                 }
             });
 
@@ -323,6 +365,7 @@ function setupHideSummaryModal() {
 
     // 渲染模式 3 可视化双表格
     function renderTableGrid(tableData = { eventHistory: [], characterInfo: [] }) {
+        currentTableData = tableData;
         if (!dom.summaryTableHistoryTbody || !dom.summaryTableCharacterTbody) return;
 
         // 1. 渲染历史记录表
@@ -346,6 +389,7 @@ function setupHideSummaryModal() {
                     inp.addEventListener('input', () => {
                         row[inp.dataset.col] = inp.value;
                         inp.title = inp.value;
+                        updateHideSummaryCharCounters();
                     });
                 });
 
@@ -353,6 +397,7 @@ function setupHideSummaryModal() {
                     events.splice(idx, 1);
                     tableData.eventHistory = events;
                     renderTableGrid(tableData);
+                    updateHideSummaryCharCounters();
                 });
 
                 dom.summaryTableHistoryTbody.appendChild(tr);
@@ -379,6 +424,7 @@ function setupHideSummaryModal() {
                     inp.addEventListener('input', () => {
                         row[inp.dataset.col] = inp.value;
                         inp.title = inp.value;
+                        updateHideSummaryCharCounters();
                     });
                 });
 
@@ -386,6 +432,7 @@ function setupHideSummaryModal() {
                     chars.splice(idx, 1);
                     tableData.characterInfo = chars;
                     renderTableGrid(tableData);
+                    updateHideSummaryCharCounters();
                 });
 
                 dom.summaryTableCharacterTbody.appendChild(tr);
@@ -551,6 +598,19 @@ function setupHideSummaryModal() {
     if (dom.hideSummaryResetPromptBtn) {
         dom.hideSummaryResetPromptBtn.addEventListener('click', () => {
             const defaultPrompt = getDefaultPromptForMode(currentMemoryMode);
+            const modeName = currentMemoryMode === 'recursive' ? '递归滚动' : currentMemoryMode === 'append' ? '列表拼接' : '跑团双表';
+
+            // — 为什么这么写 —
+            // 提示词往往经过用户精心调优，直接覆盖可能导致劳动成果丢失，因此增加防误触二次确认
+            if (dom.hideSummaryPrompt && dom.hideSummaryPrompt.value.trim() === defaultPrompt.trim()) {
+                notify.info(`当前提示词已是【${modeName}】官方默认版本，无需恢复`);
+                return;
+            }
+
+            if (!confirm(`确定要恢复【${modeName}】的官方默认提示词吗？\n当前已编辑的提示词将被覆盖。`)) {
+                return;
+            }
+
             if (dom.hideSummaryPrompt) {
                 dom.hideSummaryPrompt.value = defaultPrompt;
                 updateHideSummaryCharCounters();
@@ -560,7 +620,7 @@ function setupHideSummaryModal() {
             if (!config.prompts) config.prompts = {};
             config.prompts[currentMemoryMode] = defaultPrompt;
             setHideSummaryForCurrentConversation(config);
-            notify.success(`已恢复【${currentMemoryMode === 'recursive' ? '递归滚动' : currentMemoryMode === 'append' ? '列表拼接' : '跑团双表'}】官方默认提示词`);
+            notify.success(`已恢复【${modeName}】官方默认提示词`);
         });
     }
 
@@ -584,6 +644,7 @@ function setupHideSummaryModal() {
                 config.summaryList = [...(config.summaryList || []), newChunk];
                 setHideSummaryForCurrentConversation(config);
                 renderAppendCardsList(config.summaryList);
+                updateHideSummaryCharCounters();
                 notify.success('✨ 已成功添加记忆片段！');
             }
         });
@@ -638,6 +699,7 @@ function setupHideSummaryModal() {
             if (dom.summaryTableRawTextarea) {
                 dom.summaryTableRawTextarea.value = formatTablesToMarkdown(config.tableData.eventHistory, config.tableData.characterInfo);
             }
+            updateHideSummaryCharCounters();
         });
     }
 
@@ -672,7 +734,14 @@ function setupHideSummaryModal() {
                     renderTableGrid(config.tableData);
                 }
             }
+            updateHideSummaryCharCounters();
         });
+
+        if (dom.summaryTableRawTextarea) {
+            dom.summaryTableRawTextarea.addEventListener('input', () => {
+                updateHideSummaryCharCounters();
+            });
+        }
     }
 
     // 模式 3：表格放大/全屏编辑窗口切换
@@ -1423,22 +1492,34 @@ function setupMessageLimitSlider() {
     const messageLimitValue = document.getElementById('message-limit-value');
 
     if (messageLimitSlider && messageLimitValue) {
-        // 监听滑块值变化
-        messageLimitSlider.addEventListener('input', () => {
+        // — 为什么这么写 —
+        // 用户拖动滑块时（input）或松开确认时（change），均需要立即同步 messageLimit 配置，
+        // 并即时触发 updateSessionTokenBadge() 刷新顶栏 Token 徽章（session-token-text），
+        // 彻底杜绝调整限制后 Token 统计滞后脱节的问题。
+        const applyMessageLimitChange = () => {
             const value = parseInt(messageLimitSlider.value);
             messageLimitValue.textContent = value === 0 ? '全部' : value.toString();
-        });
 
-        // 保存滑块值到会话配置
-        messageLimitSlider.addEventListener('change', () => {
             const data = getHideSummaryForCurrentConversation();
-            data.messageLimit = parseInt(messageLimitSlider.value);
+            data.messageLimit = value;
             setHideSummaryForCurrentConversation(data);
+
+            // 乌鸦：核心修复——立即刷新顶栏会话 Token 徽章
+            updateSessionTokenBadge();
+
+            // 乌鸦：若数据详情/记忆弹窗正在展示，联动刷新弹窗内的统计视图
+            if (window.refreshHideSummaryModalViews) {
+                window.refreshHideSummaryModalViews();
+            }
 
             if (window.updateHideSummaryBtnColor) {
                 window.updateHideSummaryBtnColor();
             }
-        });
+        };
+
+        // 监听滑块拖动中（实时流畅反馈）与松开确认
+        messageLimitSlider.addEventListener('input', applyMessageLimitChange);
+        messageLimitSlider.addEventListener('change', applyMessageLimitChange);
     }
 }
 
@@ -1575,8 +1656,12 @@ function showSystemPromptModal() {
     // 计算和显示对话统计信息
     const convStats = calculateConversationStats(conv, hideSummaryConfig);
     if (dom.actualSentTokens) dom.actualSentTokens.textContent = (convStats.actualSentEstimatedTokens || 0).toLocaleString();
-    const actualSentCharsEl = document.getElementById('actual-sent-characters');
+    const actualSentCharsEl = dom.actualSentCharacters || document.getElementById('actual-sent-characters');
     if (actualSentCharsEl) actualSentCharsEl.textContent = (convStats.actualSentCharacters || 0).toLocaleString();
+    const actualSentMainTokensEl = dom.actualSentMainTokens || document.getElementById('actual-sent-main-tokens');
+    if (actualSentMainTokensEl) actualSentMainTokensEl.textContent = (convStats.actualSentMainTokens || 0).toLocaleString();
+    const actualSentSystemTokensEl = dom.actualSentSystemTokens || document.getElementById('actual-sent-system-tokens');
+    if (actualSentSystemTokensEl) actualSentSystemTokensEl.textContent = (convStats.actualSentSystemTokens || 0).toLocaleString();
     dom.totalEstimatedTokens.textContent = (convStats.totalEstimatedTokens || 0).toLocaleString();
     dom.totalCharacters.textContent = (convStats.totalCharacters || 0).toLocaleString();
     if (dom.mainTokens) dom.mainTokens.textContent = (convStats.mainTokens || 0).toLocaleString();

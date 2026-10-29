@@ -4,6 +4,7 @@ import { deleteConversation } from './db.js?v=temp';
 import { saveToLocalStorage } from './utils.js?v=temp';
 import { renderHistory } from './sidebar.js?v=temp';
 import { notify } from './ui-updater.js?v=temp';
+import { draftManager } from './services/draft-manager.js?v=temp';
 
 export function initBatchDelete() {
     if (dom.batchDeleteBtn) {
@@ -136,6 +137,7 @@ async function handleBatchDelete() {
     const deletePromises = [];
     state.selectedConvIds.forEach(convId => {
         delete state.conversations[convId];
+        draftManager.onConversationDeleted(convId);
         deletePromises.push(deleteConversation(convId).catch(err => {
             console.error(`删除会话 ${convId} 失败:`, err);
         }));
@@ -148,9 +150,12 @@ async function handleBatchDelete() {
     if (state.selectedConvIds.has(state.currentConversationId)) {
         state.currentConversationId = null;
         const remainingIds = Object.keys(state.conversations);
+        const { switchToConversation } = await import('./main.js?v=temp');
         if (remainingIds.length > 0) {
-            const { switchToConversation } = await import('./main.js?v=temp');
             switchToConversation(remainingIds[0]);
+        } else {
+            // 所有会话已删光，彻底清空当前会话界面、输入草稿与 MCP 徽章状态
+            switchToConversation(null);
         }
     }
     

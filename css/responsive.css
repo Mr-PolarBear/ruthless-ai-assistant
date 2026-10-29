@@ -5,7 +5,18 @@
     #app {
         height: 100vh;
         height: 100dvh;
+        height: var(--visual-viewport-height, 100dvh);
         overflow: hidden;
+    }
+
+    /* 移动端软键盘弹起时，物理高度严格自适应当前可视区，消除遮挡与头部被顶出 */
+    body.keyboard-active #app {
+        height: var(--visual-viewport-height, 100dvh) !important;
+        max-height: var(--visual-viewport-height, 100dvh) !important;
+    }
+
+    body.keyboard-active .scroll-nav-buttons {
+        bottom: 5.5rem !important;
     }
 
     /* --- Layout: Sidebar Drawer --- */
@@ -346,6 +357,27 @@
         transition: opacity 0.2s ease, transform 0.2s ease !important;
     }
 
+    /* 移动端回底动态胶囊保持适宜尺寸与高可见度 */
+    .scroll-nav-buttons button#scroll-to-bottom-btn.is-generating,
+    .scroll-nav-buttons button#scroll-to-bottom-btn.has-new {
+        width: auto !important;
+        min-width: 78px !important;
+        height: 32px !important;
+        min-height: 32px !important;
+        padding: 0 10px !important;
+        gap: 4px !important;
+        opacity: 0.95 !important;
+    }
+
+    .scroll-nav-buttons button#scroll-to-bottom-btn .scroll-pill-label {
+        font-size: 12px !important;
+    }
+
+    .scroll-nav-buttons button#scroll-to-bottom-btn .scroll-pill-pulse {
+        width: 6px !important;
+        height: 6px !important;
+    }
+
     /* 滚动按钮与楼层跳转按钮：平时半透明 0.65，触摸/激活时恢复 1 */
     .scroll-nav-buttons button:not(.hidden),
     #jump-to-floor-btn {
@@ -439,10 +471,10 @@
 
     .input-area-btn {
         padding: 0;
-        width: 36px;
-        height: 36px;
-        min-width: 36px;
-        min-height: 36px;
+        width: 32px;
+        height: 32px;
+        min-width: 32px;
+        min-height: 32px;
         border-radius: var(--radius-md);
         display: flex;
         align-items: center;
@@ -451,34 +483,34 @@
     }
 
     .input-area-btn svg {
-        width: 19px;
-        height: 19px;
+        width: 17px;
+        height: 17px;
     }
 
-    /* API 下拉选择器：固定占屏幕/容器的 1/4 宽度，超长文本自动省略 */
-    .api-selector {
-        flex: 0 0 25% !important;
-        width: 25% !important;
-        max-width: 25% !important;
-        min-width: 0 !important;
+    /* API 与 模型下拉选择器：在手机端各占自适应比例，文本自动省略 */
+    .api-selector,
+    .model-selector {
+        flex: 1 1 65px !important;
+        max-width: 95px !important;
+        min-width: 55px !important;
         box-sizing: border-box !important;
-        height: 34px !important;
+        height: 32px !important;
         font-size: 11px !important;
         padding: 0 4px !important;
         border-radius: var(--radius-sm) !important;
         text-overflow: ellipsis !important;
         overflow: hidden !important;
         white-space: nowrap !important;
-        flex-shrink: 0 !important;
+        flex-shrink: 1 !important;
     }
 
     /* 发送按钮靠右自适应对齐 */
     #send-button {
         order: 4;
         margin-left: auto;
-        min-width: 44px;
-        height: 36px;
-        padding: 0 0.75rem;
+        min-width: 40px;
+        height: 32px;
+        padding: 0 0.6rem;
         border-radius: var(--radius-full);
         display: flex;
         align-items: center;
@@ -880,15 +912,18 @@
         align-items: center !important;
         margin-left: auto !important;
         flex-shrink: 0 !important;
+        gap: 0 !important;
     }
 
-    /* 隐藏移动端不需要平铺的 6 个管理按钮 */
-    .history-item .actions button:not(.more-conv-btn) {
+    /* 隐藏移动端不需要平铺的 6 个管理按钮（包括 touch 激活的 hover 状态） */
+    .history-item .actions button:not(.more-conv-btn),
+    .history-item:hover .actions button:not(.more-conv-btn) {
         display: none !important;
     }
 
     /* 移动端专属三点更多按钮样式 */
-    .history-item .actions .more-conv-btn {
+    .history-item .actions .more-conv-btn,
+    .history-item:hover .actions .more-conv-btn {
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
@@ -903,6 +938,7 @@
         border-radius: var(--radius-sm) !important;
         cursor: pointer !important;
         opacity: 0.75;
+        pointer-events: auto !important;
     }
 
     .history-item .actions .more-conv-btn:active {
@@ -911,7 +947,76 @@
         opacity: 1;
     }
 
+    body[data-theme="dark"] .history-item .actions .more-conv-btn:active {
+        background-color: var(--bg-hover, rgba(255, 255, 255, 0.12)) !important;
+        color: #fff !important;
+    }
+
     #new-chat-btn {
         padding: 0.6rem;
+    }
+}
+
+/* ==========================================================================
+   触屏与手持设备防误触强化 (Plan A)
+   - 覆盖无论屏幕尺寸宽窄的所有触控屏（如iPad、平板、触控笔电、折叠屏）
+   - 彻底禁用 6 按钮平铺，仅保留独立三点按钮与 500ms 长按唤起 Action Sheet
+   ========================================================================== */
+@media (hover: none) and (pointer: coarse) {
+    .history-item {
+        -webkit-touch-callout: none !important;
+        -webkit-user-select: none !important;
+        user-select: none !important;
+    }
+
+    .history-item:hover {
+        transform: none !important;
+    }
+
+    .history-item .api-badge-container {
+        display: none !important;
+    }
+
+    .history-item .actions {
+        display: flex !important;
+        align-items: center !important;
+        margin-left: auto !important;
+        flex-shrink: 0 !important;
+        gap: 0 !important;
+    }
+
+    .history-item .actions button:not(.more-conv-btn),
+    .history-item:hover .actions button:not(.more-conv-btn) {
+        display: none !important;
+    }
+
+    .history-item .actions .more-conv-btn,
+    .history-item:hover .actions .more-conv-btn {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 32px !important;
+        height: 32px !important;
+        min-width: 32px !important;
+        min-height: 32px !important;
+        padding: 4px !important;
+        border: none !important;
+        background: transparent !important;
+        color: var(--text-secondary) !important;
+        border-radius: var(--radius-sm) !important;
+        cursor: pointer !important;
+        opacity: 0.75;
+        pointer-events: auto !important;
+    }
+
+    .history-item .actions .more-conv-btn:active {
+        background-color: var(--bg-hover, rgba(0, 0, 0, 0.08)) !important;
+        color: var(--text-primary) !important;
+        opacity: 1;
+    }
+
+    body[data-theme="dark"] .history-item .actions .more-conv-btn:active {
+        background-color: var(--bg-hover, rgba(255, 255, 255, 0.12)) !important;
+        color: #fff !important;
     }
 }

@@ -76,6 +76,10 @@ export function resetRegexForm() {
         dom.regexCancelBtn.textContent = '取消编辑';
     }
 
+    // 隐藏表单头部的快速新建按钮（当前已处于新建空白状态）
+    const formNewBtn = dom.regexFormNewBtn || document.getElementById('regex-form-new-btn');
+    if (formNewBtn) formNewBtn.style.display = 'none';
+
     updateRegexFloorSummary();
 }
 
@@ -153,6 +157,10 @@ export function populateRegexForm(rule) {
             dom.regexCancelBtn.textContent = '取消编辑';
         }
     }
+
+    // 在查看或编辑已有规则时，显现表单头部的“新建空白规则”快捷逃生按钮
+    const formNewBtn = dom.regexFormNewBtn || document.getElementById('regex-form-new-btn');
+    if (formNewBtn) formNewBtn.style.display = 'inline-block';
 
     updateRegexFloorSummary();
 }

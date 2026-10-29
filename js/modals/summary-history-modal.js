@@ -227,6 +227,11 @@ async function executeRollback(restoreFloors) {
     if (version.tableData) {
         config.tableData = JSON.parse(JSON.stringify(version.tableData));
     }
+    if (version.maxFloor) {
+        config.lastAutoSummaryFloor = version.maxFloor;
+    } else if (Array.isArray(version.hiddenFloors) && version.hiddenFloors.length > 0) {
+        config.lastAutoSummaryFloor = Math.max(...version.hiddenFloors);
+    }
 
     setHideSummaryForConversation(convId, config);
     await saveToLocalStorage();

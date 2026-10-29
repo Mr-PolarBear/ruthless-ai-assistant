@@ -1,0 +1,623 @@
+/* ==========================================================================
+   海报分享长图弹窗与卡片样式 (Share Card Modal & Styles)
+   支持 4 款艺术主题、Retina 离屏排版与深浅双模式适配
+   ========================================================================== */
+
+.share-card-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(15, 23, 42, 0.65);
+    backdrop-filter: blur(4px);
+    z-index: 1100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    box-sizing: border-box;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.share-card-modal-content {
+    background-color: var(--bg-surface, #ffffff);
+    color: var(--text-primary, #0f172a);
+    width: 90vw;
+    max-width: 680px;
+    height: 88vh;
+    max-height: 860px;
+    border-radius: var(--radius-xl, 16px);
+    box-shadow: 0 20px 40px -8px rgba(0, 0, 0, 0.25), 0 0 0 1px var(--border-color, #e2e8f0);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative; /* 支撑内部全屏 loading 遮罩 */
+    animation: scaleUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+body[data-theme="dark"] .share-card-modal-content {
+    background-color: #1e2634;
+    color: #f1f5f9;
+    box-shadow: 0 24px 50px -10px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+/* Header */
+.share-card-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.85rem 1.25rem;
+    border-bottom: 1px solid var(--border-color, #e2e8f0);
+    background-color: var(--bg-medium, #f8fafc);
+    flex-shrink: 0;
+    gap: 10px;
+}
+
+body[data-theme="dark"] .share-card-modal-header {
+    background-color: #18202c;
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+.share-card-header-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary, #0f172a);
+    white-space: nowrap;
+}
+
+body[data-theme="dark"] .share-card-header-title {
+    color: #f1f5f9;
+}
+
+.share-card-header-title svg {
+    color: var(--accent-blue, #2563eb);
+}
+
+/* Theme Selector Chips */
+.share-card-theme-selector {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    overflow-x: auto;
+}
+
+.theme-label {
+    font-size: 12px;
+    color: var(--text-secondary, #64748b);
+    white-space: nowrap;
+}
+
+.theme-chip {
+    padding: 4px 9px;
+    font-size: 12px;
+    border-radius: var(--radius-full, 9999px);
+    border: 1px solid var(--border-color, #cbd5e1);
+    background-color: var(--bg-surface, #ffffff);
+    color: var(--text-secondary, #64748b);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+}
+
+body[data-theme="dark"] .theme-chip {
+    background-color: #273142;
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #94a3b8;
+}
+
+.theme-chip:hover {
+    border-color: var(--accent-blue, #2563eb);
+    color: var(--accent-blue, #2563eb);
+}
+
+.theme-chip.active {
+    background-color: var(--accent-blue, #2563eb);
+    color: #ffffff !important;
+    border-color: var(--accent-blue, #2563eb);
+    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.3);
+}
+
+.share-card-close-btn {
+    background: none;
+    border: none;
+    font-size: 22px;
+    line-height: 1;
+    color: var(--text-secondary, #64748b);
+    cursor: pointer;
+    padding: 0 4px;
+    transition: color 0.15s;
+}
+
+.share-card-close-btn:hover {
+    color: #ef4444;
+}
+
+/* Config Bar (Title edit, Date toggle, Floor toggle) */
+.share-card-config-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 1.25rem;
+    background-color: var(--bg-surface, #ffffff);
+    border-bottom: 1px solid var(--border-color, #e2e8f0);
+    flex-shrink: 0;
+    flex-wrap: wrap;
+}
+
+body[data-theme="dark"] .share-card-config-bar {
+    background-color: #1e2634;
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+.config-item.title-config {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+    min-width: 200px;
+}
+
+.config-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary, #64748b);
+    white-space: nowrap;
+}
+
+.share-card-title-input {
+    flex: 1;
+    height: 28px;
+    padding: 2px 10px;
+    font-size: 13px;
+    border: 1px solid var(--border-color, #cbd5e1);
+    border-radius: var(--radius-sm, 6px);
+    background-color: var(--bg-light, #f8fafc);
+    color: var(--text-primary, #0f172a);
+    outline: none;
+    transition: all 0.15s ease;
+}
+
+body[data-theme="dark"] .share-card-title-input {
+    background-color: #273142;
+    border-color: rgba(255, 255, 255, 0.15);
+    color: #f1f5f9;
+}
+
+.share-card-title-input:focus {
+    border-color: var(--accent-blue, #2563eb);
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+}
+
+.config-item.options-config {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    white-space: nowrap;
+}
+
+.config-checkbox-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    color: var(--text-primary, #334155);
+    cursor: pointer;
+    user-select: none;
+}
+
+body[data-theme="dark"] .config-checkbox-label {
+    color: #cbd5e1;
+}
+
+.config-checkbox-label input[type="checkbox"] {
+    cursor: pointer;
+    width: 14px;
+    height: 14px;
+    accent-color: var(--accent-blue, #2563eb);
+}
+
+/* Modal Body & Scroll Wrapper */
+.share-card-modal-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1.5rem;
+    background-color: var(--bg-light, #f1f5f9);
+    display: block; /* 采用标准块流，支持内部超长卡片自然纵向撑开并滚动 */
+}
+
+body[data-theme="dark"] .share-card-modal-body {
+    background-color: #111827;
+}
+
+.share-card-scroll-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start; /* 关键：防止 flex stretch 导致卡片外框高度停留在第一屏而被长内容穿透截断 */
+    width: 100%;
+    min-height: 100%;
+    padding-bottom: 2rem; /* 底部预留呼吸空间，长图滚到底部完整包裹 */
+    box-sizing: border-box;
+}
+
+/* The actual Card Element for capture */
+.share-card-canvas-target {
+    width: 100%;
+    max-width: 560px;
+    height: auto !important; /* 强制高度随内容无限延展，外框圆角背景必须包裹到最底部 */
+    min-height: min-content;
+    padding: 24px;
+    border-radius: 18px;
+    box-sizing: border-box;
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.16);
+    transition: background 0.25s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+/* 4 Themes */
+.share-card-canvas-target.theme-aurora {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+}
+
+.share-card-canvas-target.theme-minimal {
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+}
+
+.share-card-canvas-target.theme-sunset {
+    background: linear-gradient(135deg, #fbcfe8 0%, #fed7aa 50%, #fef08a 100%);
+}
+
+.share-card-canvas-target.theme-cyber {
+    background: #09090b;
+    border: 1.5px solid #d97706;
+}
+
+/* Inner Card Plate */
+.share-card-inner {
+    background: #ffffff;
+    border-radius: 14px;
+    padding: 20px 22px;
+    box-sizing: border-box;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+    width: 100%;
+    height: auto;
+}
+
+.theme-cyber .share-card-inner {
+    background: #18181b;
+    color: #f4f4f5;
+    border: 1px solid #27272a;
+}
+
+/* Topbar */
+.share-card-topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 12px;
+    margin-bottom: 14px;
+}
+
+.theme-cyber .share-card-topbar {
+    border-bottom-color: #27272a;
+}
+
+.brand-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.brand-icon {
+    font-size: 20px;
+}
+
+.brand-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1e293b;
+    line-height: 1.2;
+}
+
+.theme-cyber .brand-title {
+    color: #f4f4f5;
+}
+
+.brand-sub {
+    font-size: 11px;
+    color: #64748b;
+    margin-top: 2px;
+}
+
+.brand-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 3px;
+}
+
+.share-card-badges-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.share-card-floor-badge {
+    font-size: 10.5px;
+    font-weight: 600;
+    padding: 1.5px 7px;
+    border-radius: 9999px;
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+    display: inline-block;
+}
+
+.theme-cyber .share-card-floor-badge {
+    background: #27272a;
+    color: #d4d4d8;
+    border-color: #3f3f46;
+}
+
+.theme-aurora .share-card-floor-badge {
+    background: #e2e8f0;
+    color: #1e293b;
+    border-color: #cbd5e1;
+}
+
+.theme-sunset .share-card-floor-badge {
+    background: #fdf2f8;
+    color: #be185d;
+    border-color: #fbcfe8;
+}
+
+.share-card-badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 9999px;
+    background: #e0f2fe;
+    color: #0369a1;
+}
+
+.theme-cyber .share-card-badge {
+    background: rgba(217, 119, 6, 0.2);
+    color: #f59e0b;
+}
+
+.share-card-date {
+    font-size: 10px;
+    color: #94a3b8;
+}
+
+/* Content */
+.share-card-conv-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #0284c7;
+    margin-bottom: 14px;
+    border-left: 3px solid #0284c7;
+    padding-left: 8px;
+}
+
+.theme-cyber .share-card-conv-title {
+    color: #f59e0b;
+    border-left-color: #f59e0b;
+}
+
+.share-card-content {
+    font-size: 13.5px;
+    line-height: 1.65;
+    word-break: break-word;
+    color: #334155;
+}
+
+.theme-cyber .share-card-content {
+    color: #d4d4d8;
+}
+
+.share-card-content p {
+    margin-bottom: 10px;
+}
+
+.share-card-content pre {
+    background: #1e293b;
+    color: #f8fafc;
+    padding: 12px;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-size: 12px;
+    margin: 10px 0;
+    font-family: Consolas, Monaco, "Courier New", monospace;
+}
+
+.share-card-content code {
+    font-family: Consolas, Monaco, "Courier New", monospace;
+    background: rgba(0, 0, 0, 0.06);
+    padding: 2px 4px;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+.share-card-content pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+}
+
+.share-card-content table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 10px 0;
+    font-size: 12px;
+}
+
+.share-card-content th,
+.share-card-content td {
+    border: 1px solid #cbd5e1;
+    padding: 6px 8px;
+    text-align: left;
+}
+
+.share-card-content th {
+    background: #f1f5f9;
+    font-weight: 600;
+}
+
+.theme-cyber .share-card-content th {
+    background: #27272a;
+}
+
+/* Footer */
+.share-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid #e2e8f0;
+    margin-top: 18px;
+    padding-top: 10px;
+    font-size: 11px;
+    color: #94a3b8;
+}
+
+.theme-cyber .share-card-footer {
+    border-top-color: #27272a;
+}
+
+/* Actions in Modal Bottom */
+.share-card-modal-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 0.85rem 1.25rem;
+    border-top: 1px solid var(--border-color, #e2e8f0);
+    background-color: var(--bg-medium, #f8fafc);
+    flex-shrink: 0;
+}
+
+body[data-theme="dark"] .share-card-modal-actions {
+    background-color: #18202c;
+    border-top-color: rgba(255, 255, 255, 0.08);
+}
+
+.share-card-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    border-radius: var(--radius-md, 8px);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.share-card-btn.primary-btn {
+    background-color: var(--accent-blue, #2563eb);
+    color: #ffffff;
+    border: 1px solid var(--accent-blue, #2563eb);
+}
+
+.share-card-btn.primary-btn:hover {
+    background-color: #1d4ed8;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+}
+
+.share-card-btn.secondary-btn {
+    background-color: var(--bg-surface, #ffffff);
+    color: var(--text-primary, #334155);
+    border: 1px solid var(--border-color, #cbd5e1);
+}
+
+body[data-theme="dark"] .share-card-btn.secondary-btn {
+    background-color: #273142;
+    color: #cbd5e1;
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+.share-card-btn.secondary-btn:hover {
+    background-color: var(--bg-light, #f1f5f9);
+    border-color: var(--accent-blue, #2563eb);
+    color: var(--accent-blue, #2563eb);
+    transform: translateY(-1px);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .share-card-modal-overlay {
+        padding: 0.5rem;
+    }
+
+    .share-card-modal-content {
+        width: 100vw;
+        height: 94vh;
+        border-radius: var(--radius-lg, 12px);
+    }
+
+    .share-card-modal-header {
+        flex-wrap: wrap;
+    }
+
+    .share-card-modal-body {
+        padding: 0.75rem;
+    }
+
+    .share-card-canvas-target {
+        padding: 14px;
+    }
+
+    .share-card-inner {
+        padding: 14px;
+    }
+}
+
+/* Loading Overlay for Share Card */
+.share-card-loading-overlay {
+    position: absolute;
+    inset: 0;
+    background-color: rgba(15, 23, 42, 0.65);
+    backdrop-filter: blur(4px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    z-index: 50;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.share-card-loading-box {
+    background: rgba(30, 41, 59, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+}
+
+.share-card-spinner {
+    width: 20px;
+    height: 20px;
+    border: 2.5px solid rgba(255, 255, 255, 0.25);
+    border-top-color: #38bdf8;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}

@@ -5,7 +5,7 @@
 
 import { dom } from '../dom.js?v=temp';
 import { state } from '../state.js?v=temp';
-import { escapeHtml } from '../utils.js?v=temp';
+import { escapeHtml, countTokens } from '../utils.js?v=temp';
 
 // 更新已选中标签页的数量显示
 function updateSelectedCount(count) {
@@ -19,19 +19,56 @@ function updateSelectedCount(count) {
  * @param {boolean} isGlobalEnabled - 全局生效是否开启
  * @param {boolean} isSessionChecked - 局部生效是否勾选（仅在非全局时生效）
  */
+/**
+ * 智能获取当前激活的会话 ID（具备 DOM 与单会话自动识别兜底）
+ * @returns {string|null}
+ */
+export function getSafeActiveConversationId() {
+    if (state.currentConversationId && state.conversations && state.conversations[state.currentConversationId]) {
+        return state.currentConversationId;
+    }
+    if (typeof document !== 'undefined') {
+        const activeDom = document.querySelector('.history-item.active, [data-conversation-id].active, [data-id].active');
+        const domId = activeDom?.dataset?.id || activeDom?.dataset?.conversationId;
+        if (domId && state.conversations && state.conversations[domId]) {
+            state.currentConversationId = domId;
+            return domId;
+        }
+    }
+    const convKeys = Object.keys(state.conversations || {});
+    if (convKeys.length === 1) {
+        state.currentConversationId = convKeys[0];
+        return convKeys[0];
+    }
+    return state.currentConversationId || null;
+}
+
 export function updateFormSessionToggleState(isGlobalEnabled, isSessionChecked = false) {
     if (!dom.worldBookSessionToggleInput) return;
-    const currentConvId = state.currentConversationId;
+    const currentConvId = getSafeActiveConversationId();
     
     // — 为什么这么写 —
-    // 1. 若当前未打开任何会话，无法针对会话局部挂载，必须置灰禁用并给出明确提示
-    // 2. 若开启全局生效，条目自动在所有会话（包括当前会话）生效，局部开关自动打勾并置灰禁用
-    // 3. 若关闭全局生效，局部开关恢复可编辑，允许用户自由决定是否在当前会话生效
+    // 1. 若当前未打开任何会话（空白态/刚进系统未发消息）：
+    //    - 若开启全局：局部开关打勾禁用（全局自然覆盖所有未来会话）
+    //    - 若关闭全局：允许点击局部开关，点击时意图驱动自动创建新会话并绑定生效！
+    // 2. 若当前已有活动会话：
+    //    - 开启全局：局部开关打勾禁用
+    //    - 关闭全局：局部开关恢复勾选交互，精确挂载到当前会话
     if (!currentConvId) {
-        dom.worldBookSessionToggleInput.checked = false;
-        dom.worldBookSessionToggleInput.disabled = true;
-        if (dom.worldBookSessionToggleContainer) {
-            dom.worldBookSessionToggleContainer.title = '未进入任何会话，无法开启局部生效';
+        if (isGlobalEnabled) {
+            dom.worldBookSessionToggleInput.checked = true;
+            dom.worldBookSessionToggleInput.disabled = true;
+            if (dom.worldBookSessionToggleContainer) {
+                dom.worldBookSessionToggleContainer.title = '已全局生效（包含所有会话）';
+                dom.worldBookSessionToggleContainer.style.cursor = 'not-allowed';
+            }
+        } else {
+            dom.worldBookSessionToggleInput.checked = Boolean(isSessionChecked);
+            dom.worldBookSessionToggleInput.disabled = false;
+            if (dom.worldBookSessionToggleContainer) {
+                dom.worldBookSessionToggleContainer.title = '仅在当前新会话生效（点击或保存时将自动创建新会话）';
+                dom.worldBookSessionToggleContainer.style.cursor = 'pointer';
+            }
         }
         return;
     }
@@ -41,12 +78,14 @@ export function updateFormSessionToggleState(isGlobalEnabled, isSessionChecked =
         dom.worldBookSessionToggleInput.disabled = true;
         if (dom.worldBookSessionToggleContainer) {
             dom.worldBookSessionToggleContainer.title = '已全局生效（包含当前会话）';
+            dom.worldBookSessionToggleContainer.style.cursor = 'not-allowed';
         }
     } else {
         dom.worldBookSessionToggleInput.disabled = false;
         dom.worldBookSessionToggleInput.checked = Boolean(isSessionChecked);
         if (dom.worldBookSessionToggleContainer) {
             dom.worldBookSessionToggleContainer.title = '仅在当前会话中生效';
+            dom.worldBookSessionToggleContainer.style.cursor = 'pointer';
         }
     }
 }
@@ -124,7 +163,7 @@ export function openWorldBookModal() {
     toggleWorldBookContentExpand(false);
     
     // 初始化已选中数量
-    const currentConvId = state.currentConversationId;
+    const currentConvId = getSafeActiveConversationId();
     const selectedEntries = Object.values(state.worldBook).filter(entry => {
         if (entry.enabled) return true;
         if (currentConvId && Array.isArray(entry.sessionIds) && entry.sessionIds.includes(currentConvId)) return true;
@@ -136,7 +175,26 @@ export function openWorldBookModal() {
     dom.worldBookModal.classList.add('visible');
 }
 
+/**
+ * 备忘录排序比对函数：基于 order 字段升序排序，无 order 时平滑回退至 depth
+ */
+export function sortWorldBookEntries(entries) {
+    return (entries || []).slice().sort((a, b) => {
+        const orderA = typeof a.order === 'number' ? a.order : (typeof a.depth === 'number' ? a.depth : 0);
+        const orderB = typeof b.order === 'number' ? b.order : (typeof b.depth === 'number' ? b.depth : 0);
+        if (orderA !== orderB) return orderA - orderB;
+        return (a.createdAt || 0) - (b.createdAt || 0);
+    });
+}
+
 export function resetWorldBookForm() {
+    if (dom.worldBookPositionSelector) dom.worldBookPositionSelector.value = 'top';
+    if (dom.worldBookDepthLabelText) dom.worldBookDepthLabelText.textContent = '挂载深度';
+    if (dom.worldBookDepthInput) dom.worldBookDepthInput.disabled = false;
+    if (dom.worldBookRoleSelector) dom.worldBookRoleSelector.disabled = false;
+    if (dom.worldBookDepthGroup) dom.worldBookDepthGroup.style.display = '';
+    if (dom.worldBookAppendAllGroup) dom.worldBookAppendAllGroup.style.display = 'none';
+    if (dom.worldBookAppendAllToggle) dom.worldBookAppendAllToggle.checked = false;
     dom.worldBookIdInput.value = '';
     dom.worldBookNameInput.value = '';
     dom.worldBookContentInput.value = '';
@@ -160,9 +218,97 @@ export function updateCharCounter() {
     dom.worldBookCharCounter.textContent = `${count} 字`;
 }
 
+/**
+ * 生成备忘录单条卡片的 HTML 字符串（在左下角展示预估 Token 和字数）
+ * @param {object} entry - 备忘录条目
+ * @param {string} currentConvId - 当前会话ID
+ * @param {boolean} allowDrag - 是否允许拖拽
+ * @returns {string} 卡片 HTML
+ */
+function renderWorldBookCardHTML(entry, currentConvId, allowDrag = true) {
+    if (!Array.isArray(entry.sessionIds)) entry.sessionIds = [];
+    const globalChecked = entry.enabled ? 'checked' : '';
+    const sessionChecked = (entry.enabled || (currentConvId && entry.sessionIds.includes(currentConvId))) ? 'checked' : '';
+    const sessionDisabled = entry.enabled ? 'disabled' : '';
+
+    const tagsHTML = Array.isArray(entry.tags) && entry.tags.length > 0 ? `
+        <div class="worldbook-item-tags">
+            ${entry.tags.map(tag => `<span class="tag-badge">${escapeHtml(tag)}</span>`).join('')}
+        </div>
+    ` : '';
+
+    const draggableAttr = allowDrag ? 'draggable="true"' : '';
+    const textContent = entry.content || '';
+    const charCount = textContent.length;
+    const tokenCount = countTokens(textContent);
+
+    let posText = '顶部系统';
+    let depthBadge = `<span class="scope-badge">挂载深度: ${entry.depth ?? 10}</span>`;
+    let roleBadge = `<span class="scope-badge">角色: ${entry.role || 'system'}</span>`;
+
+    if (entry.position === 'chat_start') {
+        posText = '历史前';
+        depthBadge = `<span class="scope-badge">挂载深度: ${entry.depth ?? 10}</span>`;
+    } else if (entry.position === 'chat_end') {
+        posText = '历史流 (倒数)';
+        depthBadge = `<span class="scope-badge">倒数深度: ${entry.depth ?? 0}</span>`;
+    } else if (entry.position === 'append_to_user') {
+        posText = entry.appendAllUser ? '跟随发言 (每条)' : '跟随发言 (仅末条)';
+        depthBadge = '';
+        roleBadge = '';
+    }
+
+    return `
+        <div class="regex-rule-item worldbook-item" data-id="${entry.id}" ${draggableAttr}>
+            <div class="worldbook-item-content">
+                <div class="regex-rule-item-name">${escapeHtml(entry.name || '未命名')} ${entry.enabled ? '' : '(未全局挂载)'}</div>
+                ${tagsHTML}
+                <div class="persona-item-prompt">${escapeHtml(textContent)}</div>
+                <div class="scope-badges">
+                    <span class="scope-badge">${posText}</span>
+                    ${depthBadge}
+                    ${roleBadge}
+                    <label class="toggle-label" title="在所有会话中都生效">
+                        <span>全局</span>
+                        <label class="theme-switch small">
+                            <input type="checkbox" data-id="${entry.id}" ${globalChecked} class="worldbook-item-toggle">
+                            <span class="slider round"></span>
+                        </label>
+                    </label>
+                    <label class="toggle-label" title="仅在当前会话中生效">
+                        <span>会话</span>
+                        <label class="theme-switch small">
+                            <input type="checkbox" data-id="${entry.id}" ${sessionChecked} class="worldbook-session-toggle" id="worldbook-session-toggle-${entry.id}" ${sessionDisabled}>
+                            <span class="slider round"></span>
+                        </label>
+                    </label>
+                </div>
+                <div class="worldbook-item-footer">
+                    <div class="worldbook-item-stats" title="文本统计：${charCount} 字符，预估消耗约 ${tokenCount} Tokens">
+                        <span class="wb-stat-chars">${charCount} 字</span>
+                        <span class="wb-stat-separator">·</span>
+                        <span class="wb-stat-tokens">~${tokenCount} Tokens</span>
+                    </div>
+                    <div class="worldbook-action-buttons action-btn-group">
+                        <button class="action-btn edit worldbook-edit-btn" data-id="${entry.id}" title="编辑">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                        </button>
+                        <button class="action-btn copy worldbook-copy-btn" data-id="${entry.id}" title="复制内容">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                        </button>
+                        <button class="action-btn delete worldbook-delete-btn" data-id="${entry.id}" title="删除">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
 export function renderWorldBookList() {
     dom.worldBookList.innerHTML = '';
-    const entries = Object.values(state.worldBook).sort((a, b) => a.depth - b.depth);
+    const entries = sortWorldBookEntries(Object.values(state.worldBook));
 
     if (entries.length === 0) {
         dom.worldBookList.innerHTML = `<p style="color: var(--text-secondary); text-align: center;">还没有备忘录条目，请添加一个。</p>`;
@@ -170,51 +316,7 @@ export function renderWorldBookList() {
     }
 
     const currentConvId = state.currentConversationId;
-    entries.forEach(entry => {
-        if (!Array.isArray(entry.sessionIds)) entry.sessionIds = [];
-        const globalChecked = entry.enabled ? 'checked' : '';
-        const sessionChecked = (entry.enabled || (currentConvId && entry.sessionIds.includes(currentConvId))) ? 'checked' : '';
-        const sessionDisabled = entry.enabled ? 'disabled' : '';
-        const itemHTML = `
-            <div class="regex-rule-item worldbook-item" draggable="true">
-                <div class="worldbook-item-content">
-                    <div class="regex-rule-item-name">${entry.name} ${entry.enabled ? '' : '(未全局挂载)'}</div>
-                    ${Array.isArray(entry.tags) && entry.tags.length > 0 ? `<div class="worldbook-item-tags">${entry.tags.map(tag => `<span class="tag-badge">${escapeHtml(tag)}</span>`).join('')}</div>` : ''}
-                    <div class="persona-item-prompt">${entry.content}</div>
-                    <div class="scope-badges">
-                        <span class="scope-badge">深度: ${entry.depth}</span>
-                        <span class="scope-badge">角色: ${entry.role}</span>
-                        <label class="toggle-label" title="在所有会话中都生效">
-                            <span>全局</span>
-                            <label class="theme-switch small">
-                                <input type="checkbox" data-id="${entry.id}" ${globalChecked} class="worldbook-item-toggle">
-                                <span class="slider round"></span>
-                            </label>
-                        </label>
-                        <label class="toggle-label" title="仅在当前会话中生效">
-                            <span>会话</span>
-                            <label class="theme-switch small">
-                                <input type="checkbox" data-id="${entry.id}" ${sessionChecked} class="worldbook-session-toggle" id="worldbook-session-toggle-${entry.id}" ${sessionDisabled}>
-                                <span class="slider round"></span>
-                            </label>
-                        </label>
-                        <div class="worldbook-action-buttons action-btn-group">
-                            <button class="action-btn edit worldbook-edit-btn" data-id="${entry.id}" title="编辑">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                            </button>
-                            <button class="action-btn copy worldbook-copy-btn" data-id="${entry.id}" title="复制内容">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                            </button>
-                            <button class="action-btn delete worldbook-delete-btn" data-id="${entry.id}" title="删除">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-        dom.worldBookList.innerHTML += itemHTML;
-    });
+    dom.worldBookList.innerHTML = entries.map(entry => renderWorldBookCardHTML(entry, currentConvId, true)).join('');
 }
 
 export function renderWorldBookTagsPanel(forceResetToAll = false) {
@@ -295,14 +397,14 @@ export function filterWorldBookByTags() {
     // 如果当前是"已选中"标签页，显示所有启用的条目（包括全局生效和会话生效）
     if (activeTab === 'selected') {
         const currentConvId = state.currentConversationId;
-        const entries = Object.values(state.worldBook)
+        let entries = Object.values(state.worldBook)
             .filter(entry => {
                 // 全局生效 或 当前会话生效
                 if (entry.enabled) return true;
                 if (currentConvId && Array.isArray(entry.sessionIds) && entry.sessionIds.includes(currentConvId)) return true;
                 return false;
-            })
-            .sort((a, b) => a.depth - b.depth);
+            });
+        entries = sortWorldBookEntries(entries);
         
         // 更新已选中数量
         updateSelectedCount(entries.length);
@@ -362,7 +464,7 @@ export function filterWorldBookByTags() {
     }
     
     const filterMode = state.worldBookFilter.mode;
-    const entries = Object.values(state.worldBook).sort((a, b) => a.depth - b.depth);
+    const entries = sortWorldBookEntries(Object.values(state.worldBook));
     
     const filtered = entries.filter(entry => {
         if (!Array.isArray(entry.tags) || entry.tags.length === 0) return false;
@@ -383,59 +485,5 @@ export function renderFilteredWorldBookList(entries, allowDrag = true) {
     }
     
     const currentConvId = state.currentConversationId;
-    entries.forEach(entry => {
-        if (!Array.isArray(entry.sessionIds)) entry.sessionIds = [];
-        const globalChecked = entry.enabled ? 'checked' : '';
-        const sessionChecked = (entry.enabled || (currentConvId && entry.sessionIds.includes(currentConvId))) ? 'checked' : '';
-        const sessionDisabled = entry.enabled ? 'disabled' : '';
-        
-        const tagsHTML = Array.isArray(entry.tags) && entry.tags.length > 0 ? `
-            <div class="worldbook-item-tags">
-                ${entry.tags.map(tag => `<span class="tag-badge">${escapeHtml(tag)}</span>`).join('')}
-            </div>
-        ` : '';
-        
-        // 根据 allowDrag 决定是否添加 draggable 属性
-        const draggableAttr = allowDrag ? 'draggable="true"' : '';
-        
-        const itemHTML = `
-            <div class="regex-rule-item worldbook-item" ${draggableAttr}>
-                <div class="worldbook-item-content">
-                    <div class="regex-rule-item-name">${entry.name} ${entry.enabled ? '' : '(未全局挂载)'}</div>
-                    ${tagsHTML}
-                    <div class="persona-item-prompt">${entry.content}</div>
-                    <div class="scope-badges">
-                        <span class="scope-badge">深度: ${entry.depth}</span>
-                        <span class="scope-badge">角色: ${entry.role}</span>
-                        <label class="toggle-label" title="在所有会话中都生效">
-                            <span>全局</span>
-                            <label class="theme-switch small">
-                                <input type="checkbox" data-id="${entry.id}" ${globalChecked} class="worldbook-item-toggle">
-                                <span class="slider round"></span>
-                            </label>
-                        </label>
-                        <label class="toggle-label" title="仅在当前会话中生效">
-                            <span>会话</span>
-                            <label class="theme-switch small">
-                                <input type="checkbox" data-id="${entry.id}" ${sessionChecked} class="worldbook-session-toggle" id="worldbook-session-toggle-${entry.id}" ${sessionDisabled}>
-                                <span class="slider round"></span>
-                            </label>
-                        </label>
-                        <div class="worldbook-action-buttons action-btn-group">
-                            <button class="action-btn edit worldbook-edit-btn" data-id="${entry.id}" title="编辑">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                            </button>
-                            <button class="action-btn copy worldbook-copy-btn" data-id="${entry.id}" title="复制内容">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                            </button>
-                            <button class="action-btn delete worldbook-delete-btn" data-id="${entry.id}" title="删除">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-        dom.worldBookList.innerHTML += itemHTML;
-    });
+    dom.worldBookList.innerHTML = entries.map(entry => renderWorldBookCardHTML(entry, currentConvId, allowDrag)).join('');
 }

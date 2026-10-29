@@ -1,8 +1,8 @@
-# MCP请求到渲染全流程文档 (v4.0)
+# MCP请求到渲染全流程文档 (v4.1)
 
 ## 概述
 
-本文档详细描述了MCP（Model-Context-Protocol）功能从AI生成内容、前端解析工具调用，到最终在界面上渲染展示结果的完整流程。v4.0版本在v3.1基础上新增了**多轮工具调用**（最多10轮循环执行）、**per-round独立DOM容器**、**analysisRounds元数据**和**CSS order布局机制**。
+本文档详细描述了MCP（Model-Context-Protocol）功能从AI生成内容、前端解析工具调用，到最终在界面上渲染展示结果的完整流程。v4.1版本在v4.0基础上新增了**会话专属MCP工具勾选隔离**（会话私有状态持久化至JSON）、**执行失败重试机制彻底修复**（参数永固与全DOM分支事件绑定）、**独立MCP错误诊断弹窗**及**深浅双模式全适配**。
 
 **核心功能**：支持AI在一次回复中调用多个外部工具，并由前端并发执行、统一管理和优雅地渲染结果。v4.0支持AI根据前一轮工具结果发起新的工具调用，形成**链式多轮工具调用闭环**。
 
@@ -186,9 +186,49 @@ AI 输出的 ` ```tool_call ` 代码块会被拦截并替换为紧凑的**紫色
 
 在设置界面中新增"最大工具调用轮次"输入项（1~20，默认10），存储在 `state.mcpSettings.maxToolCallRounds`。AI 系统提示词中会告知当前允许的最大轮次。
 
+
+### 9. 会话级 MCP 工具勾选隔离与状态持久化 (v4.1 新增)
+
+**核心**: `mcp-tools-selector.js` + `main.js` + `db.js`
+
+1. **会话私有状态**: 废除将勾选状态全局保存在 `localStorage` 的旧模式。在每个会话实体对象（`conversation`）中新增专属字段 `selectedMcpTools: string[]`，仅存放该会话启用的工具 ID 列表。
+2. **新建会话默认干净**: `createNewConversation` 新建会话时，`newConv.selectedMcpTools = []`，默认不勾选任何工具，彻底防止跨会话串台。
+3. **切换会话即时同步**: `switchToConversation(convId)` 调用 `syncMcpToolsForConversation(convId)`，读取目标会话的 `selectedMcpTools`，同步至当前活动内存 `state.mcpSettings.selectedTools`，并联动更新底栏徽章（Badge）与下拉菜单勾选状态。
+4. **即时持久化到 IndexedDB**: 当用户在菜单中勾选、取消勾选或清空工具时，立即写入当前会话 `currentConv.selectedMcpTools`，并调用 `saveConversation` 异步落盘。
+5. **导入/导出/复制全流程支持**:
+   - 导出会话 JSON（`exportConversation`）：由于会话对象直接包含 `selectedMcpTools`，导出的 JSON 文件自然携带该配置；
+   - 导入会话 JSON（`importConversations`）：解包后新会话保留该字段，切换到该会话即可完美复原勾选；
+   - 复制会话（`handleDuplicateConversation`）：深拷贝原会话时，副本自然继承原会话工具勾选。
+
+### 10. 工具调用失败重试与错误详情诊断体系 (v4.1 新增)
+
+**核心**: `mcp-renderer.js` + `mcp-error-modal.js` + `mcp-core.js` + `mcp.css`
+
+1. **参数永固机制 (Parameter Resilience)**:
+   - 过去失败时由于异常提前抛出，全局 `DEFAULT_TOOLS[id].lastCallParams` 经常为 `undefined`，且在跨轮次/跨会话后极易丢失；
+   - v4.1 在 `mcp-core.js`、`mcp-handler.js` 和 `llm-service.js` 的调用结果对象中显式持久化 `toolId`、`tool`、`parameters`、`error` 及 `data`（服务端原始响应），并将结构化上下文挂载至 DOM 块的 `data-*` 属性中，确保任何时刻都能提取出准确的请求参数进行重试。
+2. **全 DOM 分支事件绑定 (Universal Event Binding)**:
+   - 针对初次创建、`existingBlock` 的 `replaceChild` 异步更新、保底渲染三个 DOM 分支，统一通过 `bindToolBlockEvents` 为所有的 `.retry-tool-call-btn` 和 `.view-mcp-error-btn` 绑定事件，彻底修复重试按钮无反应的 Bug。
+3. **现代内敛卡片与专注操作流 (Header 纯净元信息 + 展开区专注操作)**:
+   - Header 顶栏彻底告别粗暴的大红饱和度长条，改用左右对齐的单行高级半透卡片风格；
+   - Header 仅承载核心元信息（工具名、`MCP` 徽章、调用状态胶囊、发生时间、折叠小箭头），彻底杜绝按钮堆叠变形与文字白底冲突；
+   - 将业务操作收敛至展开区底部的专用操作栏（次级按钮【查看错误详情】 + 主级按钮【立即重试】），消除上下双重重复冗余，布局舒展通透。
+4. **重试状态机与持久化落盘**:
+   - 重试点击后按钮立即进入 loading 态（转圈动效 + 文本提示"重试中..." + 禁用防重复点击）；
+   - 调用 `mcpExecutor.callTool` 重新发送请求；
+   - 重试成功后，更新当前会话在内存与 IndexedDB 中的 `toolCalls[callIndex]`，原地更新 DOM 为成功状态，并弹出成功 Toast；重试失败则恢复按钮并刷新错误信息。
+5. **独立 MCP 错误诊断弹窗 (mcp-error-modal.js)**:
+   - 遵循架构师控大防膨与单一职责原则，采用独立模块开发；
+   - 详细呈现：工具名与 ID、发生时间、错误信息概要（标红高亮）、调用参数（JSON 代码高亮与复制）、服务端响应体（JSON 格式化与复制）、常见排查指引（CORS/网络不可达/Token失效/参数缺失）；
+   - 底部提供【复制排查报告】（一键复制完整诊断报告）与【立即重试】按钮。
+6. **主题色双模式全适配 (Dark Mode)**:
+   - 彻底移除 `mcp.css` 中 `.tool-call-result.error` 与 `.error-message` 硬编码的 `#fee` 刺眼浅白底色，改为双模式半透明警示背景；
+   - 错误弹窗全面使用 CSS 变量（`var(--bg-surface)`、`var(--border-color)` 等），在浅色与深色模式下均获得高对比度且舒适的视觉体验。
+
 ## 关键数据结构变更
 
--   **`message.toolCalls`**: 存储所有轮次工具调用的执行结果数组（扁平结构）。
+-   **`conversation.selectedMcpTools`** (v4.1新增): 字符串数组，存储该会话勾选的 MCP 工具 ID 列表（如 `["amap-weather", "web-search"]`），实现会话隔离与 JSON 导出持久化。
+-   **`message.toolCalls`**: 存储所有轮次工具调用的执行结果数组（扁平结构，v4.1显式持久化包含 `toolId` 与原始 `parameters`）。
 -   **`message.analysisResult`**: 累加存储所有轮次的分析正文（Markdown），各轮用 `---` 分隔。
 -   **`message.analysisReasoning`**: 累加存储所有轮次的思考过程。
 -   **`message.analysisRounds`** (v4.0新增): 每轮元数据数组 `[{round, content, reasoning, toolCallStartIndex, toolCallCount}]`，用于刷新时按轮次交错渲染。
@@ -208,7 +248,8 @@ AI 输出的 ` ```tool_call ` 代码块会被拦截并替换为紧凑的**紫色
     -   `renderFormattedContent`: 渲染后匹配工具中文名。
     -   `refreshMessageBubble`: 实现单条消息的局部刷新。
 -   **`mcp-settings.js`** (v4.0新增): 管理最大轮次设置的读写逻辑。
--   **`mcp-tools-selector.js`** (v4.0更新): 系统提示词中告知AI多轮调用能力和最大轮次。
+-   **`mcp-tools-selector.js`** (v4.1更新): 增加 `syncMcpToolsForConversation`，勾选/清空时同步持久化当前会话 `selectedMcpTools` 到 IndexedDB。
+-   **`mcp-error-modal.js`** (v4.1新增): 独立弹窗组件，负责格式化展示错误参数、服务端响应、一键复制排查报告及立即重试。
 -   **`mcp-core.js`**: 支持数组格式的工具调用解析。
 -   **`markdown-worker.js`** / **`code-block-utils.js`** / **`code-block-enhancer.js`**: 拦截 tool_call 代码块，替换为工具调用申请条。
 -   **`stream-renderer.js`**: 处理流式渲染中代码块到申请条的结构类型变更。

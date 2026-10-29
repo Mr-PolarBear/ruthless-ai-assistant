@@ -8,6 +8,7 @@ import { state } from './state.js?v=temp';
 import { renderHistory } from './sidebar.js?v=temp'; // 乌鸦：导入会话历史渲染函数
 import { calculateConversationStats } from './utils.js?v=temp';
 import { renderRegexRulesList } from './ui-populator.js?v=temp';
+import { scrollPillManager } from './services/scroll-pill-manager.js?v=temp';
 
 /**
  * Toggles the send button's appearance and state (send/stop).
@@ -114,15 +115,26 @@ export function updateInputPlaceholder() {
  * @description 乌鸦：根据当前会话是否已选择数据库，更新按钮的高亮状态
  */
 export function updateChooseDbButtonState() {
+    if (!dom.chooseDbBtn) return;
     const conv = state.conversations[state.currentConversationId];
     if (conv && conv.dbId) {
         dom.chooseDbBtn.classList.add('active');
+        const conn = state.dbConnections && state.dbConnections[conv.dbId];
+        const dbName = conn ? conn.name : '已关联数据库';
+        const tables = conv.dbSelections && conv.dbSelections[conv.dbId] ? conv.dbSelections[conv.dbId] : [];
+        if (tables.length > 0) {
+            dom.chooseDbBtn.title = `已绑定数据库: ${dbName} (已选 ${tables.length} 张表，点击切换库或选表)`;
+        } else {
+            dom.chooseDbBtn.title = `已绑定数据库: ${dbName} (未选表，点击选表或切换库)`;
+        }
     } else {
         dom.chooseDbBtn.classList.remove('active');
+        dom.chooseDbBtn.title = '选择数据库与数据表';
     }
 }
 
 export function updateChooseTableButtonState() {
+    if (!dom.chooseTableBtn) return;
     const conv = state.conversations[state.currentConversationId];
     if (conv && conv.dbId && conv.dbSelections && conv.dbSelections[conv.dbId] && conv.dbSelections[conv.dbId].length > 0) {
         dom.chooseTableBtn.classList.add('active');
@@ -141,11 +153,8 @@ export function updateScrollButtonsVisibility() {
     const isNearBottom = (chatContainer.scrollHeight - chatContainer.clientHeight - chatContainer.scrollTop) < 100;
     const isNearTop = chatContainer.scrollTop < (chatContainer.clientHeight / 2);
 
-    if (isNearBottom) {
-        scrollBottomBtn.classList.add('hidden');
-    } else {
-        scrollBottomBtn.classList.remove('hidden');
-    }
+    // 委托 scrollPillManager 统一管理回底按钮的胶囊展开、状态文字与显示/隐藏
+    scrollPillManager.syncState(isNearBottom);
 
     if (isNearTop) {
         scrollTopBtn.classList.add('hidden');
@@ -292,6 +301,8 @@ export function updateSessionTokenBadge() {
     const hideSummaryConfig = state.hideSummary && state.hideSummary[convId];
     const stats = calculateConversationStats(conv, hideSummaryConfig);
     const actualTokens = stats.actualSentEstimatedTokens || 0;
+    const actualMainTokens = stats.actualSentMainTokens || 0;
+    const actualSystemTokens = stats.actualSentSystemTokens || 0;
     const totalTokens = stats.totalEstimatedTokens || 0;
     const hiddenTokens = stats.hiddenEstimatedTokens || 0;
 
@@ -299,7 +310,7 @@ export function updateSessionTokenBadge() {
     if (textSpan) textSpan.textContent = formattedText;
     else badge.textContent = formattedText;
 
-    badge.title = `点击查看会话数据详情 (当前实际发送预估: ${actualTokens.toLocaleString()} Tokens / 总预估: ${totalTokens.toLocaleString()} / 已隐藏: ${hiddenTokens.toLocaleString()})`;
+    badge.title = `点击查看会话数据详情 (实际发送预估: ${actualTokens.toLocaleString()} Tokens [消息正文: ${actualMainTokens.toLocaleString()} + 设定与备忘: ${actualSystemTokens.toLocaleString()}] / 历史总预估: ${totalTokens.toLocaleString()} / 已隐藏: ${hiddenTokens.toLocaleString()})`;
 }
 
 export function showLoadingOverlay() {

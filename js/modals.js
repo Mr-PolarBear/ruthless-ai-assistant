@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file modals.js
  * @description Facade for modal management. Re-exports all modal functions.
  */
@@ -50,8 +50,9 @@ export {
 export { 
     openWorldBookModal, resetWorldBookForm, 
     renderWorldBookList, updateCharCounter,
+    sortWorldBookEntries,
     renderWorldBookTagsPanel, filterWorldBookByTags, renderFilteredWorldBookList,
-    updateFormSessionToggleState, setWorldBookMobileView, toggleWorldBookContentExpand
+    updateFormSessionToggleState, getSafeActiveConversationId, setWorldBookMobileView, toggleWorldBookContentExpand
 } from './modals/worldbook-modal.js?v=temp';
 
 // Avatar

@@ -9,18 +9,18 @@ import {extractJsonArrayString, copyTextToClipboard, countTokens, escapeHtml} fr
 import {openMessageEditModal} from './modals.js?v=temp';
 import {regexPatterns} from './regex.js?v=temp';
 import {notify} from './ui-updater.js?v=temp';
+import {exportSingleMessageToWord, exportSingleMessageToExcel, cleanThinkingFromText} from './services/single-message-exporter.js?v=temp';
 
 // ===== NEW: Copy Menu Logic =====
 
 /**
- * 方案A：用正则清理原始的 <thinking> 标签
- * 这个函数专门用于处理未被渲染的原始思考内容
+ * 清理思考标签（已升级接入单消息导出同款安全清洗算法）
+ * 包含成对闭合思考剥离与开头未闭合流式截断兜底
  * @param {string} text - 原始文本
  * @returns {string} 清理后的文本
  */
 function removeThinkingTagsRegex(text) {
-    // 使用 thinkTag 正则移除 <thinking>...</thinking> 或 <think>...</think> 标签
-    return text.replace(regexPatterns.thinkTag, '');
+    return cleanThinkingFromText(text);
 }
 
 /**
@@ -102,20 +102,54 @@ export function showCopyMenu(button, message) {
         });
     };
 
+    // — 为什么这么写 —
+    // 大爷要求直接在复制气泡菜单扩充导出能力：
+    // 1. 导出 Word：将当前消息长图文（含标题、代码块、表格、引用等）无损转换为 .doc，适合方案与报告保存；
+    // 2. 导出 Excel：将当前消息混排文本（说明行保留在首列，Markdown 表格自动拆多列）转换为 .xlsx，适合数据清单与对比表提取；
+    // 3. 用户消息和 AI 消息均支持，且两者都自动剔除 <think> 思考内容，导出纯净正文。
+    const exportWordBtn = document.createElement('button');
+    exportWordBtn.textContent = '导出 Word';
+    exportWordBtn.onclick = (e) => {
+        e.stopPropagation();
+        // 先触发导出以完整保留浏览器的用户真实交互手势（User Gesture Activation），再销毁菜单 DOM
+        exportSingleMessageToWord(message);
+        cleanupMenu();
+    };
+
+    const exportExcelBtn = document.createElement('button');
+    exportExcelBtn.textContent = '导出 Excel';
+    exportExcelBtn.onclick = (e) => {
+        e.stopPropagation();
+        // 先触发导出以完整保留浏览器的用户真实交互手势（User Gesture Activation），再销毁菜单 DOM
+        exportSingleMessageToExcel(message);
+        cleanupMenu();
+    };
+
     menu.appendChild(copyMdBtn);
     menu.appendChild(copyTextBtn);
+    menu.appendChild(exportWordBtn);
+    menu.appendChild(exportExcelBtn);
     document.body.appendChild(menu);
 
-    // --- 智能定位逻辑 ---
+    // --- 智能定位逻辑（防溢出视口） ---
     const btnRect = button.getBoundingClientRect();
     const menuRect = menu.getBoundingClientRect();
 
-    let top = btnRect.bottom + window.scrollY + 2; // 加2px的间距
+    let top = btnRect.bottom + window.scrollY + 2; // 默认向下弹出，间距 2px
     let left = btnRect.left + window.scrollX;
 
     // 如果菜单超出屏幕右侧，则调整左侧位置，让菜单右对齐按钮右侧
-    if (left + menuRect.width > window.innerWidth - 10) { // 减10px作为边距
+    if (left + menuRect.width > window.innerWidth - 10) {
         left = btnRect.right + window.scrollX - menuRect.width;
+    }
+    // 边界安全防护：左侧最小间距 10px
+    if (left < 10) {
+        left = 10;
+    }
+
+    // 如果向下弹出超出可视窗口底部，则自动向上翻转弹出
+    if (btnRect.bottom + menuRect.height > window.innerHeight - 10) {
+        top = btnRect.top + window.scrollY - menuRect.height - 2;
     }
 
     menu.style.position = 'absolute';
@@ -145,7 +179,7 @@ function copyMarkdown(message) {
     textToCopy = removeThinkingTagsRegex(textToCopy);
     
     return copyTextToClipboard(textToCopy).then(() => {
-        showCopySuccessToast();
+        notify.copy();
     });
 }
 
@@ -597,8 +631,12 @@ export function updateMessageActions(actionsEl, message, index, options = {}) {
     buttonsHTML += `<button class="quick-hide-btn" title="隐藏消息"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>`;
 
     if (message.role === 'assistant') {
+        buttonsHTML += `<button class="mindmap-btn" title="生成思维导图"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="3" x2="6" y2="15"></line><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><path d="M18 9a9 9 0 0 1-9 9"></path></svg></button>`;
         buttonsHTML += `<button class="save-message-btn" title="另存为"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></button>`;
     }
+
+    // 生成精美海报长图卡片（用户提问与AI回答均支持一键生成）
+    buttonsHTML += `<button class="share-card-btn" title="生成分享海报卡片"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg></button>`;
 
 
     actionsEl.innerHTML = buttonsHTML;

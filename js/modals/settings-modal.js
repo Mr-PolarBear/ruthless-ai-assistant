@@ -6,6 +6,7 @@
 import { dom } from '../dom.js?v=temp';
 import { state } from '../state.js?v=temp';
 import { renderApiEndpointsList, renderPersonaModal, renderRegexRulesList } from '../ui-populator.js?v=temp';
+import { resetRegexForm } from './regex-modal.js?v=temp';
 import { updateBubbleSettingsUI } from '../settings/bubble-settings.js?v=temp';
 import { updateStoragePersistenceUI } from '../services/storage-persistence.js?v=temp';
 import { updateVersionCardUI } from '../services/version-checker.js?v=temp';
@@ -49,6 +50,7 @@ export async function openSettingsModal() {
     renderApiEndpointsList();
     renderPersonaModal();
     renderRegexRulesList();
+    resetRegexForm();
     updateBubbleSettingsUI();
     updateStoragePersistenceUI();
     updateVersionCardUI();

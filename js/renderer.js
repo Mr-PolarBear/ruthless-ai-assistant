@@ -25,7 +25,7 @@ import { updateDomPreservingCodeBlocks } from './renderers/stream-renderer.js?v=
 import { updateReasoningContainer, updateReasoningPartContent } from './renderers/reasoning-renderer.js?v=temp';
 import { formatMessagePipeline, enhanceJsonCodeBlocks } from './renderers/markdown-engine.js?v=temp';
 // Re-export UI populators for compatibility with main.js/settings-events.js
-export { populateApiSelector, populatePersonaSelector, renderApiEndpointsList, renderPersonaModal, renderRegexRulesList } from './ui-populator.js?v=temp';
+export { populateApiSelector, populateModelSelector, populatePersonaSelector, renderApiEndpointsList, renderPersonaModal, renderRegexRulesList } from './ui-populator.js?v=temp';
 // Re-export markdown engine for external use if needed
 export { formatMessagePipeline };
 export { updateReasoningContainer, updateReasoningPartContent };
@@ -454,10 +454,10 @@ export async function displayMessage(message, index, highlightKeyword, visibleIn
         }
     } else {
         senderLine.style.textAlign = 'left';
-        let apiName = 'AI 助手';
-        if (apiEndpointId && state.apiEndpoints[apiEndpointId]) {
-            apiName = state.apiEndpoints[apiEndpointId].name || 'AI 助手';
-        }
+        const endpoint = (apiEndpointId && (state.apiEndpoints[apiEndpointId] || window.API_PRESETS?.[apiEndpointId]))
+            ? (state.apiEndpoints[apiEndpointId] || window.API_PRESETS[apiEndpointId])
+            : null;
+        let apiName = endpoint?.name || 'AI 助手';
 
         // AI Avatar Handling
         if (conv && conv.avatar && conv.avatar.type === 'indexeddb') {
@@ -481,10 +481,29 @@ export async function displayMessage(message, index, highlightKeyword, visibleIn
             senderLine.appendChild(avatarImg);
         }
 
+        // — 为什么这么写 —
+        // Plan C（主次分流）：胶囊突出显示具体模型名称（大脑核心）；若未单独指定模型则回退显示 API 端点名。
+        // 解析优先级：优先消息生成时固化的 message.model 快照，次级为当前会话 conv.model，再次为端点默认 endpoint.model。
+        const rawModel = message.model || (conv && conv.model) || (endpoint && endpoint.model) || '';
+        const modelName = typeof rawModel === 'string' ? rawModel.trim() : '';
+        const displayModel = modelName || apiName;
+
         const nameSpan = document.createElement('span');
         nameSpan.className = 'sender-name';
-        nameSpan.textContent = apiName;
+        nameSpan.textContent = displayModel;
+        nameSpan.title = displayModel; // 超出截断时 hover 查看完整模型名称
         senderLine.appendChild(nameSpan);
+
+        // 如果存在独立模型名，且模型名与 API 端点名不重名、且不是无意义占位符，则展示轻量来源副标
+        const isDuplicateName = apiName && modelName && apiName.toLowerCase() === modelName.toLowerCase();
+        if (modelName && apiName && !isDuplicateName && apiName !== 'AI 助手') {
+            const apiSubSpan = document.createElement('span');
+            apiSubSpan.className = 'sender-api-sub';
+            apiSubSpan.textContent = `via ${apiName}`;
+            apiSubSpan.title = `API 端点: ${apiName}`;
+            senderLine.appendChild(apiSubSpan);
+        }
+
         if (hideTip) senderLine.appendChild(hideTip);
         senderLine.appendChild(floorSpan);
 

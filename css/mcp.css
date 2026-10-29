@@ -147,153 +147,373 @@
     display: block !important;
 }
 
+/* ===== 现代精细卡片化 MCP 工具调用块 ===== */
 .tool-call-block {
-    border-bottom: 1px solid var(--border-color);
-    transition: all 0.3s ease;
-    margin-bottom: 16px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md, 8px);
+    overflow: hidden;
+    margin: 10px 0 14px 0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    transition: all 0.25s ease;
 }
 
-.tool-call-block:last-child {
-    border-bottom: none;
-    margin-bottom: 0;
+.tool-call-block:hover {
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
+.tool-call-block.error {
+    border-color: rgba(220, 53, 69, 0.3);
+}
+
+.tool-call-block.success {
+    border-color: rgba(16, 185, 129, 0.25);
+}
+
+.tool-call-block.calling {
+    border-color: rgba(59, 130, 246, 0.3);
+}
+
+[data-theme="dark"] .tool-call-block {
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="dark"] .tool-call-block.error {
+    border-color: rgba(239, 68, 68, 0.35);
+}
+
+[data-theme="dark"] .tool-call-block.success {
+    border-color: rgba(16, 185, 129, 0.35);
+}
+
+/* 顶部标题栏（单行呼吸感布局，左右对齐） */
 .tool-call-header {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 10px 12px;
-    background: var(--bg-deep);
-    font-size: 0.9em;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 9px 14px;
+    background: var(--bg-secondary);
+    font-size: 0.88rem;
     font-weight: 500;
-    position: relative;
+    cursor: pointer;
+    user-select: none;
+    border-bottom: 1px solid var(--border-color);
+    transition: background 0.2s ease;
 }
 
-.tool-call-header.calling {
-    background: var(--primary-color);
-    color: white;
+.tool-call-header:hover {
+    background: var(--bg-hover, rgba(0, 0, 0, 0.03));
 }
 
+[data-theme="dark"] .tool-call-header:hover {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+/* 成功态：淡绿微弱柔光，内敛专业 */
 .tool-call-header.success {
-    background: #28a745;
-    color: white;
+    background: rgba(16, 185, 129, 0.06);
+    color: var(--text-primary);
+    border-bottom-color: rgba(16, 185, 129, 0.15);
 }
 
+.tool-call-header.success:hover {
+    background: rgba(16, 185, 129, 0.1);
+}
+
+[data-theme="dark"] .tool-call-header.success {
+    background: rgba(16, 185, 129, 0.12);
+    border-bottom-color: rgba(16, 185, 129, 0.22);
+}
+
+/* 失败态：柔和暗红警示背景，彻底告别刺眼大红 */
 .tool-call-header.error {
-    background: #dc3545;
-    color: white;
+    background: rgba(220, 53, 69, 0.06);
+    color: var(--text-primary);
+    border-bottom-color: rgba(220, 53, 69, 0.15);
+}
+
+.tool-call-header.error:hover {
+    background: rgba(220, 53, 69, 0.1);
+}
+
+[data-theme="dark"] .tool-call-header.error {
+    background: rgba(239, 68, 68, 0.12);
+    border-bottom-color: rgba(239, 68, 68, 0.22);
+}
+
+/* 执行中态：柔和微蓝 */
+.tool-call-header.calling {
+    background: rgba(59, 130, 246, 0.06);
+    color: var(--text-primary);
+    border-bottom-color: rgba(59, 130, 246, 0.15);
+}
+
+[data-theme="dark"] .tool-call-header.calling {
+    background: rgba(59, 130, 246, 0.12);
+    border-bottom-color: rgba(59, 130, 246, 0.22);
+}
+
+/* Header 左侧区域（图标 + 工具名 + MCP徽章） */
+.tool-header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    flex: 1;
 }
 
 .tool-icon {
-    font-size: 1.1em;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
 }
 
-.tool-icon-text {
-    font-size: 0.8em;
-    opacity: 0.9;
-    font-weight: 400;
+.tool-call-header.success .tool-icon {
+    color: #10b981;
+}
+
+.tool-call-header.error .tool-icon {
+    color: var(--danger-color, #dc3545);
+}
+
+.tool-call-header.calling .tool-icon {
+    color: var(--primary-color, #3b82f6);
 }
 
 .tool-name {
     font-weight: 600;
-    flex-grow: 1;
+    font-size: 0.88rem;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tool-source-badge {
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 3px;
+    background: var(--bg-primary);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    letter-spacing: 0.5px;
+    line-height: 1.2;
+    flex-shrink: 0;
+}
+
+/* Header 右侧元数据区（状态胶囊 + 时间 + 折叠小箭头） */
+.tool-header-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
 }
 
 .tool-status {
-    font-size: 0.8em;
-    padding: 2px 6px;
-    border-radius: 4px;
-    background: rgba(255, 255, 255, 0.2);
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 10px;
+    line-height: 1.2;
+    display: inline-flex;
+    align-items: center;
+}
+
+.tool-status.success {
+    background: rgba(16, 185, 129, 0.12);
+    color: #059669;
+    border: 1px solid rgba(16, 185, 129, 0.28);
+}
+
+[data-theme="dark"] .tool-status.success {
+    background: rgba(16, 185, 129, 0.2);
+    color: #6ee7b7;
+    border-color: rgba(16, 185, 129, 0.35);
+}
+
+.tool-status.error {
+    background: rgba(220, 53, 69, 0.12);
+    color: var(--danger-color, #dc3545);
+    border: 1px solid rgba(220, 53, 69, 0.25);
+}
+
+[data-theme="dark"] .tool-status.error {
+    background: rgba(239, 68, 68, 0.2);
+    color: #fca5a5;
+    border-color: rgba(239, 68, 68, 0.35);
 }
 
 .tool-status.calling {
+    background: rgba(59, 130, 246, 0.12);
+    color: var(--primary-color, #3b82f6);
+    border: 1px solid rgba(59, 130, 246, 0.25);
     animation: pulse 1.5s infinite;
 }
 
 .tool-time {
-    font-size: 0.8em;
-    opacity: 0.8;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    font-family: var(--font-mono, Consolas, Monaco, monospace);
+    opacity: 0.85;
 }
 
-/* 乌鸦：查看原始数据按钮在header中的样式 */
-.tool-call-header .view-raw-data-btn {
-    background: rgba(255, 255, 255, 0.2);
-    color: white;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 0.75em;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    margin-left: 8px;
-}
-
-.tool-call-header .view-raw-data-btn:hover {
-    background: rgba(255, 255, 255, 0.3);
-    border-color: rgba(255, 255, 255, 0.5);
-}
-
-/* 乌鸦：MCP折叠按钮样式 */
 .tool-call-header .mcp-collapse-btn {
     background: transparent;
-    /* 乌鸦：大哥要求 - 去掉背景 */
-    color: white;
+    color: var(--text-secondary);
     border: none;
-    /* 乌鸦：大哥要求 - 去掉边框 */
     padding: 4px;
-    /* 乌鸦：调整内边距 */
     border-radius: 4px;
-    font-size: 0.8em;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    margin-left: auto;
-    /* 推到右边 */
-    margin-right: 8px;
-    min-width: 28px;
-    text-align: center;
-}
-
-.tool-call-header .mcp-collapse-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    /* 乌鸦：保留一个轻微的hover效果 */
-    transform: scale(1.1);
-}
-
-.tool-call-result {
-    padding: 12px;
-}
-
-.tool-call-result.error {
-    background: #fee;
-    color: #c33;
-}
-
-/* 乌鸦：工具调用操作按钮样式 */
-.tool-call-actions {
-    display: flex;
-    gap: 8px;
-    margin-top: 12px;
-    padding-top: 8px;
-    border-top: 1px solid var(--border-color);
-}
-
-.retry-tool-call-btn {
-    background: var(--primary-color);
-    color: white;
-    border: none;
-    padding: 6px 12px;
-    border-radius: var(--radius-sm);
     font-size: 0.85em;
     cursor: pointer;
     transition: all 0.2s ease;
-    display: flex;
+    min-width: 24px;
+    height: 24px;
+    display: inline-flex;
     align-items: center;
-    gap: 4px;
+    justify-content: center;
 }
 
-.retry-tool-call-btn:hover {
-    background: var(--primary-hover);
+.tool-call-header .mcp-collapse-btn:hover {
+    background: var(--bg-hover, rgba(0, 0, 0, 0.08));
+    color: var(--text-primary);
+    transform: scale(1.08);
+}
+
+[data-theme="dark"] .tool-call-header .mcp-collapse-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* 卡片展开结果区域 */
+.tool-call-result {
+    padding: 14px 16px;
+    background: var(--bg-surface);
+}
+
+.tool-call-result.error {
+    background: var(--bg-surface);
+    color: var(--text-primary);
+}
+
+/* 错误提示 Callout 警示框 */
+.error-callout {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px 14px;
+    border-radius: var(--radius-sm, 6px);
+    background: rgba(220, 53, 69, 0.05);
+    border: 1px solid rgba(220, 53, 69, 0.2);
+    border-left: 4px solid var(--danger-color, #dc3545);
+}
+
+[data-theme="dark"] .error-callout {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.25);
+    border-left-color: #ef4444;
+}
+
+.error-callout-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--danger-color, #dc3545);
+}
+
+[data-theme="dark"] .error-callout-header {
+    color: #fca5a5;
+}
+
+.error-callout-body {
+    font-size: 0.86rem;
+    color: var(--text-primary);
+    line-height: 1.5;
+    word-break: break-all;
+}
+
+/* 底部操作按钮区域（右对齐，清晰大方） */
+.tool-call-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-color);
+}
+
+/* 次级按钮：查看错误详情 */
+.tool-call-actions .view-mcp-error-btn {
+    background: var(--bg-surface);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm, 5px);
+    padding: 6px 14px;
+    font-size: 0.82rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    line-height: 1;
+    transition: all 0.2s ease;
+}
+
+.tool-call-actions .view-mcp-error-btn:hover {
+    background: var(--bg-hover, rgba(0, 0, 0, 0.04));
+    color: var(--danger-color, #dc3545);
+    border-color: rgba(220, 53, 69, 0.4);
     transform: translateY(-1px);
+}
+
+[data-theme="dark"] .tool-call-actions .view-mcp-error-btn {
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    border-color: var(--border-color);
+}
+
+[data-theme="dark"] .tool-call-actions .view-mcp-error-btn:hover {
+    background: rgba(239, 68, 68, 0.15);
+    color: #fca5a5;
+    border-color: rgba(239, 68, 68, 0.5);
+}
+
+/* 主操作按钮：立即重试 */
+.tool-call-actions .retry-tool-call-btn,
+.retry-tool-call-btn {
+    background: var(--primary-color, #007bff);
+    color: #ffffff;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm, 5px);
+    padding: 6px 16px;
+    font-size: 0.82rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    line-height: 1;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+    transition: all 0.2s ease;
+}
+
+.tool-call-actions .retry-tool-call-btn:hover,
+.retry-tool-call-btn:hover {
+    background: var(--primary-hover, #0056b3);
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.14);
+}
+
+.tool-call-actions .retry-tool-call-btn:disabled,
+.retry-tool-call-btn:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
 }
 
 /* 天气结果样式 */
@@ -839,4 +1059,114 @@
     display: flex;
     align-items: center;
     gap: 6px;
+}
+/* ===== MCP 错误详情诊断弹窗样式 ===== */
+
+/* MCP 错误弹窗内容样式（全面支持双主题） */
+.mcp-error-meta-box {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md, 6px);
+    padding: 10px 14px;
+    font-size: 0.85rem;
+}
+
+.mcp-error-meta-box .meta-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.mcp-error-meta-box .meta-label {
+    color: var(--text-secondary);
+}
+
+.mcp-error-meta-box .meta-code {
+    background: var(--bg-surface);
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 0.82rem;
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+}
+
+.mcp-error-section {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.mcp-error-section-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.mcp-error-summary-box {
+    background: rgba(220, 53, 69, 0.08);
+    color: var(--danger-color, #dc3545);
+    border: 1px solid rgba(220, 53, 69, 0.25);
+    border-radius: var(--radius-sm, 4px);
+    padding: 10px 12px;
+    font-size: 0.88rem;
+    font-family: var(--font-mono, Consolas, Monaco, monospace);
+    word-break: break-all;
+    line-height: 1.45;
+}
+
+[data-theme="dark"] .mcp-error-summary-box {
+    background: rgba(220, 53, 69, 0.18);
+    color: #fca5a5;
+    border-color: rgba(220, 53, 69, 0.35);
+}
+
+.mcp-error-code-wrapper {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm, 4px);
+    padding: 8px 12px;
+    margin: 0;
+    max-height: 160px;
+    overflow-y: auto;
+    font-size: 0.8rem;
+    line-height: 1.4;
+}
+
+.mcp-error-code-wrapper code {
+    background: transparent !important;
+    padding: 0 !important;
+    color: var(--text-primary);
+    font-family: var(--font-mono, Consolas, Monaco, monospace);
+    word-break: break-all;
+    white-space: pre-wrap;
+}
+
+.mcp-copy-btn-mini {
+    background: var(--bg-surface);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm, 4px);
+    padding: 2px 7px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    transition: all 0.2s;
+}
+
+.mcp-copy-btn-mini:hover {
+    color: var(--text-primary);
+    border-color: var(--primary-color);
+}
+
+.mcp-troubleshoot-tips {
+    background: var(--bg-primary);
+    border: 1px dashed var(--border-color);
+    border-radius: var(--radius-sm, 4px);
+    padding: 8px 12px;
 }

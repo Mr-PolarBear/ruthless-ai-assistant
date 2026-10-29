@@ -8,7 +8,7 @@ import { state } from './state.js?v=temp';
 import { handleSendMessage, switchToConversation, switchBranch } from './main.js?v=temp';
 import { closeSidebarMobile } from './ui-events.js?v=temp';
 import { renderHistory } from './sidebar.js?v=temp';
-import { renderChatMessages, formatMessagePipeline, renderFormattedContent } from './renderer.js?v=temp';
+import { renderChatMessages, formatMessagePipeline, renderFormattedContent, populateModelSelector } from './renderer.js?v=temp';
 import {
     enterEditMode, cancelEdit, smartCollapseStateCheck, addOrUpdateMessageFooter, 
     updateMessageActions, showCopyMenu, updateSingleMessageCollapseState, updateToggleButtonState
@@ -25,6 +25,8 @@ import { codePreviewManager } from './code-preview-manager.js?v=temp';
 import { eventBus, EVENTS } from './services/event-bus.js?v=temp';
 import { toggleConvSelection } from './batch-delete.js?v=temp';
 import { openConvActionsSheet } from './modals/conv-actions-sheet.js?v=temp';
+import { draftManager } from './services/draft-manager.js?v=temp';
+import { initQuoteManager } from './services/quote-manager.js?v=temp';
 
 /**
  * Sets up chat-related event listeners
@@ -37,10 +39,15 @@ export function setupChatEvents() {
     // Chat message actions
     if (dom.chatMessages) dom.chatMessages.addEventListener('click', handleChatMessageActions);
 
+    // 乌鸦：初始化划选文本「引用追问」浮动胶囊
+    initQuoteManager();
+
     // History list actions
     if (dom.historyList) dom.historyList.addEventListener('click', handleHistoryListActions);
     // 乌鸦：也要为时间分组列表添加点击监听
     if (dom.historyGroupedList) dom.historyGroupedList.addEventListener('click', handleHistoryListActions);
+    // 乌鸦：设置历史会话列表的触控与长按 500ms 呼出 Action Sheet
+    setupHistoryListTouchAndLongPress();
 
     // Branch navigation
     if (dom.branchNavigator) dom.branchNavigator.addEventListener('click', (e) => {
@@ -66,11 +73,66 @@ export function setupChatEvents() {
 }
 
 /**
+ * 乌鸦：输入框为空时按方向键 ↑ 极速回填上一条发送的消息
+ * 
+ * — 为什么这么写 —
+ * 1. 痛点：用户发完消息后如果发现打错字或想微调，以往必须鼠标向上翻动对准小编辑按钮点开；
+ * 2. 遵循终端、Discord 等成熟工具惯例：在输入框为空时按下方向键 ↑，自动倒序查找最近一条用户发出的消息并完整填入；
+ * 3. 严格校验输入框是否为空，当输入框已有内容或多行文本时光标正常上移，绝不冲突误触。
+ */
+function handleRecallLastMessage(e) {
+    if (!dom.messageInput || dom.messageInput.value.trim() !== '') return;
+
+    const conv = state.conversations[state.currentConversationId];
+    if (!conv || !conv.branches || !conv.branches[conv.activeBranchIndex]) return;
+    const branch = conv.branches[conv.activeBranchIndex];
+
+    let lastUserMessage = null;
+    for (let i = branch.length - 1; i >= 0; i--) {
+        if (branch[i] && branch[i].role === 'user') {
+            lastUserMessage = branch[i];
+            break;
+        }
+    }
+
+    if (!lastUserMessage) return;
+
+    let textToRecall = '';
+    if (typeof lastUserMessage.content === 'string') {
+        textToRecall = lastUserMessage.content;
+    } else if (Array.isArray(lastUserMessage.content)) {
+        textToRecall = lastUserMessage.content
+            .filter(p => p.type === 'text')
+            .map(p => p.text)
+            .join('\n');
+    }
+
+    if (textToRecall) {
+        e.preventDefault();
+        dom.messageInput.value = textToRecall;
+        adjustTextareaHeight();
+        // 光标定位在文本末尾，方便直接打字追加或按退格修改
+        dom.messageInput.selectionStart = dom.messageInput.selectionEnd = dom.messageInput.value.length;
+        if (dom.clearInputBtn) dom.clearInputBtn.classList.remove('hidden');
+        if (typeof updateSendButtonState === 'function') {
+            updateSendButtonState();
+        }
+        draftManager.handleInput(state.currentConversationId, textToRecall);
+    }
+}
+
+/**
  * Sets up message input related events
  */
 function setupMessageInputEvents() {
     if (dom.messageInput) {
         dom.messageInput.addEventListener('keydown', (e) => {
+            // 输入框为空时按方向键 ↑ 极速回填上一条消息
+            if (e.key === 'ArrowUp' && !e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey) {
+                handleRecallLastMessage(e);
+                return;
+            }
+
             const sendKey = state.appSettings.sendKey || 'enter';
             if (sendKey === 'enter' && e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -101,8 +163,17 @@ function setupMessageInputEvents() {
 function setupSidebarSelectors() {
     if (dom.apiSelector) dom.apiSelector.addEventListener('change', () => {
         const conv = state.conversations[state.currentConversationId];
+        const apiId = dom.apiSelector.value;
         if (conv) {
-            conv.apiEndpointId = dom.apiSelector.value;
+            conv.apiEndpointId = apiId;
+        }
+        populateModelSelector(apiId);
+        if (conv) {
+            conv.apiModels = conv.apiModels || {};
+            if (dom.modelSelector && dom.modelSelector.value && !dom.modelSelector.value.startsWith('__')) {
+                conv.model = dom.modelSelector.value;
+                conv.apiModels[apiId] = dom.modelSelector.value;
+            }
             renderHistory();
             saveToLocalStorage();
         }
@@ -200,13 +271,141 @@ function handleChatMessageActions(e) {
         showCopyMenu(button, message);
     } else if (button.classList.contains('save-message-btn')) {
         saveMessageAsFile(message);
+    } else if (button.classList.contains('mindmap-btn')) {
+        import('./services/mindmap-manager.js?v=temp').then(({ mindmapManager }) => {
+            mindmapManager.open(message, index);
+        });
+    } else if (button.classList.contains('share-card-btn')) {
+        import('./services/share-card-manager.js?v=temp').then(({ shareCardManager }) => {
+            shareCardManager.open(message, index);
+        });
     }
+}
+
+// 乌鸦：长按手势与触控防误触状态变量
+let longPressTimer = null;
+let longPressTargetItem = null;
+let isHistoryLongPressTriggered = false;
+let touchStartX = 0;
+let touchStartY = 0;
+const LONG_PRESS_DURATION = 500; // 500毫秒长按判定
+const MOVE_THRESHOLD = 10; // 超过10px视为用户在滑动列表，立即取消长按
+
+/**
+ * 乌鸦：设置历史会话列表的触控与长按事件监听
+ * 
+ * — 为什么这么写 —
+ * 1. 移动端和触屏设备上，原本桌面端排布的 6 个小按钮极易在用户滑动或点选切换会话时被误触；
+ * 2. 引入长按 500ms 手势，当用户长按任意会话条目时，直接呼出全功能 Action Sheet；
+ * 3. 监听 touchmove，当手指位移超过 10px 时立即取消长按，保证顺畅自然的列表上下滚动体验；
+ * 4. 长按触发后立即屏蔽伴随的 click 事件，防止松手后触发意外的会话切换。
+ */
+export function setupHistoryListTouchAndLongPress() {
+    const cancelLongPress = () => {
+        if (longPressTimer) {
+            clearTimeout(longPressTimer);
+            longPressTimer = null;
+        }
+        longPressTargetItem = null;
+    };
+
+    const attachTouchListeners = (container) => {
+        if (!container) return;
+
+        container.addEventListener('touchstart', (e) => {
+            if (e.touches.length !== 1) {
+                cancelLongPress();
+                return;
+            }
+
+            // 批量选择模式下不启用长按，避免干扰复选操作
+            if (state.batchSelectMode) return;
+
+            const item = e.target.closest('.history-item');
+            if (!item) return;
+
+            // 如果触摸在明确的独立按钮上（如三点按钮），由按钮单独的 click 处理，不触发条目整体长按
+            if (e.target.closest('button')) return;
+
+            const touch = e.touches[0];
+            touchStartX = touch.clientX;
+            touchStartY = touch.clientY;
+            longPressTargetItem = item;
+            isHistoryLongPressTriggered = false;
+
+            cancelLongPress();
+            longPressTimer = setTimeout(() => {
+                if (!longPressTargetItem) return;
+                isHistoryLongPressTriggered = true;
+                const convId = longPressTargetItem.dataset.id;
+
+                // 触觉震动反馈（如果硬件支持）
+                if (navigator.vibrate) {
+                    try { navigator.vibrate(35); } catch (_) {}
+                }
+
+                // 唤起会话管理 Action Sheet
+                if (convId) {
+                    openConvActionsSheet(convId);
+                }
+
+                cancelLongPress();
+            }, LONG_PRESS_DURATION);
+        }, { passive: true });
+
+        container.addEventListener('touchmove', (e) => {
+            if (!longPressTimer) return;
+            const touch = e.touches[0];
+            if (!touch) return;
+
+            const deltaX = Math.abs(touch.clientX - touchStartX);
+            const deltaY = Math.abs(touch.clientY - touchStartY);
+            // 超过阈值判定为滚动列表，立即取消长按
+            if (deltaX > MOVE_THRESHOLD || deltaY > MOVE_THRESHOLD) {
+                cancelLongPress();
+            }
+        }, { passive: true });
+
+        container.addEventListener('touchend', () => {
+            cancelLongPress();
+            if (isHistoryLongPressTriggered) {
+                // 等待合成 click 事件分发完成后重置，防止误触发会话切换
+                setTimeout(() => {
+                    isHistoryLongPressTriggered = false;
+                }, 350);
+            }
+        }, { passive: true });
+
+        container.addEventListener('touchcancel', () => {
+            cancelLongPress();
+            isHistoryLongPressTriggered = false;
+        }, { passive: true });
+
+        // 移动端长按唤起 Action Sheet 时，阻止系统原生上下文菜单
+        container.addEventListener('contextmenu', (e) => {
+            if (isHistoryLongPressTriggered || (window.innerWidth <= 1024 && e.target.closest('.history-item'))) {
+                e.preventDefault();
+            }
+        });
+    };
+
+    if (dom.historyList) attachTouchListeners(dom.historyList);
+    if (dom.historyGroupedList) attachTouchListeners(dom.historyGroupedList);
 }
 
 /**
  * Handles history list item clicks
  */
 function handleHistoryListActions(e) {
+    // — 为什么这么写 —
+    // 1. 如果长按手势刚刚触发过，抑制伴随的合成点击事件，防止误切会话或误触按钮
+    if (isHistoryLongPressTriggered) {
+        e.stopPropagation();
+        e.preventDefault();
+        isHistoryLongPressTriggered = false;
+        return;
+    }
+
     const item = e.target.closest('.history-item');
     if (!item) return;
 
@@ -527,6 +726,7 @@ export function handleDeleteConversation(id) {
     if (!confirm('确定要删除这个对话吗？')) return;
 
     delete state.conversations[id];
+    draftManager.onConversationDeleted(id);
     deleteConversation(id).catch(err => {
         console.error("从数据库中删除会话失败:", err);
     });

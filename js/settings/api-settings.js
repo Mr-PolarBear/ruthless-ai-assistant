@@ -298,7 +298,11 @@ function saveApiEndpoint() {
         sort = state.apiEndpoints[endpointId]?.sort || 0;
     }
     
-    state.apiEndpoints[endpointId] = {id: endpointId, name, type, url, model, key, sort};
+    const existingModels = state.apiEndpoints[endpointId]?.models;
+    const models = existingModels ? [...existingModels] : (model ? [model] : []);
+    if (model && !models.includes(model)) models.unshift(model);
+
+    state.apiEndpoints[endpointId] = {id: endpointId, name, type, url, model, key, sort, models};
     saveToLocalStorage();
     renderApiEndpointsList();
     populateApiSelector();
@@ -330,8 +334,12 @@ function saveApiEditEndpoint() {
         sort = state.apiEndpoints[endpointId]?.sort || 0;
     }
     
-    // 乌鸦：构建基础对象
-    const endpointConfig = {id: endpointId, name, type, url, model, key, sort};
+    // 乌鸦：构建基础对象，保留已存在的 models 模型缓存列表
+    const editExistingModels = state.apiEndpoints[endpointId]?.models;
+    const editModels = editExistingModels ? [...editExistingModels] : (model ? [model] : []);
+    if (model && !editModels.includes(model)) editModels.unshift(model);
+
+    const endpointConfig = {id: endpointId, name, type, url, model, key, sort, models: editModels};
     
     // 乌鸦：保存 Omni 全模态模型标记
     endpointConfig.isOmniModel = !!(dom.apiEditOmniModelToggle && dom.apiEditOmniModelToggle.checked);
