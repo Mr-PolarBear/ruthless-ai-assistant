@@ -88,6 +88,17 @@ export async function openSettingsModal() {
 
     dom.settingsModal.style.display = 'flex';
     dom.settingsModal.classList.add('visible');
+
+    // — 为什么这么写 —
+    // 打开设置弹窗后，若处于移动端单行滚动标签栏环境，确保当前已激活的标签按钮平滑滑入视野正中央
+    requestAnimationFrame(() => {
+        const currentActiveTab = dom.settingsModal.querySelector('.modal-tabs .tab-btn.active');
+        if (currentActiveTab) {
+            try {
+                currentActiveTab.scrollIntoView({ block: 'nearest', inline: 'center' });
+            } catch (_) {}
+        }
+    });
 }
 
 export function closeSettingsModal() {

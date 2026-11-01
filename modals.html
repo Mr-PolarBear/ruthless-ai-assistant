@@ -1,6 +1,6 @@
 <!-- Settings Modal -->
 <div id="settings-modal" class="modal-overlay">
-    <div class="modal-content" style="width: 92vw; max-width: 1360px;">
+    <div class="modal-content">
         <div class="modal-header">
             <h2>设置</h2>
             <button class="modal-close-btn" title="关闭">&times;</button>
@@ -1177,7 +1177,7 @@
                                 <div class="form-label-row">
                                     <label for="worldbook-content-input">文本内容</label>
                                     <div class="form-label-right-tools">
-                                        <div id="worldbook-char-counter" class="char-counter">0 字</div>
+                                        <div id="worldbook-char-counter" class="char-counter" title="文本统计：0 字符，预估消耗约 0 Tokens">0 字 · ~0 Tokens</div>
                                         <button type="button" id="worldbook-content-expand-btn" class="wb-expand-btn" title="放大编辑 (ESC退出)">
                                             <svg class="icon-expand" xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
                                             <svg class="icon-compress" style="display:none;" xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"></polyline><polyline points="20 10 14 10 14 4"></polyline><line x1="14" y1="10" x2="21" y2="3"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
@@ -1358,9 +1358,9 @@
             <!-- 记忆模式选择器 (3 种模式) -->
             <div class="summary-mode-selector-wrapper">
                 <div class="summary-mode-tabs" id="summary-mode-tabs">
-                    <button type="button" class="summary-mode-tab active" data-mode="recursive" title="递归滚动：全量融合，不限字数，每次将前序记忆与新对话合并总结">🔄 递归滚动</button>
-                    <button type="button" class="summary-mode-tab" data-mode="append" title="列表拼接：增量追加，仅提炼新楼层，以卡片流形式不断拼接">📑 列表拼接</button>
-                    <button type="button" class="summary-mode-tab" data-mode="table" title="跑团双表：专为角色扮演设计，维护历史记录表与角色信息表">⚔️ 跑团双表</button>
+                    <button type="button" class="summary-mode-tab active" data-mode="recursive" title="递归滚动：全量融合，不限字数，每次将前序记忆与新对话合并总结"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M3 22v-6h6"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path></svg>递归滚动</button>
+                    <button type="button" class="summary-mode-tab" data-mode="append" title="列表拼接：增量追加，仅提炼新楼层，以卡片流形式不断拼接"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>列表拼接</button>
+                    <button type="button" class="summary-mode-tab" data-mode="table" title="跑团双表：专为角色扮演设计，维护历史记录表与角色信息表"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"></rect><path d="M3 9h18"></path><path d="M3 15h18"></path><path d="M9 3v18"></path></svg>跑团双表</button>
                 </div>
             </div>
 
@@ -1382,11 +1382,13 @@
                             <input type="number" id="auto-summary-floor-interval" min="2" max="100" value="10" class="auto-summary-num-input">
                             <span>楼自动总结一次</span>
                         </label>
-                        <label class="auto-summary-radio">
+                        <label class="auto-summary-radio" style="display: inline-flex; align-items: center; gap: 4px; flex-wrap: wrap;">
                             <input type="radio" name="auto-summary-type" id="auto-summary-type-tokens" value="tokens">
                             <span>可见消息达</span>
                             <input type="number" id="auto-summary-token-threshold" min="500" max="100000" step="500" value="4000" class="auto-summary-num-input auto-summary-token-input">
                             <span>Token 自动总结</span>
+                            <span class="auto-summary-token-hint" style="color: var(--danger-color, #cf222e); font-size: 11px; font-weight: 500;">(按纯正文统计，建议开启下方自动隐藏释放上下文)</span>
+                            <span id="auto-summary-token-progress" class="auto-summary-token-progress" title="自上次总结基准楼层之后，当前已新产生的纯正文 Token 累积量">📈 当前自第 1 楼起已积累 0 / 4,000 Token</span>
                         </label>
                     </div>
                     <div class="form-group" style="margin-top: 8px; margin-bottom: 0;">
@@ -1395,13 +1397,22 @@
                             总结完成后自动隐藏被总结的历史楼层 (释放上下文)
                         </label>
                     </div>
-                    <div class="form-group" style="margin-top: 6px; margin-bottom: 0; display: flex; align-items: center; gap: 4px; flex-wrap: nowrap;">
-                        <label class="form-group-checkbox" style="font-size: 12px; color: var(--text-primary); margin-bottom: 0; white-space: nowrap;">
-                            <input type="checkbox" id="auto-summary-keep-recent" checked>
-                            归档时保留最后
-                        </label>
-                        <input type="number" id="auto-summary-keep-recent-count" min="1" max="20" value="2" class="auto-summary-num-input">
-                        <span style="font-size: 12px; color: var(--text-secondary); white-space: nowrap;">楼不隐藏 (供AI参考格式与近期语境)</span>
+                    <div class="form-group" style="margin-top: 6px; margin-bottom: 0;">
+                        <div style="display: flex; align-items: center; gap: 4px; flex-wrap: wrap;">
+                            <label class="form-group-checkbox" style="font-size: 12px; color: var(--text-primary); margin-bottom: 0; white-space: nowrap;">
+                                <input type="checkbox" id="auto-summary-keep-recent" checked>
+                                归档时保留最后
+                            </label>
+                            <input type="number" id="auto-summary-keep-recent-count" min="1" max="50" value="2" class="auto-summary-num-input">
+                            <span style="font-size: 12px; color: var(--text-primary); white-space: nowrap;">楼不隐藏 (供AI参考格式与近期语境)</span>
+                        </div>
+                        <!-- 红色警示与控流指引卡片 -->
+                        <div id="auto-summary-keep-recent-hint" class="auto-summary-keep-hint" style="display: flex;">
+                            <span class="keep-hint-icon">⚠️</span>
+                            <div class="keep-hint-text">
+                                <span><strong>注意：</strong>保留楼层不会被归档隐藏。<span id="keep-hint-calc-text">若保留 2 楼且每隔 10 楼总结，下轮触发前最多将累积 <strong>12</strong> 楼未隐藏消息发送给AI。</span>建议搭配下方的 <a href="javascript:void(0)" id="keep-hint-jump-limit" class="keep-hint-link">【发送消息数量限制】</a> 减少实际发送量！</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1448,9 +1459,14 @@
                             0 字符 · 预估 0 Tokens
                         </span>
                     </div>
-                    <button id="hide-summary-history-btn" type="button" class="summary-history-btn" title="查看历史总结版本与回滚">
-                        📜 历史版本 (<span id="hide-summary-history-count">0</span>)
-                    </button>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <button id="hide-summary-condense-btn" type="button" class="summary-aux-btn primary" title="对当前已有记忆总结进行二次精炼脱水，去除过时细节，压缩Token占用">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path></svg>二次浓缩
+                        </button>
+                        <button id="hide-summary-history-btn" type="button" class="summary-history-btn" title="查看历史总结版本与回滚">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M12 7v5l3 3"></path></svg>历史版本 (<span id="hide-summary-history-count">0</span>)
+                        </button>
+                    </div>
                 </div>
 
                 <!-- 模式 1 视图：单段大文本框 (递归滚动记忆) -->
@@ -1463,7 +1479,7 @@
                 <div id="summary-mode-append-view" class="summary-mode-view" style="display: none;">
                     <div class="summary-append-toolbar">
                         <span style="font-size: 12px; color: var(--text-secondary);">共 <strong id="summary-append-count">0</strong> 个记忆片段 (发送时按序拼接)</span>
-                        <button type="button" id="summary-append-add-btn" class="summary-aux-btn primary">➕ 新增片段</button>
+                        <button type="button" id="summary-append-add-btn" class="summary-aux-btn primary"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>新增片段</button>
                     </div>
                     <div id="summary-append-cards-list" class="summary-append-cards-list">
                         <div class="summary-append-empty">暂无记忆片段，可点击【立即总结】或手动【新增片段】</div>
@@ -1474,8 +1490,8 @@
                 <div id="summary-mode-table-view" class="summary-mode-view" style="display: none;">
                     <div class="summary-table-header-bar">
                         <div class="summary-table-subtabs">
-                            <button type="button" class="summary-table-subtab active" data-table="history">📜 历史记录表</button>
-                            <button type="button" class="summary-table-subtab" data-table="character">👤 角色信息表</button>
+                            <button type="button" class="summary-table-subtab active" data-table="history"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>历史记录表</button>
+                            <button type="button" class="summary-table-subtab" data-table="character"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>角色信息表</button>
                         </div>
                         <div class="summary-table-actions">
                             <div class="summary-table-row-lines-wrapper" title="设置单元格默认展示行数">
@@ -1488,9 +1504,9 @@
                                     <option value="6">6 行</option>
                                 </select>
                             </div>
-                            <button type="button" id="summary-table-add-row-btn" class="summary-aux-btn primary">➕ 添加行</button>
-                            <button type="button" id="summary-table-raw-toggle-btn" class="summary-aux-btn" title="切换表格视图与 Markdown 源码">📝 源码模式</button>
-                            <button type="button" id="summary-table-expand-btn" class="summary-aux-btn" title="放大/还原表格编辑窗口">⛶ 放大编辑</button>
+                            <button type="button" id="summary-table-add-row-btn" class="summary-aux-btn primary"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>添加行</button>
+                            <button type="button" id="summary-table-raw-toggle-btn" class="summary-aux-btn" title="切换表格视图与 Markdown 源码"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>源码模式</button>
+                            <button type="button" id="summary-table-expand-btn" class="summary-aux-btn" title="放大/还原表格编辑窗口"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>放大编辑</button>
                         </div>
                     </div>
 
@@ -1564,7 +1580,7 @@
 <div id="summary-history-modal" class="modal-overlay" style="display:none;">
     <div class="modal-content" style="max-width: 520px; max-height: 80vh; display: flex; flex-direction: column;">
         <div class="modal-header">
-            <h2>📜 历史总结版本管理</h2>
+            <h2 style="display: flex; align-items: center; gap: 8px;"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-blue);"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M12 7v5l3 3"></path></svg>历史总结版本管理</h2>
             <button class="modal-close-btn" id="summary-history-close-btn" title="关闭">&times;</button>
         </div>
         <div class="modal-body" style="flex: 1; overflow-y: auto; padding: 10px 16px;">
@@ -1649,6 +1665,96 @@
         </div>
         <div class="modal-actions" style="display: flex; justify-content: flex-end; margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--border-color, #e1e4e8);">
             <button id="branch-summary-cancel-btn" class="cancel-button" style="padding: 6px 16px;">取消重发</button>
+        </div>
+    </div>
+</div>
+
+<!-- Summary Condense Modal (记忆二次浓缩与精炼对比弹窗) -->
+<div id="summary-condense-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-content summary-condense-modal-content" style="max-width: 960px; width: 94vw; max-height: 90vh; display: flex; flex-direction: column;">
+        <div class="modal-header" style="flex-shrink: 0;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <h2 style="font-size: 16px; margin: 0; display: flex; align-items: center; gap: 6px;">
+                    <span>🧪</span> 记忆二次浓缩与精炼
+                </h2>
+                <span id="summary-condense-mode-tag" class="condense-mode-tag">递归滚动</span>
+            </div>
+            <button class="modal-close-btn" id="summary-condense-close-btn" title="关闭">&times;</button>
+        </div>
+        <div class="modal-body" style="flex: 1; overflow-y: auto; padding: 12px 18px; display: flex; flex-direction: column; gap: 12px;">
+            <!-- 策略选择与自定义提示词 -->
+            <div class="condense-strategy-box">
+                <div class="condense-strategy-header">
+                    <span style="font-weight: 600; font-size: 13px;">🎯 精炼策略选择：</span>
+                    <div class="condense-strategy-pills">
+                        <button type="button" class="condense-strategy-pill active" data-strategy="balanced" title="削减约40%~60%篇幅，保留关键设定、人际脉络与事件因果">
+                            ⚖️ 均衡精炼 (推荐)
+                        </button>
+                        <button type="button" class="condense-strategy-pill" data-strategy="extreme" title="极限脱水，削减约70%~80%，仅保留最核心主干骨架与终态">
+                            ⚡ 极限脱水
+                        </button>
+                        <button type="button" class="condense-strategy-pill reset" id="condense-reset-prompt-btn" title="还原当前策略的官方默认提示词">
+                            🔄 还原提示词
+                        </button>
+                    </div>
+                </div>
+                <div class="condense-prompt-wrapper" style="margin-top: 8px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                        <label for="summary-condense-prompt" style="font-size: 12px; color: var(--text-secondary); margin: 0;">
+                            提炼要求提示词 (支持任意编辑修改)：
+                        </label>
+                        <span id="summary-condense-prompt-chars" class="char-counter" style="margin: 0;">0 字</span>
+                    </div>
+                    <textarea id="summary-condense-prompt" rows="3" class="condense-prompt-textarea" placeholder="请输入提炼要求，可在此基础上自由添加个性化指令..."></textarea>
+                </div>
+            </div>
+
+            <!-- 控制栏：发起浓缩按钮与状态 -->
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+                <button type="button" id="summary-condense-start-btn" class="primary-button" style="padding: 6px 18px; display: inline-flex; align-items: center; gap: 6px;">
+                    <span>✨ 开始二次浓缩</span>
+                </button>
+                <div id="summary-condense-status-text" style="font-size: 12px; color: var(--text-secondary);">
+                    准备就绪，点击开始浓缩提炼
+                </div>
+            </div>
+
+            <!-- 核心：左右独立滚动双栏对比面板 -->
+            <div class="condense-compare-grid">
+                <!-- 左栏：浓缩前原记忆 -->
+                <div class="condense-pane original-pane">
+                    <div class="condense-pane-header">
+                        <div class="pane-title">
+                            <span>📜 浓缩前原记忆</span>
+                        </div>
+                        <span id="condense-orig-stats" class="condense-pane-badge">0 字符 · 0 Tokens</span>
+                    </div>
+                    <div class="condense-pane-content-wrapper">
+                        <textarea id="condense-orig-textarea" readonly class="condense-pane-textarea" placeholder="当前记忆内容..."></textarea>
+                    </div>
+                </div>
+
+                <!-- 右栏：浓缩后精炼记忆 -->
+                <div class="condense-pane target-pane">
+                    <div class="condense-pane-header">
+                        <div class="pane-title">
+                            <span>✨ 精炼后新记忆</span>
+                            <span id="condense-reduction-badge" class="condense-reduction-badge" style="display:none;">-0%</span>
+                        </div>
+                        <span id="condense-target-stats" class="condense-pane-badge">0 字符 · 0 Tokens</span>
+                    </div>
+                    <div class="condense-pane-content-wrapper">
+                        <textarea id="condense-target-textarea" class="condense-pane-textarea" placeholder="点击上方【开始二次浓缩】后，提炼结果将在此流式展现，生成完毕后支持直接修改..."></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-actions" style="display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 0; padding: 12px 18px; border-top: 1px solid var(--border-color, #e1e4e8); flex-shrink: 0;">
+            <button type="button" id="summary-condense-cancel-btn" class="cancel-button">取消</button>
+            <button type="button" id="summary-condense-apply-btn" class="primary-button" disabled style="padding: 6px 20px;">
+                <span>✨ 确认替换并备份原记忆</span>
+            </button>
         </div>
     </div>
 </div>
@@ -1965,6 +2071,69 @@
         <div class="modal-body" style="max-height: 65vh; overflow-y: auto;">
             <!-- 更新日志标签内容 -->
             <div id="changelog-content" class="changelog-tab-content active">
+                <div class="changelog-version">
+                    <div class="changelog-version-header">
+                        <span class="changelog-version-tag">v2.9.15</span>
+                        <span class="changelog-version-date">2026-11-01</span>
+                    </div>
+                    <ul class="changelog-list">
+                        <li class="changelog-item fix">【Token 自动总结真增量步进重构 (Plan A)】彻底解耦保留楼层长度干扰，以自上次总结基准楼层之后新产生累积的纯正文 Token（deltaTokens >= tokenThreshold）为统一判定条件；无论保留楼层自身有多长（小说创作长文本或长代码），均严格等待新写满扎实的设定阈值后才触发，彻底根除隔轮频繁误触发；配套完善了分支回滚与截断自愈机制；</li>
+                        <li class="changelog-item feat">【自动总结实时进度监控胶囊】在弹窗设置行新增动态进度胶囊 Badge（📈 当前自第 X 楼起已积累 Y / Z Token），自上次总结以来的新增进度一目了然；达到 80% 时自动切换高亮橙色预警，拦截点击冒泡防误触，且深度适配浅色与暗夜幽蓝双模式主题；</li>
+                        <li class="changelog-item fix">【阈值输入合法范围安全钳制与失焦回填】输入监听与底层计算强制执行 500 ~ 100,000 合法范围安全防御；增加失焦规范化回填事件，输入非法或超限数值失焦后自动纠正回填，杜绝界面显示与底层运行不一致。</li>
+                    </ul>
+                </div>
+                <div class="changelog-version">
+                    <div class="changelog-version-header">
+                        <span class="changelog-version-tag">v2.9.14</span>
+                        <span class="changelog-version-date">2026-11-01</span>
+                    </div>
+                    <ul class="changelog-list">
+                        <li class="changelog-item feat">【长线记忆二次浓缩与精炼系统】新增独立二次浓缩弹窗（960px 宽屏），提供「⚖️ 均衡精炼」与「⚡ 极限脱水」双策略预设；提示词支持即点即灌且任意自由编辑修改，自带防误触覆盖二次确认与 Esc 快捷键关闭；首创左右双栏独立上下滚动对比视窗，提炼结果流式打字机实时渲染并动态展示瘦身百分比；替换前自动在快照树中备份原记忆，支持一键无损回滚与双表/卡片/递归多模式自适应反解析；</li>
+                        <li class="changelog-item fix">【Token 自动总结增量闭环与纯净计算 (Plan A)】彻底重构按 Token 自动总结判定逻辑：引入 extractThinkingFromContent 严格剔除 AI 思考链（仅按纯正文计算），与 API 实际发送口径 100% 吻合，根除推理模型超长思考过程导致的过早误触发；引入增量步进闭环机制，未开启自动隐藏时自动转为增量步进判定，彻底消灭每轮对话必总结的死循环，并阻断末尾保留长楼层造成的连环轰炸；</li>
+                        <li class="changelog-item feat">【归档保留楼层累积警示与控流指引】针对“归档时保留最后 K 楼不隐藏”机制，新增醒目红色动态警示卡片，实时计算并展现下一轮触发前最多累积发送给 AI 的 (K + N) 楼未隐藏消息上限；内置一键平滑锚点跳转并带 1.5s 醒目黄色发光聚焦环，引导用户搭配【发送消息数量限制】进行上下文控流；在 Token 自动总结行增加红色醒目纯正文与归档提醒。</li>
+                    </ul>
+                </div>
+                <!-- v2.9.13 -->
+                <div class="changelog-version">
+                    <div class="changelog-version-header">
+                        <span class="changelog-version-tag">v2.9.13</span>
+                        <span class="changelog-version-date">2026-10-31</span>
+                    </div>
+                    <ul class="changelog-list">
+                        <li class="changelog-item feat">【备忘录全面迁移至 IndexedDB 数据库】数据库版本升级至 5，新增独立 worldbook_store 对象仓库；突破 LocalStorage 5MB 容量限制，海量大部头知识库随心存；首次启动自动无损平滑迁移老数据，老用户数据 100% 留存；</li>
+                        <li class="changelog-item fix">【单条原子存取与跨窗口秒级协同】单条备忘录增删改原生 store.put 原子入库，彻底根治多窗口/多标签页并发编辑时整包覆盖冲刷的重大缺陷；引入原生 BroadcastChannel 广播，多页面实时无损协同；</li>
+                        <li class="changelog-item fix">【深度绝对优先与拖拽展示权责分离】发送给模型前严格以挂载深度 depth 绝对决定先后顺序（数值越小越靠前，如 10 -&gt; 20 -&gt; 140），彻底纠正拖拽 order 越权压制 depth 导致排序反转的问题；仅在同深度下按页面拖拽顺序决定；列表展示则以拖拽为主；</li>
+                        <li class="changelog-item feat">【表单未保存脏检查防丢系统】全面监听名称、内容、位置、挂载深度、角色、标签以及全局/局部生效开关；编辑中途切换其他条目坚决拦截告警，杜绝误触丢失未保存草稿；</li>
+                        <li class="changelog-item feat">【已选中列表放开拖拽排序与实时 Token 预估】解除“已选中”Tab 禁拖硬编码，复用底层子集相对重排算法；编辑区字数统计接入实时预估 Token（0 字 · ~0 Tokens）与 hover 统计浮层，深浅双主题色像素级适配。</li>
+                    </ul>
+                </div>
+                <!-- v2.9.12 -->
+                <div class="changelog-version">
+                    <div class="changelog-version-header">
+                        <span class="changelog-version-tag">v2.9.12</span>
+                        <span class="changelog-version-date">2026-10-30</span>
+                    </div>
+                    <ul class="changelog-list">
+                        <li class="changelog-item feat">【设置弹窗移动端全屏沉浸式适配 (Plan A)】全面解除桌面端 780px 宽度限制与行内样式束缚，断点覆盖扩大至 &lt;= 900px；四向固定贴边铺满（100% / 100dvh），彻底消除移动端与平板边缘溢出、留白缝隙与圆角残缺；</li>
+                        <li class="changelog-item fix">【下方内容窗口 90vw 卡死根治】彻底切断全局裸写 .modal-body 的作用域污染（限定为 .modal &gt; .modal-body），彻底解决设置弹窗内部滚动窗口被 90vw 截断导致右侧留白 39px 与列表卡片多余圆角的问题；</li>
+                        <li class="changelog-item feat">【标签栏单行横滑轨道与居中聚焦】10 个设置 Tab 升级为单行横向平滑滑动导轨，隐藏原生粗滚动条；加入标签激活自动平滑居中算法，切换或打开时当前标签平滑滚入正中央；</li>
+                        <li class="changelog-item fix">【纵向滚动链加固与单列自适应】补齐 flex: 1 1 auto 与 overscroll-behavior: contain，根治 WebKit 弹性高度塌陷导致的上下滑动失效与背景滚动穿透；正则表达式双栏及通用多列表单自适应为单列流式排布。</li>
+                    </ul>
+                </div>
+
+                <!-- v2.9.11 -->
+                <div class="changelog-version">
+                    <div class="changelog-version-header">
+                        <span class="changelog-version-tag">v2.9.11</span>
+                        <span class="changelog-version-date">2026-10-30</span>
+                    </div>
+                    <ul class="changelog-list">
+                        <li class="changelog-item feat">【会话记忆与智能总结视觉交互升级】会话记忆弹窗改为点击阴影不关闭，杜绝长文编辑手抖误触丢失；内部全量升级为系统统一的现代矢量 SVG 轮廓图标（模式标签、历史版本、双表子标签与操作按钮）；</li>
+                        <li class="changelog-item fix">【跑团双表详情反显与等高对齐】会话数据详情弹窗完美自适应反显跑团双表 Markdown 内容并支持一键复制，空内容不计伪 Token；行高选择框与操作栏按钮统一度量高度（24px），消除下边缘凸出对齐问题；</li>
+                        <li class="changelog-item fix">【实际发送Token精准纠偏 (Plan A)】彻底纠偏会话详情与外部徽章算法：历史 AI 消息严格剥离思考过程（API 仅发送纯正文），全额计入系统提示词、启用的备忘录（含动态宏解析）与记忆总结，弹窗新增正文/设定/字符三维细分透视。</li>
+                    </ul>
+                </div>
+
                 <!-- v2.9.10 -->
                 <div class="changelog-version">
                     <div class="changelog-version-header">
@@ -1972,10 +2141,8 @@
                         <span class="changelog-version-date">2026-10-29</span>
                     </div>
                     <ul class="changelog-list">
-                        <li class="changelog-item feat">【正则表达式全方位体验升级】顶栏新增「➕ 添加新规则」常驻按钮；折叠分组栏新增「+ 添加全局」与「+ 添加专属」快捷胶囊，自动预选归属范围；编辑或查看态表单头部提供「➕ 新建空白规则」快捷切换；</li>
-                        <li class="changelog-item feat">【表单三段式常驻底栏】右侧表单重构为固定头部、独立滚动表单体与常驻底栏，「保存规则」与「取消编辑」按钮始终吸附常驻可见，告别滚动半天找保存的痛点；</li>
-                        <li class="changelog-item fix">【双栏黄金比例与防挤压重构】设置弹窗放宽至 92vw / 1360px，网格比例重构为保底 420px (42%)，作用域药丸强制防词内断行，规则标题舒展展示，配备 6px 现代半透明细滚动条；</li>
-                        <li class="changelog-item feat">【正则示例与速查指南上线】新增「📖 正则示例与说明」独立弹窗，内置 18 组 7 大分类高频实用正则，支持关键字实时检索、分类筛选、一键复制正则/替换与「⚡ 一键套用到编辑表单」。</li>
+                        <li class="changelog-item feat">【正则表达式全方位体验升级】顶栏与折叠分组新增多维快速添加入口，表单头部提供「新建空白规则」；重构三段式常驻底栏，保存与取消按钮始终吸底常驻；弹窗放宽至 92vw / 1360px，保底左侧 420px 并配备防挤压药丸与现代细滚动条；</li>
+                        <li class="changelog-item feat">【正则速查指南与示例中心上线】新增「📖 正则示例与说明」独立弹窗，内置 18 组 7 大分类高频实用正则，支持关键字实时检索、一键复制与「⚡ 一键套用到编辑表单」。</li>
                     </ul>
                 </div>
 
@@ -1986,45 +2153,39 @@
                         <span class="changelog-version-date">2026-10-29</span>
                     </div>
                     <ul class="changelog-list">
-                        <li class="changelog-item fix">【自动总结步进节奏重构】将“每隔 N 楼自动总结一次”判定算法重构为基于分支总长度与上次总结基准的真实步进增量（ΔFloors = currentTotalFloors - lastFloor ≥ N），彻底解耦可见消息池容量；</li>
-                        <li class="changelog-item fix">【根除保留楼层频繁触发缺陷】彻底解决勾选“归档时保留最后 K 楼不隐藏”时，因池中残留 K 楼导致实际触发节奏严重缩水至 (N - K) 楼（如设 16 楼却仅隔 8 楼就触发一次、32 楼内触发 3 次）的逻辑偏差，严格保证每 N 楼精准触发；</li>
-                        <li class="changelog-item fix">【根除不隐藏时的死循环缺陷】彻底解决未勾选“总结后自动隐藏历史楼层”时，达到阈值后每一楼都连环触发自动总结的严重死循环问题；</li>
-                        <li class="changelog-item feat">【分叉回滚与快照因果同步】覆盖首次升级平滑过渡、截断重发自动校准，以及历史快照回滚和分叉重发时的因果一致性状态同步；</li>
-                        <li class="changelog-item feat">【恢复默认提示词防误触确认】点击「恢复默认提示词」增加智能防呆校验与显式二次确认弹窗，坚决保护大爷精心微调的提示词心血不被误覆盖；</li>
-                        <li class="changelog-item feat">【全模式实时总Tokens与字符胶囊】在「当前记忆内容」标题旁新增实时高对比度胶囊徽章（方案 A），全面覆盖跑团双表、卡片流与递归模式，表格单元格打字、增删行与源码编辑毫秒级联动重算，深浅双主题色自适应。</li>
+                        <li class="changelog-item fix">【自动总结步进引擎与因果同步重构】判定算法重构为真实步进增量（ΔFloors ≥ N），彻底根除保留历史楼层时触发间隔严重缩水缺陷，以及未隐藏时的连环死循环；完善从此重发、截断回退与快照回滚的因果状态同步；</li>
+                        <li class="changelog-item feat">【全模式实时总Tokens与字符胶囊】「当前记忆内容」标题旁新增实时高对比度徽章，全面覆盖跑团双表、卡片流与递归模式，单元格打字、增删行与源码编辑毫秒级联动重算；</li>
+                        <li class="changelog-item feat">【恢复默认提示词防误触确认】点击「恢复默认提示词」增加智能防呆校验与显式二次确认弹窗，坚决保护精心微调的提示词心血不被误覆盖。</li>
                     </ul>
                 </div>
 
-                                <!-- v2.9.8 -->
+                <!-- v2.9.8 -->
                 <div class="changelog-version">
                     <div class="changelog-version-header">
                         <span class="changelog-version-tag">v2.9.8</span>
                         <span class="changelog-version-date">2026-10-29</span>
                     </div>
                     <ul class="changelog-list">
-                        <li class="changelog-item feat">【MCP会话专属隔离】废除MCP工具勾选全局共享机制，转为会话专属私有状态；新建对话默认干净无勾选，切换对话即时联动底栏徽章与菜单，导出会话JSON与复制会话全链路持久化；</li>
-                        <li class="changelog-item fix">【执行失败重试修复】攻克DOM动态替换导致的事件绑定丢失与异常时参数丢失两大顽疾，全DOM分支统一事件委托，调用参数全生命周期持久固化，断网/跨轮次/刷新后均可100%成功重试；</li>
-                        <li class="changelog-item feat">【精细卡片化排版与诊断弹窗】全新重构现代内敛卡片排版（Plan A），顶栏纯净展现元信息杜绝文字重复与按钮堆叠错位，底部集成查看错误详情与立即重试专注操作栏；新增独立诊断弹窗，结构化代码高亮展示调用参数、服务端响应体与排查指引，支持一键复制完整排查报告；</li>
-                        <li class="changelog-item style">【双主题色深度适配】彻底移除MCP失败条与错误信息硬编码的浅粉白底色，浅色与深色模式（Dark Mode）下全面自适应半透明高对比度警示风格，杜绝突兀大白块。</li>
+                        <li class="changelog-item feat">【MCP会话专属隔离】废除全局共享，转为会话私有状态；新建对话默认干净无勾选，切换对话即时联动底栏徽章与菜单，导入导出与复制全链路持久化；</li>
+                        <li class="changelog-item fix">【执行失败重试彻底修复】全 DOM 分支统一事件委托，调用参数全生命周期持久固化，断网/跨轮次/刷新后均可 100% 成功重试；</li>
+                        <li class="changelog-item feat">【精细卡片化排版与独立诊断弹窗】Header 纯净展现元信息杜绝错位，操作统一下沉专注操作栏；新增独立诊断弹窗高亮展示参数与响应体，深浅双主题色深度适配。</li>
                     </ul>
                 </div>
 
-<!-- v2.9.7 -->
+                <!-- v2.9.7 -->
                 <div class="changelog-version">
                     <div class="changelog-version-header">
                         <span class="changelog-version-tag">v2.9.7</span>
                         <span class="changelog-version-date">2026-10-29</span>
                     </div>
                     <ul class="changelog-list">
-                        <li class="changelog-item feat">【动态变量宏】备忘录新增动态变量引擎，支持一键快捷插入 <code>{{date}}</code>、<code>{{time}}</code>、<code>{{datetime}}</code>、<code>{{weekday}}</code>、<code>{{model}}</code>、<code>{{conversation_title}}</code>、<code>{{platform}}</code> 等动态上下文宏；</li>
-                        <li class="changelog-item feat">【锚点深度分流】备忘录全面支持 4 类注入锚点：顶部系统区（支持合并）、对话历史前、历史流倒数插入（支持自定义倒数深度回溯插入）、跟随用户发言；</li>
-                        <li class="changelog-item feat">【时间线自动梳理】「跟随用户发言」新增「每条合并」开关：遍历历史每条用户消息提取其当时真实发送时间戳动态解析宏，为大模型真实还原多轮会话时间跨度与演进脉络；</li>
-                        <li class="changelog-item feat">【意图驱动体验】在空白未发消息的会话界面配置局部备忘录时，系统自动无感创建并绑定新会话，彻底根除拦截警告；</li>
-                        <li class="changelog-item opt">【解耦排序与深度】彻底解耦备忘录展示顺序（order）与插入深度（depth），修复标签筛选下拖拽排序错乱问题；条目左下角新增字符数与预估 Tokens 实时统计；</li>
-                        <li class="changelog-item fix">【多模态安全防御】重构消息脚标追加函数，深度防御多模态带图带附件消息，杜绝转为 <code>[object Object]</code> 引发 API 报错；修复参数栏在切换不同注入位置时的输入框错位问题。</li>
-                        <li class="changelog-item fix">【实际发送纠偏】彻底纠偏会话详情与外部徽章「实际发送Token」算法：严格剥离历史 AI 消息思考过程（API 仅传纯正文不发思考），全额计入角色人设、启用的备忘录（含宏解析）、总结与上下文，弹窗新增正文/设定/字符三维细分透视。</li>
+                        <li class="changelog-item feat">【动态变量宏引擎】备忘录支持快捷插入 <code>{{date}}</code>、<code>{{time}}</code>、<code>{{datetime}}</code>、<code>{{weekday}}</code>、<code>{{model}}</code>、<code>{{conversation_title}}</code> 等上下文动态宏；</li>
+                        <li class="changelog-item feat">【4类注入锚点与时间线合并】支持顶部系统区、对话历史前、历史流倒数插入与跟随用户发言；「跟随用户发言」支持按历史各条时间戳动态求值解析；</li>
+                        <li class="changelog-item feat">【空白会话自动绑定与排序解耦】空白会话配置局部备忘录时无感自动创建并绑定；展示顺序（order）与插入深度（depth）彻底解耦；</li>
+                        <li class="changelog-item fix">【多模态安全防御】重构消息脚标追加函数，深度防御多模态带图带附件消息，杜绝转为 <code>[object Object]</code> 引发 API 报错。</li>
                     </ul>
                 </div>
+
                 <!-- v2.9.6 -->
                 <div class="changelog-version">
                     <div class="changelog-version-header">

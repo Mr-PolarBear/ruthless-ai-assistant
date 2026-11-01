@@ -53,6 +53,10 @@ import { dom } from '../dom.js?v=temp';
 import { state } from '../state.js?v=temp';
 import { saveToLocalStorage, saveAppSettings, escapeHtml } from '../utils.js?v=temp';
 import { 
+    saveWorldBookEntryToDB, deleteWorldBookEntryFromDB, 
+    saveAllWorldBookEntriesToDB, getAllWorldBookEntriesFromDB 
+} from '../db.js?v=temp';
+import { 
     renderWorldBookList, resetWorldBookForm, updateCharCounter,
     openWorldBookModal, renderWorldBookTagsPanel, filterWorldBookByTags, sortWorldBookEntries,
     updateFormSessionToggleState, getSafeActiveConversationId, setWorldBookMobileView, toggleWorldBookContentExpand
@@ -122,7 +126,7 @@ function initWorldBookDragInstance(enabled = true) {
     
     worldBookDragInstance = new DraggableList(dom.worldBookList, {
         itemSelector: '.worldbook-item',
-        onDrop: (fromIndex, toIndex) => {
+        onDrop: async (fromIndex, toIndex) => {
             if (fromIndex === toIndex) return;
 
             // 1. 获取当前可见 DOM 列表中的卡片 ID
@@ -176,6 +180,7 @@ function initWorldBookDragInstance(enabled = true) {
             }
 
             // 绝不篡改用户的 entry.depth！
+            await saveAllWorldBookEntriesToDB(allEntries);
             saveToLocalStorage();
             
             // 保持当前标签筛选状态不变
@@ -208,6 +213,87 @@ function ensureWorldBookAllTabActive() {
     }
 }
 
+
+// ==========================================
+// 表单未保存脏检查 (Dirty Check) 防丢系统
+// ==========================================
+
+let lastLoadedFormSnapshot = null;
+
+export function updateFormSnapshotAfterLoadOrSave(entry = null) {
+    if (!entry) {
+        lastLoadedFormSnapshot = null;
+        return;
+    }
+    const currentConvId = (typeof getSafeActiveConversationId === 'function') ? getSafeActiveConversationId() : state.currentConversationId;
+    const sessionChecked = Boolean(entry.enabled || (currentConvId && Array.isArray(entry.sessionIds) && entry.sessionIds.includes(currentConvId)));
+    const tagsSorted = Array.isArray(entry.tags) ? [...entry.tags].sort().join(',') : '';
+    lastLoadedFormSnapshot = {
+        id: entry.id || '',
+        name: (entry.name || '').trim(),
+        content: entry.content || '',
+        position: entry.position || 'top',
+        appendAllUser: Boolean(entry.appendAllUser),
+        depth: typeof entry.depth === 'number' ? entry.depth : 10,
+        role: entry.role || 'system',
+        enabled: Boolean(entry.enabled),
+        sessionChecked: sessionChecked,
+        tags: tagsSorted
+    };
+}
+
+function getFormValuesSnapshot() {
+    return {
+        id: dom.worldBookIdInput?.value || '',
+        name: (dom.worldBookNameInput?.value || '').trim(),
+        content: dom.worldBookContentInput?.value || '',
+        position: dom.worldBookPositionSelector?.value || 'top',
+        appendAllUser: Boolean(dom.worldBookAppendAllToggle?.checked),
+        depth: dom.worldBookDepthInput ? parseInt(dom.worldBookDepthInput.value, 10) : 10,
+        role: dom.worldBookRoleSelector?.value || 'system',
+        enabled: Boolean(dom.worldBookEnabledToggle?.checked),
+        sessionChecked: Boolean(dom.worldBookSessionToggleInput?.checked),
+        tags: (dom.worldBookTagsInput?.value || '')
+            .split(/[,，\n]/)
+            .map(t => t.trim())
+            .filter(Boolean)
+            .sort()
+            .join(',')
+    };
+}
+
+/**
+ * 判断当前备忘录表单是否已被修改（脏检查）
+ * @returns {boolean}
+ */
+export function isWorldBookFormDirty() {
+    const current = getFormValuesSnapshot();
+    
+    // 如果当前处于编辑已有条目状态
+    if (current.id && state.worldBook[current.id]) {
+        const orig = lastLoadedFormSnapshot;
+        if (!orig) return false;
+        return (
+            current.name !== orig.name ||
+            current.content !== orig.content ||
+            current.position !== orig.position ||
+            current.appendAllUser !== orig.appendAllUser ||
+            current.depth !== orig.depth ||
+            current.role !== orig.role ||
+            current.enabled !== orig.enabled ||
+            current.sessionChecked !== orig.sessionChecked ||
+            current.tags !== orig.tags
+        );
+    }
+    
+    // 如果处于新建条目状态：只要输入了名称或正文，即视为有未保存内容
+    if (!current.id) {
+        return Boolean(current.name || current.content);
+    }
+    
+    return false;
+}
+
 export function setupWorldBookEvents() {
     if (dom.manageWorldBookBtn) dom.manageWorldBookBtn.addEventListener('click', openWorldBookModal);
     if (dom.worldBookMergeToggle) dom.worldBookMergeToggle.addEventListener('change', () => {
@@ -217,6 +303,7 @@ export function setupWorldBookEvents() {
     if (dom.worldBookSaveBtn) dom.worldBookSaveBtn.addEventListener('click', saveWorldBookEntry);
     if (dom.worldBookCancelBtn) dom.worldBookCancelBtn.addEventListener('click', () => {
         resetWorldBookForm();
+        updateFormSnapshotAfterLoadOrSave(null);
         setWorldBookMobileView('list');
         toggleWorldBookContentExpand(false);
     });
@@ -567,8 +654,8 @@ export function setupWorldBookEvents() {
                     btn.classList.toggle('active', btn.dataset.tab === tab);
                 });
                 
-                // 根据标签页启用/禁用拖拽
-                initWorldBookDragInstance(tab === 'all');
+                // 依大爷要求：切换 Tab 时始终保持拖拽实例启用（“已选中”和“全部”均支持拖拽）
+                initWorldBookDragInstance(true);
                 
                 // 根据标签页启用/禁用标签列表
                 if (dom.worldBookTagList) {
@@ -585,6 +672,27 @@ export function setupWorldBookEvents() {
 
     if (dom.worldBookClearFilterBtn) {
         dom.worldBookClearFilterBtn.addEventListener('click', clearWorldBookFilter);
+    }
+
+    // 跨标签页 IndexedDB 同步监听 (BroadcastChannel)
+    if (typeof BroadcastChannel !== 'undefined') {
+        try {
+            const wbSyncChannel = new BroadcastChannel('worldbook_sync_channel');
+            wbSyncChannel.onmessage = async (event) => {
+                const entries = await getAllWorldBookEntriesFromDB();
+                state.worldBook = {};
+                for (const item of entries) {
+                    if (item && item.id) {
+                        state.worldBook[item.id] = item;
+                    }
+                }
+                renderWorldBookTagsPanel();
+                filterWorldBookByTags();
+                updateWorldBookButton();
+            };
+        } catch (e) {
+            console.warn('跨标签页广播同步监听初始化失败:', e);
+        }
     }
 }
 
@@ -751,9 +859,14 @@ async function saveWorldBookEntry() {
         createdAt
     };
 
+    // 依大爷要求：单条原子存入 IndexedDB，彻底根除多页面并发覆盖
+    await saveWorldBookEntryToDB(state.worldBook[entryId]);
     saveToLocalStorage();
     renderWorldBookTagsPanel();
     filterWorldBookByTags();
+
+    // 更新脏检查基准快照，标记已保存
+    updateFormSnapshotAfterLoadOrSave(state.worldBook[entryId]);
 
     // — 为什么这么写 —
     // 依大爷要求：保存后不直接清空，而是停留在当前条目继续编辑状态
@@ -779,7 +892,7 @@ async function saveWorldBookEntry() {
     }
 }
 
-function handleWorldBookListActions(e) {
+async function handleWorldBookListActions(e) {
     const target = e.target;
     const button = target.closest('button');
     const globalSwitch = target.closest('.worldbook-item-toggle');
@@ -791,6 +904,7 @@ function handleWorldBookListActions(e) {
         const entry = state.worldBook[id];
         if (entry) {
             entry.enabled = globalSwitch.checked;
+            saveWorldBookEntryToDB(entry);
             saveToLocalStorage();
             renderWorldBookTagsPanel();
             filterWorldBookByTags();
@@ -839,6 +953,7 @@ function handleWorldBookListActions(e) {
         if (!entry.enabled && entry.sessionIds.length === 0) {
             sessionSwitch.checked = false;
         }
+        saveWorldBookEntryToDB(entry);
         saveToLocalStorage();
         renderWorldBookTagsPanel();
         filterWorldBookByTags();
@@ -849,6 +964,25 @@ function handleWorldBookListActions(e) {
     if (button) {
         const id = button.dataset.id;
         if (button.classList.contains('worldbook-edit-btn')) {
+            const currentEditingId = dom.worldBookIdInput?.value;
+            if (id !== currentEditingId && isWorldBookFormDirty()) {
+                // 若当前处于新建输入状态：友好询问是否放弃输入
+                if (!currentEditingId) {
+                    if (!confirm('当前正在新建备忘录且内容未保存，是否放弃当前输入并切换到编辑该条目？')) {
+                        return;
+                    }
+                    resetWorldBookForm();
+                    updateFormSnapshotAfterLoadOrSave(null);
+                } else {
+                    // 若当前正在编辑已有条目 A，切换到 B：依大爷要求严格阻断，防止草稿丢失
+                    if (notify && notify.warn) {
+                        notify.warn('⚠️ 当前条目内容已修改但尚未保存，请先保存条目或点击"取消编辑"后再切换！');
+                    } else {
+                        alert('当前条目内容已修改但尚未保存，请先保存条目或点击"取消编辑"后再切换！');
+                    }
+                    return;
+                }
+            }
             const entry = state.worldBook[id];
             dom.worldBookIdInput.value = entry.id;
             dom.worldBookNameInput.value = entry.name;
@@ -873,11 +1007,17 @@ function handleWorldBookListActions(e) {
                 dom.worldBookCancelBtn.style.display = 'inline-block';
             }
             updateCharCounter();
+            updateFormSnapshotAfterLoadOrSave(entry);
             setWorldBookMobileView('form');
         } else if (button.classList.contains('worldbook-delete-btn')) {
             if (confirm(`确定要删除备忘录条目 "${state.worldBook[id].name}" 吗？`)) {
                 delete state.worldBook[id];
+                await deleteWorldBookEntryFromDB(id);
                 saveToLocalStorage();
+                if (dom.worldBookIdInput?.value === id) {
+                    resetWorldBookForm();
+                    updateFormSnapshotAfterLoadOrSave(null);
+                }
                 renderWorldBookTagsPanel();
                 filterWorldBookByTags();
                 updateWorldBookButton();
@@ -893,6 +1033,7 @@ function handleWorldBookListActions(e) {
                 newEntry.createdAt = Date.now();
                 newEntry.order = Date.now();
                 state.worldBook[newEntry.id] = newEntry;
+                await saveWorldBookEntryToDB(newEntry);
                 saveToLocalStorage();
                 renderWorldBookTagsPanel();
                 filterWorldBookByTags();

@@ -537,6 +537,160 @@
     }
 
     /* ==========================================================================
+       移动端/窄屏 (<= 768px) - 系统设置弹窗 (Settings Modal)
+       ========================================================================== */
+    /* — 为什么这么写 —
+       1. 消除溢出：css/modals.css 中 #settings-modal .modal-content 具有 min-width: 780px 特异性，
+          移动端必须显式覆盖 min-width: 0 !important 并且宽度设为 100vw，防止 780px 把手机视口强行撑爆；
+       2. 沉浸式全屏：移动端采用 fixed 铺满全屏（left:0; right:0; top:0; bottom:0），彻底杜绝滚动条或安全区产生的右侧缝隙与圆角残缺；
+       3. 标签栏单行横向滑轨：移除换行 (flex-wrap: nowrap)，开启 overflow-x: auto 与 iOS 触摸惯性滚动，
+          隐藏粗滚动条，使 10 个设置 Tab 支持丝滑水平拖动，避免 Tab 折行霸占半屏；
+       4. 纵向滚动加固：.modal-body 声明 flex: 1 1 auto、min-height: 0 与 overscroll-behavior: contain，
+          解决 flex 子项高度计算导致的滚动条失效与背景穿透；
+       5. 内部栅格单列化：将正则表达式双栏布局与 form-group-grid-2/3 网格收缩为单列，防止在窄屏上表单严重挤扁。
+    */
+    #settings-modal.modal-overlay {
+        padding: 0 !important;
+        margin: 0 !important;
+        align-items: stretch !important;
+        justify-content: stretch !important;
+        width: 100% !important;
+        height: 100% !important;
+    }
+
+    #settings-modal .modal-content {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        width: 100% !important;
+        width: 100vw !important;
+        height: 100% !important;
+        height: 100dvh !important;
+        max-width: 100% !important;
+        max-width: 100vw !important;
+        max-height: 100% !important;
+        max-height: 100dvh !important;
+        min-width: 0 !important;
+        border-radius: 0 !important;
+        border: none !important;
+        margin: 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        box-shadow: none !important;
+    }
+
+    #settings-modal .modal-header {
+        flex-shrink: 0;
+        padding: 0.75rem 1rem 0.5rem 1rem !important;
+        border-radius: 0 !important;
+        border-bottom: 1px solid var(--border-color);
+        background: var(--bg-medium);
+        position: relative !important;
+        top: 0 !important;
+    }
+
+    #settings-modal .modal-header h2 {
+        font-size: 1.15rem;
+    }
+
+    #settings-modal .modal-tabs {
+        flex-shrink: 0;
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        -webkit-overflow-scrolling: touch !important;
+        padding: 0 0.5rem !important;
+        gap: 0.25rem;
+        background: var(--bg-medium);
+        border-bottom: 1px solid var(--border-color);
+        position: relative !important;
+        top: 0 !important;
+        scrollbar-width: none; /* Firefox 隐藏粗滚动条 */
+    }
+
+    #settings-modal .modal-tabs::-webkit-scrollbar {
+        display: none; /* WebKit/Chrome/Safari 隐藏滚动条 */
+    }
+
+    #settings-modal .tab-btn {
+        flex-shrink: 0 !important;
+        white-space: nowrap !important;
+        padding: 0.65rem 0.85rem !important;
+        font-size: 0.9rem !important;
+    }
+
+    #settings-modal .modal-body {
+        flex: 1 1 auto !important;
+        min-height: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        overscroll-behavior: contain !important;
+        padding: 0.85rem 0.85rem 2.5rem 0.85rem !important;
+        margin: 0 !important;
+        box-sizing: border-box !important;
+    }
+
+    #settings-modal .tab-content {
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    /* 正则表达式布局在手机端由双栏转为单列垂直流式排布 */
+    #settings-modal .regex-settings-layout {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 1rem !important;
+    }
+
+    #settings-modal .regex-settings-left,
+    #settings-modal .regex-settings-right {
+        width: 100% !important;
+        height: auto !important;
+        max-height: none !important;
+        overflow-y: visible !important;
+        padding-right: 0 !important;
+    }
+
+    /* 通用双列/三列表单网格在窄屏下自适应为单列 */
+    #settings-modal .form-group-grid-2,
+    #settings-modal .form-group-grid-3 {
+        grid-template-columns: 1fr !important;
+        gap: 0.75rem !important;
+    }
+
+    /* 会话导入两栏在手机端改为垂直流式排列 */
+    #settings-modal .import-preview-container {
+        flex-direction: column !important;
+        height: auto !important;
+        min-height: 420px;
+    }
+
+    #settings-modal .import-list-panel {
+        width: 100% !important;
+        height: 200px;
+        border-right: none !important;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    #settings-modal .import-preview-panel {
+        width: 100% !important;
+        height: 220px;
+    }
+
+    /* 快捷提示搜索与添加按钮在手机端排版优化 */
+    #settings-modal #quick-prompt-list-container {
+        max-height: 50vh !important;
+    }
+
+    /* ==========================================================================
        移动端/窄屏 (<= 900px) - 备忘录管理弹窗 (Worldbook Modal)
        ========================================================================== */
     #worldbook-modal.modal-overlay {
@@ -954,6 +1108,51 @@
 
     #new-chat-btn {
         padding: 0.6rem;
+    }
+}
+
+/* ==========================================================================
+   平板与窄屏 (<= 900px) - 系统设置弹窗全屏兜底强化
+   ========================================================================== */
+@media (max-width: 900px) {
+    #settings-modal.modal-overlay {
+        padding: 0 !important;
+        margin: 0 !important;
+        align-items: stretch !important;
+        justify-content: stretch !important;
+        width: 100% !important;
+        height: 100% !important;
+    }
+
+    #settings-modal .modal-content {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        width: 100% !important;
+        width: 100vw !important;
+        height: 100% !important;
+        height: 100dvh !important;
+        max-width: 100% !important;
+        max-width: 100vw !important;
+        max-height: 100% !important;
+        max-height: 100dvh !important;
+        min-width: 0 !important;
+        border-radius: 0 !important;
+        border: none !important;
+        margin: 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        box-shadow: none !important;
+    }
+
+    #settings-modal .modal-body {
+        width: 100% !important;
+        max-width: 100% !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        box-sizing: border-box !important;
     }
 }
 

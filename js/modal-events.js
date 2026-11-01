@@ -53,9 +53,11 @@ import {
     applySummaryResult,
     recordSummaryVersion,
     autoSummaryContext,
-    formatHiddenFloorsBannerInfo
+    formatHiddenFloorsBannerInfo,
+    calculateAutoSummaryTokenProgress
 } from './summary-manager.js?v=temp';
 import { initSummaryHistoryModal, updateHideSummaryHistoryCount } from './modals/summary-history-modal.js?v=temp';
+import { initSummaryCondenseModal } from './modals/summary-condense-modal.js?v=temp';
 import { initSimulateSendModal } from './modals/simulate-send-modal.js?v=temp';
 import { setupBranchSummaryConfirmModal } from './modals/branch-summary-confirm-modal.js?v=temp';
 
@@ -127,6 +129,9 @@ export function setupModalEvents() {
 
     // 模拟发送与提示词透视弹窗
     initSimulateSendModal();
+
+    // 记忆二次浓缩与精炼双栏对比弹窗
+    initSummaryCondenseModal();
 
     // 分叉重发与记忆联动确认弹窗
     setupBranchSummaryConfirmModal();
@@ -221,6 +226,12 @@ function setupSettingsTabs() {
             if (activeTabContent) {
                 activeTabContent.classList.add('active');
             }
+
+            // — 为什么这么写 —
+            // 在移动端窄屏单行横向滑动的标签栏中，点击某个标签时平滑将其居中滑入可视区域，提升触屏操作流畅度
+            try {
+                tab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            } catch (_) {}
 
             if (tab.dataset.tab === 'data-settings') {
                 showImportTemplate();
@@ -492,6 +503,39 @@ function setupHideSummaryModal() {
     }
 
     /**
+     * 刷新归档保留楼层的红色警示卡片内容与显示状态
+     * — 为什么这么写 —
+     * 1. 当用户开启“归档时保留最后 K 楼不隐藏”时，这 K 楼永远保持可见状态；
+     * 2. 在接下来的 N 楼新增对话中，这 K 楼将一直作为活跃上下文发送给 AI，直至达到下一次总结阈值；
+     * 3. 此时未隐藏活跃楼层将累积达到 (K + N) 楼。因此通过红色警示卡片动态展现该累积上限，并引导用户搭配【发送消息数量限制】进行控流。
+     */
+    function updateKeepRecentFloorsHint() {
+        if (!dom.autoSummaryKeepRecentHint) return;
+
+        const isKeepEnabled = dom.autoSummaryKeepRecent ? dom.autoSummaryKeepRecent.checked : false;
+        if (!isKeepEnabled) {
+            dom.autoSummaryKeepRecentHint.style.display = 'none';
+            return;
+        }
+
+        dom.autoSummaryKeepRecentHint.style.display = 'flex';
+
+        const keepCount = parseInt(dom.autoSummaryKeepRecentCount?.value, 10) || 0;
+        const isFloorsType = dom.autoSummaryTypeFloors ? dom.autoSummaryTypeFloors.checked : true;
+        const interval = parseInt(dom.autoSummaryFloorInterval?.value, 10) || 10;
+
+        if (dom.keepHintCalcText) {
+            if (isFloorsType) {
+                const totalAccumulated = keepCount + interval;
+                dom.keepHintCalcText.innerHTML = `若保留 <strong>${keepCount}</strong> 楼且每隔 <strong>${interval}</strong> 楼总结，下轮触发前最多将累积 <strong>${totalAccumulated}</strong> 楼未隐藏消息发送给AI。`;
+            } else {
+                const tokenThreshold = parseInt(dom.autoSummaryTokenThreshold?.value, 10) || 4000;
+                dom.keepHintCalcText.innerHTML = `若保留 <strong>${keepCount}</strong> 楼，新消息产生时这些楼层将作为近期语境持续发送给AI，直至可见纯正文达到 <strong>${tokenThreshold}</strong> Token 触发下轮总结。`;
+            }
+        }
+    }
+
+    /**
      * 刷新总结弹窗内的 Token 状态概览与当前已隐藏楼层明细展示
      * @param {string} convId - 会话ID
      */
@@ -539,6 +583,30 @@ function setupHideSummaryModal() {
         }
     }
 
+    /**
+     * 刷新自动总结 Token 累积进度胶囊
+     * @param {string} convId - 会话ID
+     */
+    function updateAutoSummaryTokenProgress(convId = state.currentConversationId) {
+        if (!dom.autoSummaryTokenProgress) return;
+        const conv = state.conversations[convId];
+        const data = normalizeHideSummaryConfig(getHideSummaryForConversation(convId));
+        const progress = calculateAutoSummaryTokenProgress(conv, data);
+
+        const currentAcc = progress.accumulatedTokens;
+        const threshold = progress.tokenThreshold;
+        const startFloor = progress.startFloor;
+
+        dom.autoSummaryTokenProgress.innerHTML = `📈 当前自第 ${startFloor} 楼起已积累 <strong>${currentAcc.toLocaleString()}</strong> / <strong>${threshold.toLocaleString()}</strong> Token`;
+        dom.autoSummaryTokenProgress.title = `自上次总结基准（第 ${progress.lastFloor} 楼）之后，当前已新产生的纯正文累积量：${currentAcc.toLocaleString()} Token（阈值：${threshold.toLocaleString()} Token）`;
+
+        if (threshold > 0 && currentAcc / threshold >= 0.8) {
+            dom.autoSummaryTokenProgress.classList.add('near-threshold');
+        } else {
+            dom.autoSummaryTokenProgress.classList.remove('near-threshold');
+        }
+    }
+
     // 暴露供外部或后台自动总结完成后主动刷新的接口
     window.refreshHideSummaryModalViews = () => {
         const convId = state.currentConversationId;
@@ -551,6 +619,8 @@ function setupHideSummaryModal() {
         }
         updateSummaryEditorLockState();
         updateHideSummaryCharCounters();
+        updateKeepRecentFloorsHint();
+        updateAutoSummaryTokenProgress(convId);
     };
 
     // — 为什么这么写 —
@@ -712,7 +782,7 @@ function setupHideSummaryModal() {
             if (!isTableRawMode) {
                 // 进入源码模式：序列化当前表格为 Markdown
                 isTableRawMode = true;
-                dom.summaryTableRawToggleBtn.textContent = '📊 表格模式';
+                dom.summaryTableRawToggleBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"></rect><path d="M3 9h18"></path><path d="M3 15h18"></path><path d="M9 3v18"></path></svg> 表格模式';
                 dom.summaryTableRawToggleBtn.classList.add('primary');
                 if (dom.summaryTableGridContainer) dom.summaryTableGridContainer.style.display = 'none';
                 if (dom.summaryTableRawWrapper) dom.summaryTableRawWrapper.style.display = 'block';
@@ -722,7 +792,7 @@ function setupHideSummaryModal() {
             } else {
                 // 切回表格模式：反解析 Markdown 为表格对象
                 isTableRawMode = false;
-                dom.summaryTableRawToggleBtn.textContent = '📝 源码模式';
+                dom.summaryTableRawToggleBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg> 源码模式';
                 dom.summaryTableRawToggleBtn.classList.remove('primary');
                 if (dom.summaryTableRawWrapper) dom.summaryTableRawWrapper.style.display = 'none';
                 if (dom.summaryTableGridContainer) dom.summaryTableGridContainer.style.display = 'block';
@@ -752,13 +822,13 @@ function setupHideSummaryModal() {
         if (isTableExpanded) {
             dom.hideSummaryModal.classList.add('table-expanded');
             if (dom.summaryTableExpandBtn) {
-                dom.summaryTableExpandBtn.innerHTML = '🗗 还原窗口';
+                dom.summaryTableExpandBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"></polyline><polyline points="20 10 14 10 14 4"></polyline><line x1="14" y1="10" x2="21" y2="3"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg> 还原窗口';
                 dom.summaryTableExpandBtn.classList.add('primary');
             }
         } else {
             dom.hideSummaryModal.classList.remove('table-expanded');
             if (dom.summaryTableExpandBtn) {
-                dom.summaryTableExpandBtn.innerHTML = '⛶ 放大编辑';
+                dom.summaryTableExpandBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg> 放大编辑';
                 dom.summaryTableExpandBtn.classList.remove('primary');
             }
         }
@@ -819,6 +889,8 @@ function setupHideSummaryModal() {
 
         // 刷新 Token 概览与隐藏楼层状态
         updateHideSummaryBannerAndStats(convId);
+        updateKeepRecentFloorsHint();
+        updateAutoSummaryTokenProgress(convId);
 
         // 切换模式并渲染对应视图
         switchMode(data.memoryMode || 'recursive', false);
@@ -927,12 +999,16 @@ function setupHideSummaryModal() {
         closeModalWithAnimation(dom.hideSummaryModal);
     };
 
-    // 点击遮罩层背景关闭（同步进行总结拦截检查）
+    // — 为什么这么写 —
+    // 乌鸦：禁用点击遮罩阴影处关闭（避免大爷编辑长篇记忆、调试跑团表格或调整参数时手抖误触阴影导致未保存内容丢失）。
+    // 用户如需关闭，必须点击右上角关闭按钮或保存按钮。
+    /*
     dom.hideSummaryModal.addEventListener('click', (e) => {
         if (e.target === dom.hideSummaryModal) {
             handleHideSummaryModalClose();
         }
     });
+    */
 
     // 实时监听通用开关与参数变动并持久化
     const summaryInputsToSave = [
@@ -957,7 +1033,8 @@ function setupHideSummaryModal() {
         config.autoSummaryEnabled = dom.autoSummaryEnable ? dom.autoSummaryEnable.checked : false;
         config.autoSummaryType = (dom.autoSummaryTypeTokens && dom.autoSummaryTypeTokens.checked) ? 'tokens' : 'floors';
         config.autoSummaryFloorInterval = parseInt(dom.autoSummaryFloorInterval?.value, 10) || 10;
-        config.autoSummaryTokenThreshold = parseInt(dom.autoSummaryTokenThreshold?.value, 10) || 4000;
+        const rawTokenThreshold = parseInt(dom.autoSummaryTokenThreshold?.value, 10);
+        config.autoSummaryTokenThreshold = isNaN(rawTokenThreshold) ? 4000 : Math.max(500, Math.min(100000, rawTokenThreshold));
         config.dropSummarizedFloors = dom.autoSummaryDropFloors ? dom.autoSummaryDropFloors.checked : true;
         config.keepRecentFloors = dom.autoSummaryKeepRecent ? dom.autoSummaryKeepRecent.checked : true;
         config.keepRecentFloorsCount = parseInt(dom.autoSummaryKeepRecentCount?.value, 10) || 2;
@@ -969,6 +1046,8 @@ function setupHideSummaryModal() {
         if (input === dom.hideSummaryEnable) {
             renderChatMessages({ updateVisibilityOnly: true });
         }
+        updateKeepRecentFloorsHint();
+        updateAutoSummaryTokenProgress(convId);
     };
 
     summaryInputsToSave.forEach(input => {
@@ -978,6 +1057,48 @@ function setupHideSummaryModal() {
             input.addEventListener('input', () => handleSummaryInputChange(input));
         }
     });
+
+    // — 为什么这么写 —
+    // 1. 输入框失焦（change）时规范化纠正显示数值，确保界面显示与底层配置严格一致，避免输入 200 显示 200 但底层按 500 执行的割裂感；
+    // 2. 进度胶囊点击拦截冒泡与默认行为，防止用户选中复制胶囊文本时误触 label 绑定的 radio。
+    if (dom.autoSummaryTokenThreshold) {
+        dom.autoSummaryTokenThreshold.addEventListener('change', () => {
+            const raw = parseInt(dom.autoSummaryTokenThreshold.value, 10);
+            const clamped = isNaN(raw) ? 4000 : Math.max(500, Math.min(100000, raw));
+            dom.autoSummaryTokenThreshold.value = clamped;
+        });
+    }
+    if (dom.autoSummaryFloorInterval) {
+        dom.autoSummaryFloorInterval.addEventListener('change', () => {
+            const raw = parseInt(dom.autoSummaryFloorInterval.value, 10);
+            const clamped = isNaN(raw) ? 10 : Math.max(2, Math.min(100, raw));
+            dom.autoSummaryFloorInterval.value = clamped;
+        });
+    }
+    if (dom.autoSummaryTokenProgress) {
+        dom.autoSummaryTokenProgress.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+        });
+    }
+
+    // 归档保留楼层累积提示中【发送消息数量限制】锚点跳转事件
+    if (dom.keepHintJumpLimit) {
+        dom.keepHintJumpLimit.addEventListener('click', (e) => {
+            e.preventDefault();
+            const slider = dom.messageLimitSlider || document.getElementById('message-limit-slider');
+            if (slider) {
+                slider.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                const formGroup = slider.closest('.form-group');
+                if (formGroup) {
+                    formGroup.classList.remove('highlight-focus-ring');
+                    void formGroup.offsetWidth; // 触发 reflow 重启动画
+                    formGroup.classList.add('highlight-focus-ring');
+                    setTimeout(() => formGroup.classList.remove('highlight-focus-ring'), 1500);
+                }
+            }
+        });
+    }
 
     // 提示词输入监听（保存到当前模式对应的 prompts[currentMemoryMode]）
     if (dom.hideSummaryPrompt) {
@@ -1644,10 +1765,30 @@ function showSystemPromptModal() {
         dom.currentWorldbookContent = '无备忘录内容';
     }
 
+    // — 为什么这么写 —
+    // 兼容长期记忆的 3 种模式 (递归 recursive / 列表拼接 append / 跑团双表 table)
+    // 在跑团双表模式下，总结存储在 tableData 中，必须格式化为 Markdown 双表呈现与复制；
+    // 在列表拼接模式下，总结存储在 summaryList 中，必须格式化为阶段列表；
+    // 递归模式下才直接取 summary 字段。彻底解决跑团表格模式下弹窗显示“无总结内容”的问题。
+    let summaryContent = '';
     const hideSummaryConfig = state.hideSummary && state.hideSummary[state.currentConversationId];
-    if (hideSummaryConfig && hideSummaryConfig.enabled && hideSummaryConfig.summary) {
-        dom.systemPromptSummary.innerHTML = escapeHtml(hideSummaryConfig.summary);
-        dom.currentSummaryContent = hideSummaryConfig.summary;
+    if (hideSummaryConfig && hideSummaryConfig.enabled) {
+        const mode = hideSummaryConfig.memoryMode || 'recursive';
+        if (mode === 'table') {
+            summaryContent = formatTablesToMarkdown(hideSummaryConfig.tableData?.eventHistory, hideSummaryConfig.tableData?.characterInfo);
+            if (!summaryContent && hideSummaryConfig.summary) {
+                summaryContent = hideSummaryConfig.summary;
+            }
+        } else if (mode === 'append') {
+            summaryContent = formatSummaryListToText(hideSummaryConfig.summaryList);
+        } else {
+            summaryContent = hideSummaryConfig.summary || '';
+        }
+    }
+
+    if (summaryContent && summaryContent.trim()) {
+        dom.systemPromptSummary.innerHTML = escapeHtml(summaryContent.trim());
+        dom.currentSummaryContent = summaryContent.trim();
     } else {
         dom.systemPromptSummary.innerHTML = '<span class="empty-prompt-message">无总结内容</span>';
         dom.currentSummaryContent = '无总结内容';
@@ -1696,15 +1837,14 @@ function showSystemPromptModal() {
     const worldbookTitleSpan = document.getElementById('worldbook-title');
     const summaryTitleSpan = document.querySelector('#system-prompt-modal details:nth-of-type(3) .details-title');
 
-    // 获取实际内容，用于tokens计算
-    const actualPersonaContent = dom.systemPromptPersona.textContent.trim();
-    const actualWorldbookContent = dom.systemPromptWorldbook.textContent.trim();
-    const actualSummaryContent = dom.systemPromptSummary.textContent.trim();
+    // 获取实际内容并计算Tokens（为空时不计入占位提示词Tokens）
+    const hasPersona = dom.systemPromptPersona.querySelector('.empty-prompt-message') === null && dom.currentPersonaContent !== '无角色提示词';
+    const hasWorldbook = dom.systemPromptWorldbook.querySelector('.empty-prompt-message') === null && dom.currentWorldbookContent !== '无备忘录内容';
+    const hasSummary = dom.systemPromptSummary.querySelector('.empty-prompt-message') === null && dom.currentSummaryContent !== '无总结内容';
 
-    // 计算tokens
-    const personaTokens = countTokens(actualPersonaContent);
-    const worldbookTokens = countTokens(actualWorldbookContent);
-    const summaryTokens = countTokens(actualSummaryContent);
+    const personaTokens = hasPersona ? countTokens(dom.currentPersonaContent) : 0;
+    const worldbookTokens = hasWorldbook ? countTokens(dom.currentWorldbookContent) : 0;
+    const summaryTokens = hasSummary ? countTokens(dom.currentSummaryContent) : 0;
 
     // 更新标题的innerHTML，追加tokens信息
     if (personaTitleSpan) {

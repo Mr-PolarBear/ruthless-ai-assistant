@@ -37,6 +37,64 @@ export const DEFAULT_PROMPT_TABLE = `请根据【最新剧情对话】，结合�
 // 向下兼容别名
 export const DEFAULT_SUMMARY_PROMPT = DEFAULT_PROMPT_RECURSIVE;
 
+// — 为什么这么写 —
+// 二次浓缩官方默认提示词（覆盖 3 种记忆模式与 2 种预设策略）
+export const CONDENSE_PROMPTS = {
+    recursive: {
+        balanced: `请对以下【已有长期记忆总结】进行二次深度提炼与脱水精炼：
+1. 【去粗取精】：剔除已被后续剧情覆盖的过时状态、临时推测以及冗余的过渡细节；
+2. 【合并归纳】：将同一主题或事件脉络的分散片段进行整合，语言保持高度凝练、条理分明；
+3. 【核心保留】：严格保留核心世界观设定、人物关键性格与动机、不可逆的重大转折与未决悬念；
+4. 【篇幅目标】：在完整保留核心事实与逻辑链条的前提下，削减约 40%~60% 冗余篇幅，输出紧凑精炼的全新长期记忆。`,
+        extreme: `请对以下【已有长期记忆总结】进行极限脱水与骨架压缩：
+1. 仅保留最核心的世界线主轴、不可动摇的核心背景、各角色的最终定位与关键道具；
+2. 彻底删除所有过渡描写、次要情节、日常互动与临时推论；
+3. 以极简大纲条目化输出，文字高度精简（压缩 70%~80%），仅留骨架与核心真相。`
+    },
+    table: {
+        balanced: `请根据给定的【已有剧情与角色状态表】，进行结构化合并与降维精炼，并严格按照以下 Markdown 双表格式输出：
+1. 【历史记录表】：合并时间线，将琐碎过渡事件合并至关键战役/重大里程碑中，清理非关键事件行；
+2. 【最新角色信息表】：清理已退场/死亡/无关紧要的过客龙套，合并角色最新状态与关键道具；
+3. 必须保持表头字段完全一致。
+
+### 历史记录表
+| 时间 | 地点 | 涉及角色 | 事件 | 涉及物品 |
+
+### 最新角色信息表
+| 姓名 | 简介 | 最新状态说明 | 持有关键道具 |`,
+        extreme: `请根据给定的【已有剧情与角色状态表】，进行极限压缩，大幅精简表格行数，严格按照以下 Markdown 双表格式输出：
+1. 【历史记录表】：仅保留改变世界走向或队伍命运的 3~5 个重大分水岭事件，删除一切次要事件；
+2. 【最新角色信息表】：仅保留核心主角与当前活跃的关键同伴/宿敌，删除所有普通 NPC；
+3. 必须保持表头字段完全一致。
+
+### 历史记录表
+| 时间 | 地点 | 涉及角色 | 事件 | 涉及物品 |
+
+### 最新角色信息表
+| 姓名 | 简介 | 最新状态说明 | 持有关键道具 |`
+    },
+    append: {
+        balanced: `请对以下【历史记忆摘要集】进行合并重构与精炼：
+1. 将分散的小片段重新整合为 3~5 个具有里程碑意义的大阶段记忆卡片；
+2. 每张卡片严格按照如下格式输出：
+[阶段 X (第 A~B 楼)]: 核心事件脉络与角色关键状态
+3. 剔除重复交代的情节，文字凝练有力。`,
+        extreme: `请将以下【历史记忆摘要集】进行极限压缩，仅输出 1~2 个覆盖全盘的超简宏观大纲卡片：
+格式：
+[阶段 1 (全局核心历程)]: ...`
+    }
+};
+
+/**
+ * 根据记忆模式与策略获取二次浓缩默认提示词
+ * @param {string} mode - 'recursive' | 'table' | 'append'
+ * @param {string} strategy - 'balanced' | 'extreme'
+ * @returns {string} 提示词内容
+ */
+export function getDefaultCondensePrompt(mode = 'recursive', strategy = 'balanced') {
+    return CONDENSE_PROMPTS[mode]?.[strategy] || CONDENSE_PROMPTS.recursive.balanced;
+}
+
 /**
  * 根据模式获取默认提示词
  * @param {string} mode - 'recursive' | 'append' | 'table'
@@ -738,6 +796,119 @@ export const autoSummaryContext = {
 };
 
 /**
+ * 校准并获取当前分支自动总结的有效基准楼层（自愈回滚、截断与历史分支切换）
+ * @param {Array} activeBranch - 当前活跃分支消息数组
+ * @param {Object} hideConfig - 隐藏与总结配置
+ * @returns {number} 有效基准楼层 lastFloor
+ */
+export function getNormalizedLastAutoSummaryFloor(activeBranch, hideConfig) {
+    if (!activeBranch || activeBranch.length === 0) return 0;
+    const currentTotalFloors = activeBranch.length;
+    let lastFloor = Number(hideConfig?.lastAutoSummaryFloor) || 0;
+
+    // — 为什么这么写 —
+    // 无论是按楼层还是按 Token 自动总结，都必须基于“上次总结保存完成时的基准楼层”进行状态校准：
+    // 1. 若当前总楼层小于记录的上次楼层（用户从此重发、回滚截断或切换到了较短分支），
+    //    自动将基准校准为当前分支的最大已隐藏楼层（无隐藏则为 0），防止增量变为负数长久不触发；
+    // 2. 若老会话升级尚未记录 lastAutoSummaryFloor 但有快照，优先读取最新快照的发生楼层作为基准。
+    if (currentTotalFloors < lastFloor) {
+        const hiddenMax = (Array.isArray(hideConfig?.hiddenFloors) && hideConfig.hiddenFloors.length > 0)
+            ? Math.max(...hideConfig.hiddenFloors)
+            : 0;
+        lastFloor = Math.min(hiddenMax, currentTotalFloors);
+    }
+
+    if (!hideConfig?.lastAutoSummaryFloor && hideConfig?.history && hideConfig.history.length > 0) {
+        const latestSnap = hideConfig.history[0];
+        const snapFloor = latestSnap?.maxFloor || (latestSnap?.hiddenFloors?.length ? Math.max(...latestSnap.hiddenFloors) : 0);
+        if (snapFloor > 0 && snapFloor <= currentTotalFloors) {
+            lastFloor = snapFloor;
+        }
+    }
+
+    return lastFloor;
+}
+
+/**
+ * 计算自动总结自上次基准楼层以来新积累的纯正文 Token 详情（Plan A 真增量步进模型）
+ * @param {Object} conv - 会话对象
+ * @param {Object} hideConfig - 标准化后的隐藏与总结配置
+ * @returns {Object} 积累统计详情与触发状态
+ */
+export function calculateAutoSummaryTokenProgress(conv, hideConfig) {
+    const rawThreshold = Number(hideConfig?.autoSummaryTokenThreshold);
+    // 强制上下限安全钳制 500 ~ 100000
+    const tokenThreshold = isNaN(rawThreshold) ? 4000 : Math.max(500, Math.min(100000, rawThreshold));
+
+    if (!conv || !conv.branches) {
+        return {
+            startFloor: 1,
+            lastFloor: 0,
+            accumulatedTokens: 0,
+            tokenThreshold,
+            totalVisibleTokens: 0,
+            visibleCount: 0,
+            keepCount: 2,
+            isDropFloors: true,
+            canTrigger: false
+        };
+    }
+
+    const activeBranch = conv.branches[conv.activeBranchIndex] || [];
+    const lastFloor = getNormalizedLastAutoSummaryFloor(activeBranch, hideConfig);
+    const startFloor = lastFloor + 1;
+
+    const visibleItems = getVisibleMessagesForSummary(activeBranch, hideConfig);
+    let totalVisibleTokens = 0;
+    let deltaTokens = 0;
+
+    visibleItems.forEach(({ msg, floor }) => {
+        const raw = msg.content || '';
+        const mainText = (msg.role === 'assistant')
+            ? (extractThinkingFromContent(raw).mainContent || '')
+            : raw;
+        const msgTokens = countTokens(mainText);
+        totalVisibleTokens += msgTokens;
+
+        if (floor > lastFloor) {
+            deltaTokens += msgTokens;
+        }
+    });
+
+    const isDropFloors = hideConfig?.dropSummarizedFloors !== false;
+    const keepCount = (hideConfig?.keepRecentFloors !== false)
+        ? (Number(hideConfig?.keepRecentFloorsCount) || 2)
+        : 0;
+
+    // — 为什么这么写 —
+    // 1. 【真增量步进闭环】：小说或长篇创作时，保留的最后 K 楼本身可能包含数千字，若按总水位判定会导致隔轮频繁总结；
+    // 2. 唯有自上次总结基准 (lastFloor) 之后，新产生累积的纯正文达到设定的阈值 (deltaTokens >= tokenThreshold)，
+    //    才真正代表用户积累了一整个完整批次的新内容；
+    // 3. 当开启自动隐藏时，必须确保当前可见楼层总数大于保留楼层数 (visibleItems.length > keepCount)，
+    //    才能真正执行释放，杜绝无消息可藏时的误触发。
+    let canTrigger = false;
+    if (deltaTokens >= tokenThreshold) {
+        if (isDropFloors) {
+            canTrigger = visibleItems.length > keepCount;
+        } else {
+            canTrigger = visibleItems.length > 0;
+        }
+    }
+
+    return {
+        startFloor,
+        lastFloor,
+        accumulatedTokens: deltaTokens,
+        tokenThreshold,
+        totalVisibleTokens,
+        visibleCount: visibleItems.length,
+        keepCount,
+        isDropFloors,
+        canTrigger
+    };
+}
+
+/**
  * 自动总结触发检查器（在流式响应结束或用户发送后调用）
  * @param {string} convId - 会话ID
  * @param {number} branchIndex - 分支索引
@@ -772,52 +943,21 @@ export async function checkAndTriggerAutoSummary(convId, branchIndex) {
 
     const autoType = hideConfig.autoSummaryType || 'floors';
     const floorInterval = Number(hideConfig.autoSummaryFloorInterval) || 10;
-    const tokenThreshold = Number(hideConfig.autoSummaryTokenThreshold) || 4000;
+    const currentTotalFloors = activeBranch.length;
+    const lastFloor = getNormalizedLastAutoSummaryFloor(activeBranch, hideConfig);
 
     let shouldTrigger = false;
 
     if (autoType === 'floors') {
-        // — 为什么这么写 —
-        // 1. “每隔 N 楼自动总结一次”的本质是新增楼层的步进增量（Interval），而非简单的可见消息池当前容量；
-        // 2. 若用户开启了“保留最后 K 楼不隐藏”，每次归档后池中已有 K 楼残留；如果只按 visibleItems.length >= interval 计算，
-        //    会导致后续只需再聊 (N - K) 楼就再次触发，造成 32 楼内反复触发 3 次（如 16-8=8 楼就触发一次），严重偏离预期；
-        // 3. 同时，若用户未开启“自动隐藏楼层”，按池容量计算会导致达到 N 楼后每一楼都持续触发死循环；
-        // 4. 因此，基于当前分支的总长度与上次总结完成时的基准楼层计算步进增量：
-        //    deltaFloors = currentTotalFloors - lastFloor >= floorInterval；
-        // 5. 健壮性防呆与分支回退校准：
-        //    a. 若当前总楼层小于记录的上次楼层（用户从此重发、回滚截断或切换到了较短的分支），
-        //       自动将基准校准为当前分支的最大已隐藏楼层（无隐藏则为0），防止步进增量变为负数长久不触发；
-        //    b. 若会话升级或首次使用尚未记录 lastAutoSummaryFloor，但已有历史总结快照，
-        //       优先读取最新快照的发生楼层作为基准，平滑平移老会话；
-        //    c. 兜底必须存在可见未隐藏消息（visibleItems.length > 0）。
-        const currentTotalFloors = activeBranch.length;
-        let lastFloor = Number(hideConfig.lastAutoSummaryFloor) || 0;
-
-        if (currentTotalFloors < lastFloor) {
-            const hiddenMax = (Array.isArray(hideConfig.hiddenFloors) && hideConfig.hiddenFloors.length > 0)
-                ? Math.max(...hideConfig.hiddenFloors)
-                : 0;
-            lastFloor = Math.min(hiddenMax, currentTotalFloors);
-        }
-
-        if (!hideConfig.lastAutoSummaryFloor && hideConfig.history && hideConfig.history.length > 0) {
-            const latestSnap = hideConfig.history[0];
-            const snapFloor = latestSnap?.maxFloor || (latestSnap?.hiddenFloors?.length ? Math.max(...latestSnap.hiddenFloors) : 0);
-            if (snapFloor > 0 && snapFloor <= currentTotalFloors) {
-                lastFloor = snapFloor;
-            }
-        }
-
+        // “每隔 N 楼自动总结一次”以新增楼层的步进增量为核心判定条件：deltaFloors >= floorInterval
         const deltaFloors = currentTotalFloors - lastFloor;
         if (deltaFloors >= floorInterval && visibleItems.length > 0) {
             shouldTrigger = true;
         }
     } else if (autoType === 'tokens') {
-        let totalTokens = 0;
-        visibleItems.forEach(({ msg }) => {
-            totalTokens += countTokens(msg.content || '');
-        });
-        if (totalTokens >= tokenThreshold) {
+        // “可见消息达 N Token 自动总结”采用 Plan A 真增量步进模型：
+        const progress = calculateAutoSummaryTokenProgress(conv, hideConfig);
+        if (progress.canTrigger) {
             shouldTrigger = true;
         }
     }
@@ -894,4 +1034,107 @@ export async function checkAndTriggerAutoSummary(convId, branchIndex) {
         if (window.updateHideSummaryBtnColor) window.updateHideSummaryBtnColor();
         if (window.refreshHideSummaryModalViews) window.refreshHideSummaryModalViews();
     }
+}
+
+
+/**
+ * 调用 LLM 执行记忆二次浓缩与精炼请求
+ * @param {Object} options
+ * @param {string} options.convId - 会话ID
+ * @param {string} options.memoryText - 待浓缩的原始记忆内容
+ * @param {string} options.prompt - 浓缩提示词
+ * @param {AbortSignal} [options.signal] - 中断信号
+ * @param {Function} [options.onChunk] - 流式返回回调
+ * @returns {Promise<string>} 浓缩结果文本
+ */
+export async function condenseMemoryApiCall(options) {
+    const {
+        convId,
+        memoryText,
+        prompt,
+        signal,
+        onChunk
+    } = options;
+
+    if (!memoryText || !memoryText.trim()) {
+        throw new Error('待浓缩的记忆内容为空。');
+    }
+
+    const conv = state.conversations[convId];
+    if (!conv) throw new Error('未找到当前会话数据。');
+
+    const apiEndpoint = state.apiEndpoints[conv.apiEndpointId];
+    if (!apiEndpoint) throw new Error('当前会话未配置有效的 API 端点。');
+
+    const condenseMessages = [
+        {
+            role: 'system',
+            content: '你是一位专业的信息提炼架构师，擅长长程记忆的深度脱水、降维压缩与核心脉络梳理。你必须严格遵循用户的精炼要求与格式规范进行输出。'
+        },
+        {
+            role: 'user',
+            content: `【待浓缩的原始记忆内容】\n${memoryText.trim()}\n\n【精炼要求】\n${prompt.trim()}`
+        }
+    ];
+
+    const requestData = buildApiRequest({
+        convId,
+        messages: condenseMessages,
+        includeWorldBook: false,
+        includePersona: false,
+        includeMcp: false,
+        applyRegex: false
+    });
+
+    if (!requestData) throw new Error('构建 API 请求失败。');
+
+    const response = await fetch(requestData.url, {
+        method: 'POST',
+        headers: requestData.headers,
+        body: JSON.stringify(requestData.body),
+        signal
+    });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`API 错误 (${response.status}): ${errorText}`);
+    }
+
+    let result = '';
+
+    if (requestData.body.stream && response.body) {
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop();
+
+            for (const line of lines) {
+                const trimmed = line.trim();
+                if (!trimmed || !trimmed.startsWith('data:')) continue;
+                const jsonStr = trimmed.substring(5).trim();
+                if (jsonStr === '[DONE]') continue;
+
+                try {
+                    const parsed = JSON.parse(jsonStr);
+                    const delta = parsed.choices?.[0]?.delta?.content || '';
+                    if (delta) {
+                        result += delta;
+                        if (typeof onChunk === 'function') onChunk(delta, result);
+                    }
+                } catch (e) {}
+            }
+        }
+    } else {
+        const responseData = await response.json();
+        result = responseData.choices?.[0]?.message?.content || '';
+        if (typeof onChunk === 'function') onChunk(result, result);
+    }
+
+    return result;
 }

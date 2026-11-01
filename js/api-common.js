@@ -628,9 +628,19 @@ export function getWorldBookContent(options = {}) {
                 return false;
             })
             .sort((a, b) => {
-                const orderA = typeof a.order === 'number' ? a.order : (typeof a.depth === 'number' ? a.depth : 0);
-                const orderB = typeof b.order === 'number' ? b.order : (typeof b.depth === 'number' ? b.depth : 0);
+                // — 为什么这么写 —
+                // 依大爷要求：深度绝对决定发送前后，同深度下才按页面拖拽顺序决定
+                // 1. 挂载深度 depth 优先级最高：数值越小越靠前发送（例如 10 -> 20 -> 140）
+                const depthA = typeof a.depth === 'number' ? a.depth : 10;
+                const depthB = typeof b.depth === 'number' ? b.depth : 10;
+                if (depthA !== depthB) return depthA - depthB;
+
+                // 2. 只有在挂载深度相同的情况下，才按用户在列表拖拽调整的 order 决定相对先后
+                const orderA = typeof a.order === 'number' ? a.order : 0;
+                const orderB = typeof b.order === 'number' ? b.order : 0;
                 if (orderA !== orderB) return orderA - orderB;
+
+                // 3. order 仍相同时，按创建时间升序兜底
                 return (a.createdAt || 0) - (b.createdAt || 0);
             });
     }

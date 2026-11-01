@@ -10,7 +10,7 @@ import { dom } from './dom.js?v=temp';
 import { openSettingsModal, renderApiEndpointsList, renderPersonaModal, renderRegexRulesList, renderWorldBookList } from './modals.js?v=temp';
 import { populateApiSelector, populatePersonaSelector } from './renderer.js?v=temp';
 import { updateWorldBookButton } from './ui-updater.js?v=temp';
-import { saveConversation, getConversation, getAllConversationIds, deleteConversation } from './db.js?v=temp';
+import { saveConversation, getConversation, getAllConversationIds, deleteConversation, initAndMigrateWorldBook, saveAllWorldBookEntriesToDB } from './db.js?v=temp';
 import { formatMemoryForApi, normalizeHideSummaryConfig } from './summary-manager.js?v=temp';
 import { showBatchConflictResolutionDialog } from './modals/import-conflict-modal.js?v=temp';
 import { initDefaultPersonasIfEmpty } from './preset-personas.js?v=temp';
@@ -55,6 +55,15 @@ export async function saveToLocalStorage() {
             }
             wbIndex++;
         });
+
+        // 备忘录批量写入 IndexedDB 保证全局持久化
+        if (state.worldBook && typeof state.worldBook === 'object') {
+            try {
+                await saveAllWorldBookEntriesToDB(Object.values(state.worldBook));
+            } catch (err) {
+                console.warn('saveToLocalStorage 写入 IndexedDB 失败，继续写入 LocalStorage:', err);
+            }
+        }
 
         // 其他设置仍保存到 localStorage
         localStorage.setItem('ai-chat-personas-v1', JSON.stringify(state.personas));
@@ -164,29 +173,15 @@ export async function loadFromLocalStorage() {
     // 首次使用时自动装载 22 款预设角色包
     initDefaultPersonasIfEmpty(state, saveToLocalStorage);
 
-    try { // 备忘录
-        const rawWorldBook = localStorage.getItem('ai-chat-worldbook-v1');
-        if (rawWorldBook) {
-            const parsedWorldBook = JSON.parse(rawWorldBook);
-            // 兼容老数据，确保每条 entry 都有 sessionIds 字段且为数组，并规范化补齐 order 与 position
-            let loadWbIndex = 0;
-            for (const entry of Object.values(parsedWorldBook)) {
-                if (!entry || typeof entry !== 'object') continue;
-                if (!Array.isArray(entry.sessionIds)) entry.sessionIds = [];
-                if (!Array.isArray(entry.tags)) entry.tags = [];
-                if (!entry.position) entry.position = 'top';
-                if (typeof entry.order !== 'number') {
-                    entry.order = typeof entry.depth === 'number' ? entry.depth : (loadWbIndex + 1) * 10;
-                }
-                loadWbIndex++;
-            }
-            state.worldBook = parsedWorldBook;
-        } else {
-            state.worldBook = {};
-        }
+    try { // 备忘录 (已全面迁移至 IndexedDB)
+        // — 为什么这么写 —
+        // 备忘录数据已彻底迁移至 IndexedDB (worldbook_store)
+        // 此处调用 initAndMigrateWorldBook：若数据库已有数据则异步直读；
+        // 若数据库为空则自动从 localStorage 进行平滑无损迁移，老用户零感知、数据 100% 留存！
+        await initAndMigrateWorldBook(state);
     } catch (e) {
         state.worldBook = {};
-        console.error("Failed to load world book:", e);
+        console.error("Failed to load world book from IndexedDB:", e);
     }
 
     try {

@@ -1,7 +1,8 @@
 // js/db.js
 
 const DB_NAME = 'avatars_db';
-const DB_VERSION = 4;
+const DB_VERSION = 5;
+const WORLDBOOK_STORE = 'worldbook_store';
 const AVATARS_STORE = 'avatars_store';
 const CONVERSATIONS_STORE = 'conversations_store';
 const DB_CONNECTIONS_STORE = 'db_connections_store';
@@ -28,10 +29,22 @@ function openDB() {
                 if (!db.objectStoreNames.contains(DB_CONNECTIONS_STORE)) {
                     db.createObjectStore(DB_CONNECTIONS_STORE);
                 }
+                if (!db.objectStoreNames.contains(WORLDBOOK_STORE)) {
+                    db.createObjectStore(WORLDBOOK_STORE, { keyPath: 'id' });
+                }
             };
 
             request.onsuccess = (event) => {
-                resolve(event.target.result);
+                const db = event.target.result;
+                db.onversionchange = () => {
+                    db.close();
+                    dbPromise = null;
+                };
+                resolve(db);
+            };
+
+            request.onblocked = () => {
+                console.warn('[IndexedDB] 数据库升级被其他打开的页面连接阻塞，正在等待旧连接释放...');
             };
 
             request.onerror = (event) => {
@@ -261,6 +274,163 @@ async function getIndexedDBUsage() {
     }
 }
 
+
+
+// ==========================================
+// 备忘录 (WorldBook) IndexedDB 存储与跨页面同步
+// ==========================================
+
+let worldBookChannel = null;
+try {
+    if (typeof BroadcastChannel !== 'undefined') {
+        worldBookChannel = new BroadcastChannel('worldbook_sync_channel');
+    }
+} catch (e) {
+    console.warn('BroadcastChannel 跨页面广播通道不可用:', e);
+}
+
+/**
+ * 广播备忘录跨窗口变更
+ * @param {string} action - 'save' | 'delete' | 'reorder'
+ * @param {string|Array} [payload] - 变更条目ID或数据
+ */
+function broadcastWorldBookChange(action, payload) {
+    if (worldBookChannel) {
+        try {
+            worldBookChannel.postMessage({ action, payload, time: Date.now() });
+        } catch (e) {
+            console.error('广播世界书变更失败:', e);
+        }
+    }
+}
+
+/**
+ * 保存单个备忘录条目到 IndexedDB (天然原子更新，绝不相互覆盖)
+ * @param {Object} entry - 备忘录条目对象
+ * @returns {Promise<void>}
+ */
+async function saveWorldBookEntryToDB(entry) {
+    if (!entry || !entry.id) return;
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction([WORLDBOOK_STORE], 'readwrite');
+        const store = transaction.objectStore(WORLDBOOK_STORE);
+        const cleanEntry = JSON.parse(JSON.stringify(entry));
+        store.put(cleanEntry);
+
+        transaction.oncomplete = () => {
+            broadcastWorldBookChange('save', entry.id);
+            resolve();
+        };
+        transaction.onerror = (event) => reject(event.target.errorCode);
+    });
+}
+
+/**
+ * 从 IndexedDB 中删除单个备忘录条目
+ * @param {string} id - 备忘录条目ID
+ * @returns {Promise<void>}
+ */
+async function deleteWorldBookEntryFromDB(id) {
+    if (!id) return;
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction([WORLDBOOK_STORE], 'readwrite');
+        const store = transaction.objectStore(WORLDBOOK_STORE);
+        store.delete(id);
+
+        transaction.oncomplete = () => {
+            broadcastWorldBookChange('delete', id);
+            resolve();
+        };
+        transaction.onerror = (event) => reject(event.target.errorCode);
+    });
+}
+
+/**
+ * 获取 IndexedDB 中所有备忘录条目
+ * @returns {Promise<Array<Object>>}
+ */
+async function getAllWorldBookEntriesFromDB() {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction([WORLDBOOK_STORE], 'readonly');
+        const store = transaction.objectStore(WORLDBOOK_STORE);
+        const request = store.getAll();
+
+        request.onsuccess = (event) => resolve(event.target.result || []);
+        request.onerror = (event) => reject(event.target.errorCode);
+    });
+}
+
+/**
+ * 批量保存备忘录条目到 IndexedDB (用于拖拽重新分配 order 或批量导入)
+ * @param {Array<Object>} entriesArray - 备忘录条目数组
+ * @returns {Promise<void>}
+ */
+async function saveAllWorldBookEntriesToDB(entriesArray) {
+    if (!Array.isArray(entriesArray) || entriesArray.length === 0) return;
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction([WORLDBOOK_STORE], 'readwrite');
+        const store = transaction.objectStore(WORLDBOOK_STORE);
+        for (const entry of entriesArray) {
+            if (entry && entry.id) {
+                store.put(JSON.parse(JSON.stringify(entry)));
+            }
+        }
+
+        transaction.oncomplete = () => {
+            broadcastWorldBookChange('reorder', entriesArray.map(e => e.id));
+            resolve();
+        };
+        transaction.onerror = (event) => reject(event.target.errorCode);
+    });
+}
+
+/**
+ * 备忘录数据库初始化与平滑无损迁移函数
+ * 1. 优先读取 IndexedDB 中的备忘录数据
+ * 2. 若 IndexedDB 为空，自动检查 localStorage('ai-chat-worldbook-v1') 并批量迁移写入数据库
+ * 3. 保证老用户升级后已有备忘录 100% 完好无损！
+ * @param {Object} state - 全局状态
+ * @returns {Promise<Object>} state.worldBook
+ */
+async function initAndMigrateWorldBook(state) {
+    try {
+        let dbEntries = await getAllWorldBookEntriesFromDB();
+        if (dbEntries && dbEntries.length > 0) {
+            state.worldBook = {};
+            for (const item of dbEntries) {
+                if (item && item.id) {
+                    state.worldBook[item.id] = item;
+                }
+            }
+            return state.worldBook;
+        }
+
+        // IndexedDB 为空，检查 localStorage 老数据一次性无损迁移
+        const rawOld = localStorage.getItem('ai-chat-worldbook-v1');
+        if (rawOld) {
+            const oldMap = JSON.parse(rawOld || '{}');
+            const oldList = Object.values(oldMap).filter(item => item && item.id);
+            if (oldList.length > 0) {
+                await saveAllWorldBookEntriesToDB(oldList);
+                state.worldBook = oldMap;
+                console.log(`[IndexedDB] 🛡️ 成功将 ${oldList.length} 条备忘录从 LocalStorage 自动迁移至 IndexedDB！`);
+                return state.worldBook;
+            }
+        }
+        state.worldBook = state.worldBook || {};
+        return state.worldBook;
+    } catch (err) {
+        console.error('[IndexedDB] 初始化/迁移备忘录失败，回退至 LocalStorage 容灾:', err);
+        const rawOld = localStorage.getItem('ai-chat-worldbook-v1');
+        state.worldBook = rawOld ? JSON.parse(rawOld) : {};
+        return state.worldBook;
+    }
+}
+
 export { 
     openDB, 
     saveAvatar, 
@@ -272,5 +442,12 @@ export {
     deleteConversation,
     getAllConversationIds,
     getIndexedDBUsage,
-    DB_CONNECTIONS_STORE
+    DB_CONNECTIONS_STORE,
+    WORLDBOOK_STORE,
+    saveWorldBookEntryToDB,
+    deleteWorldBookEntryFromDB,
+    getAllWorldBookEntriesFromDB,
+    saveAllWorldBookEntriesToDB,
+    initAndMigrateWorldBook,
+    broadcastWorldBookChange
 };

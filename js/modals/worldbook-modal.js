@@ -213,9 +213,21 @@ export function resetWorldBookForm() {
     updateCharCounter();
 }
 
+/**
+ * 实时更新备忘录编辑区字数与预估 Token
+ * 格式与左侧条目卡片统计信息保持一致 (字数 · ~Tokens)
+ */
 export function updateCharCounter() {
-    const count = dom.worldBookContentInput.value.length;
-    dom.worldBookCharCounter.textContent = `${count} 字`;
+    if (!dom.worldBookCharCounter) return;
+    const content = dom.worldBookContentInput ? dom.worldBookContentInput.value : '';
+    const charCount = content.length;
+    // — 为什么这么写 —
+    // 1. 调用通用 utils.countTokens 计算预估消耗，帮助用户掌握挂载上下文的体量
+    // 2. 采用纯 textContent 赋值，杜绝任何 XSS 隐患与额外 DOM 开销
+    // 3. 同时更新 title 提示属性，鼠标悬停时可查看清晰的文本统计说明
+    const tokenCount = countTokens(content);
+    dom.worldBookCharCounter.textContent = `${charCount} 字 · ~${tokenCount} Tokens`;
+    dom.worldBookCharCounter.title = `文本统计：${charCount} 字符，预估消耗约 ${tokenCount} Tokens`;
 }
 
 /**
@@ -264,24 +276,28 @@ function renderWorldBookCardHTML(entry, currentConvId, allowDrag = true) {
                 <div class="regex-rule-item-name">${escapeHtml(entry.name || '未命名')} ${entry.enabled ? '' : '(未全局挂载)'}</div>
                 ${tagsHTML}
                 <div class="persona-item-prompt">${escapeHtml(textContent)}</div>
-                <div class="scope-badges">
-                    <span class="scope-badge">${posText}</span>
-                    ${depthBadge}
-                    ${roleBadge}
-                    <label class="toggle-label" title="在所有会话中都生效">
-                        <span>全局</span>
-                        <label class="theme-switch small">
-                            <input type="checkbox" data-id="${entry.id}" ${globalChecked} class="worldbook-item-toggle">
-                            <span class="slider round"></span>
+                <div class="worldbook-item-meta-row">
+                    <div class="scope-badges">
+                        <span class="scope-badge">${posText}</span>
+                        ${depthBadge}
+                        ${roleBadge}
+                    </div>
+                    <div class="worldbook-item-toggles">
+                        <label class="toggle-label" title="在所有会话中都生效">
+                            <span>全局</span>
+                            <label class="theme-switch small">
+                                <input type="checkbox" data-id="${entry.id}" ${globalChecked} class="worldbook-item-toggle">
+                                <span class="slider round"></span>
+                            </label>
                         </label>
-                    </label>
-                    <label class="toggle-label" title="仅在当前会话中生效">
-                        <span>会话</span>
-                        <label class="theme-switch small">
-                            <input type="checkbox" data-id="${entry.id}" ${sessionChecked} class="worldbook-session-toggle" id="worldbook-session-toggle-${entry.id}" ${sessionDisabled}>
-                            <span class="slider round"></span>
+                        <label class="toggle-label" title="仅在当前会话中生效">
+                            <span>会话</span>
+                            <label class="theme-switch small">
+                                <input type="checkbox" data-id="${entry.id}" ${sessionChecked} class="worldbook-session-toggle" id="worldbook-session-toggle-${entry.id}" ${sessionDisabled}>
+                                <span class="slider round"></span>
+                            </label>
                         </label>
-                    </label>
+                    </div>
                 </div>
                 <div class="worldbook-item-footer">
                     <div class="worldbook-item-stats" title="文本统计：${charCount} 字符，预估消耗约 ${tokenCount} Tokens">
@@ -409,7 +425,8 @@ export function filterWorldBookByTags() {
         // 更新已选中数量
         updateSelectedCount(entries.length);
         
-        renderFilteredWorldBookList(entries, false); // false = 禁用拖拽
+        // 依大爷要求：放开已选中列表的拖拽排序
+        renderFilteredWorldBookList(entries, true);
         return;
     }
     
