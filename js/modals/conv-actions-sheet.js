@@ -63,6 +63,10 @@ function getOrCreateSheetOverlay() {
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                     <span>导出会话记录</span>
                 </button>
+                <button type="button" class="conv-actions-sheet-item" data-action="sync">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>
+                    <span>云同步此会话 (E2EE)</span>
+                </button>
                 <button type="button" class="conv-actions-sheet-item danger" data-action="delete">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
                     <span>删除此会话</span>
@@ -113,6 +117,13 @@ function getOrCreateSheetOverlay() {
                     break;
                 case 'export':
                     openExportConvModal(convId);
+                    break;
+                case 'sync':
+                    import('./conv-sync-modal.js?v=temp').then(({ openConvSyncModal }) => {
+                        openConvSyncModal(convId);
+                    }).catch(err => {
+                        console.error('单会话云同步弹窗异常:', err);
+                    });
                     break;
                 case 'delete':
                     handleDeleteConversation(convId);

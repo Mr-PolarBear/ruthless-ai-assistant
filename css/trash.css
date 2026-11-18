@@ -1,0 +1,385 @@
+/**
+ * @file trash.css
+ * @description 会话回收站与会话覆盖冲突对比双模样式 (严格适配浅色与深色主题)
+ *
+ * — 为什么这么设计 —
+ * 1. 严格遵循 AGENTS.md 主题规范：使用 CSS 变量（--bg-surface, --bg-deep 等），绝不硬编码未适配暗色主题的纯白 (#ffffff)；
+ * 2. 浅色模式与 body[data-theme="dark"] 模式双向适配；
+ * 3. 采用标准 Flexbox 与 Grid 响应式布局，保证移动端纵向堆叠与 PC 宽屏两侧对比同样优雅。
+ */
+
+/* ==========================================================================
+   1. 侧边栏回收站视图
+   ========================================================================== */
+.history-list-view.trash-view {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow-y: auto;
+}
+
+/* 顶部通知与清理条 */
+.trash-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: var(--bg-surface);
+    border-bottom: 1px dashed var(--border-color);
+    font-size: 11px;
+    color: var(--text-muted);
+    flex-shrink: 0;
+}
+
+.trash-toolbar-info {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.trash-empty-btn {
+    padding: 2px 8px;
+    font-size: 11px;
+    background: transparent;
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    color: var(--danger-color, #ef4444);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    white-space: nowrap;
+}
+
+.trash-empty-btn:hover {
+    background: rgba(239, 68, 68, 0.12);
+    border-color: var(--danger-color, #ef4444);
+}
+
+body[data-theme="dark"] .trash-empty-btn:hover {
+    background: rgba(239, 68, 68, 0.22);
+}
+
+/* 回收站空状态 */
+.trash-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 48px 16px;
+    color: var(--text-muted);
+    font-size: 13px;
+    text-align: center;
+}
+
+.trash-empty-state svg {
+    opacity: 0.4;
+    color: var(--text-muted);
+}
+
+/* 回收站单项卡片 */
+.trash-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    margin: 4px 8px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+    gap: 8px;
+}
+
+.trash-item:hover {
+    background: var(--bg-medium);
+    border-color: var(--border-hover, var(--border-color));
+}
+
+body[data-theme="dark"] .trash-item {
+    background: var(--bg-surface);
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+body[data-theme="dark"] .trash-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.trash-item-main {
+    flex: 1;
+    min-width: 0;
+}
+
+.trash-item-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    opacity: 0.85;
+}
+
+.trash-item-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 3px;
+}
+
+.trash-days-badge {
+    display: inline-block;
+    padding: 1px 5px;
+    font-size: 10px;
+    border-radius: 3px;
+    background: rgba(245, 158, 11, 0.12);
+    color: var(--accent-orange, #d97706);
+    border: 1px solid rgba(245, 158, 11, 0.25);
+    white-space: nowrap;
+}
+
+body[data-theme="dark"] .trash-days-badge {
+    background: rgba(245, 158, 11, 0.18);
+    color: #fbbf24;
+    border-color: rgba(245, 158, 11, 0.4);
+}
+
+.trash-item-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.trash-action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-color);
+    background: var(--bg-deep);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.trash-action-btn:hover {
+    background: var(--bg-medium);
+    color: var(--text-primary);
+}
+
+.trash-action-btn.restore:hover {
+    color: var(--success-color, #10b981);
+    border-color: rgba(16, 185, 129, 0.4);
+    background: rgba(16, 185, 129, 0.12);
+}
+
+.trash-action-btn.permanent-delete:hover {
+    color: var(--danger-color, #ef4444);
+    border-color: rgba(239, 68, 68, 0.4);
+    background: rgba(239, 68, 68, 0.12);
+}
+
+/* ==========================================================================
+   2. 会话覆盖冲突对比弹窗样式 (sync-conflict-modal)
+   ========================================================================== */
+.sync-conflict-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+body[data-theme="dark"] .sync-conflict-card {
+    background: var(--bg-surface);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.sync-conflict-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.sync-conflict-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    flex: 1;
+}
+
+.sync-conflict-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sync-conflict-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+@media (max-width: 680px) {
+    .sync-conflict-columns {
+        grid-template-columns: 1fr;
+    }
+}
+
+.sync-conflict-col {
+    background: var(--bg-deep);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+body[data-theme="dark"] .sync-conflict-col {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+.sync-conflict-col.highlight-newer {
+    border-color: var(--primary-color, #3b82f6);
+}
+
+.sync-conflict-col-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.sync-conflict-meta-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.sync-conflict-stat-badge {
+    padding: 1px 6px;
+    border-radius: 3px;
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--primary-color, #3b82f6);
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.sync-conflict-stat-badge.diff-highlight {
+    background: rgba(245, 158, 11, 0.15);
+    color: var(--accent-orange, #d97706);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+body[data-theme="dark"] .sync-conflict-stat-badge.diff-highlight {
+    color: #fbbf24;
+}
+
+.sync-conflict-messages-box {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 220px;
+    overflow-y: auto;
+}
+
+.sync-conflict-msg-item {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 6px 8px;
+    font-size: 11px;
+    line-height: 1.45;
+}
+
+body[data-theme="dark"] .sync-conflict-msg-item {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+.sync-conflict-msg-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+}
+
+.sync-conflict-role-tag {
+    font-weight: 600;
+    padding: 0 4px;
+    border-radius: 2px;
+}
+
+.sync-conflict-role-tag.user {
+    background: rgba(59, 130, 246, 0.12);
+    color: var(--primary-color, #3b82f6);
+}
+
+.sync-conflict-role-tag.assistant {
+    background: rgba(16, 185, 129, 0.12);
+    color: var(--success-color, #10b981);
+}
+
+.sync-conflict-msg-content {
+    color: var(--text-secondary);
+    word-break: break-word;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    font-size: 11px;
+}
+
+.sync-conflict-decision-row {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 16px;
+    padding-top: 8px;
+    border-top: 1px dashed var(--border-color);
+    flex-wrap: wrap;
+}
+
+.sync-conflict-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    color: var(--text-primary);
+    cursor: pointer;
+    user-select: none;
+}
+
+.sync-conflict-option input[type="radio"] {
+    accent-color: var(--primary-color, #3b82f6);
+    margin: 0;
+    cursor: pointer;
+}
+
+.sync-conflict-option:hover {
+    color: var(--primary-color, #3b82f6);
+}

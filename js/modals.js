@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @file modals.js
  * @description Facade for modal management. Re-exports all modal functions.
  */
@@ -91,6 +91,8 @@ export {
 export {
     openSummaryHistoryModal,
     closeSummaryHistoryModal,
+    openSummaryHistoryDetailModal,
+    closeSummaryHistoryDetailModal,
     openSummaryRollbackConfirmModal,
     closeSummaryRollbackConfirmModal,
     initSummaryHistoryModal,
@@ -122,3 +124,11 @@ export {
     closeSummaryCondenseModal,
     initSummaryCondenseModal
 } from './modals/summary-condense-modal.js?v=temp';
+
+// Summary Card Edit Modal
+export {
+    openSummaryCardEditModal,
+    closeSummaryCardEditModal,
+    setupSummaryCardEditModalEvents
+} from './modals/summary-card-edit-modal.js?v=temp';
+

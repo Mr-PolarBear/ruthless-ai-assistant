@@ -12,7 +12,7 @@ import { state } from '../state.js?v=temp';
 import { saveToLocalStorage } from '../utils.js?v=temp';
 import { notify } from '../ui-updater.js?v=temp';
 import { getHideSummaryForConversation, setHideSummaryForConversation } from '../main.js?v=temp';
-import { normalizeHideSummaryConfig } from '../summary-manager.js?v=temp';
+import { normalizeHideSummaryConfig, clearSkippedAutoSummaryRound } from '../summary-manager.js?v=temp';
 
 let currentModalState = {
     convId: null,
@@ -110,7 +110,10 @@ export function setupBranchSummaryConfirmModal() {
                 if (snap.summaryList) config.summaryList = JSON.parse(JSON.stringify(snap.summaryList));
                 if (snap.tableData) config.tableData = JSON.parse(JSON.stringify(snap.tableData));
                 config.lastAutoSummaryFloor = snap.maxFloor || (snap.hiddenFloors?.length ? Math.max(...snap.hiddenFloors) : 0);
-                
+                // 同步基线版本指针：重发链路也是一次"回滚"，无 id 老快照退化用 timestamp
+                config.appliedVersionId = snap.id || String(snap.timestamp || '');
+                config.appliedAt = Date.now();
+
                 setHideSummaryForConversation(convId, config);
                 await saveToLocalStorage();
 
@@ -122,7 +125,10 @@ export function setupBranchSummaryConfirmModal() {
                 config.summaryList = [];
                 config.tableData = { eventHistory: [], characterInfo: [] };
                 config.lastAutoSummaryFloor = 0;
-                
+                // 无记忆即无基线，清空指针
+                config.appliedVersionId = null;
+                config.appliedAt = 0;
+
                 setHideSummaryForConversation(convId, config);
                 await saveToLocalStorage();
 
@@ -132,6 +138,11 @@ export function setupBranchSummaryConfirmModal() {
             if (window.updateHideSummaryBtnColor) window.updateHideSummaryBtnColor();
             if (window.updateSessionTokenBadge) window.updateSessionTokenBadge();
             if (window.refreshHideSummaryModalViews) window.refreshHideSummaryModalViews();
+
+            // — 为什么这么写 —
+            // 用户分叉回滚或重置记忆并重发后，进入了全新的分支剧情，
+            // 必须清空此前在未来废弃楼层产生的“稍后跳过自动总结”标记，确保新分支达到步长时能即刻触发弹窗。
+            clearSkippedAutoSummaryRound(convId);
 
             closeBranchSummaryConfirmModal();
 
@@ -144,7 +155,8 @@ export function setupBranchSummaryConfirmModal() {
     // 2. 保持当前记忆直接重发
     if (dom.branchSummaryKeepBtn) {
         dom.branchSummaryKeepBtn.addEventListener('click', () => {
-            const { onProceed } = currentModalState;
+            const { convId, onProceed } = currentModalState;
+            clearSkippedAutoSummaryRound(convId);
             closeBranchSummaryConfirmModal();
             notify.info('已保持当前记忆，正在重发...');
             if (typeof onProceed === 'function') {

@@ -1,0 +1,10 @@
+<service>
+  <id>RuthlessSyncServer</id>
+  <name>智能摸鱼云同步服务</name>
+  <description>提供智能摸鱼聊天助手的端到端加密跨设备会话云同步后台服务</description>
+  <executable>%BASE%\sync-server.exe</executable>
+  <arguments>serve -config="%BASE%\config.json"</arguments>
+  <workingdirectory>%BASE%</workingdirectory>
+  <logmode>rotate</logmode>
+  <logpath>%BASE%\logs</logpath>
+</service>

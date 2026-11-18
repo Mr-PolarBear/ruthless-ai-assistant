@@ -9,16 +9,27 @@ import { renderHistory } from './sidebar.js?v=temp'; // 乌鸦：导入会话历
 import { calculateConversationStats } from './utils.js?v=temp';
 import { renderRegexRulesList } from './ui-populator.js?v=temp';
 import { scrollPillManager } from './services/scroll-pill-manager.js?v=temp';
+import { getNormalizedLastAutoSummaryFloor, calculateAutoSummaryTokenProgress } from './summary-manager.js?v=temp';
+import { isMobileDevice } from './services/viewport-manager.js?v=temp';
 
 /**
  * Toggles the send button's appearance and state (send/stop).
  * @param {boolean} isSending - True if a message is currently being sent.
  */
 export function toggleSendButton(isSending) {
-    dom.sendButton.innerHTML = isSending ? `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"></rect></svg>` : `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>`;
-    dom.sendButton.title = isSending ? "停止" : "发送";
+    if (!dom.sendButton) return;
+    dom.sendButton.innerHTML = isSending
+        ? `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"></rect></svg>`
+        : `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>`;
+    dom.sendButton.title = isSending ? "停止生成" : "发送";
     dom.sendButton.classList.toggle('stop', isSending);
-    if (!isSending) dom.messageInput.focus();
+    // — 为什么这么写 —
+    // 1. 桌面端输出完毕后自动聚焦输入框，方便键鼠用户无缝连续打字；
+    // 2. 移动端（手机/平板触屏）严禁自动聚焦，否则会强行唤起系统虚拟软键盘，
+    //    遮挡屏幕下半部视口，严重阻碍用户阅读刚刚完成的 AI 响应（"还没看完就出来个输入法挡眼睛"）。
+    if (!isSending && !isMobileDevice() && dom.messageInput && typeof dom.messageInput.focus === 'function') {
+        dom.messageInput.focus();
+    }
     updateSummaryEditorLockState();
 }
 
@@ -29,27 +40,46 @@ export function toggleSendButton(isSending) {
  * 避免用户在模型并发写回或输出期间产生内容冲突覆盖；一旦输出完毕或用户点击停止，即刻恢复可编辑。
  */
 export function updateSummaryEditorLockState() {
-    if (!dom.hideSummaryResult) return;
+    if (!dom.hideSummaryResult && !dom.summaryModeTabsBtns) return;
 
     const isChatGenerating = dom.sendButton && dom.sendButton.classList.contains('stop');
     const isSummaryGenerating = dom.hideSummaryStartBtn && dom.hideSummaryStartBtn.dataset.summarizing === '1';
-    // 仅当自动总结属于当前正处于活动状态的会话时才锁定当前编辑框
+    // 仅当自动总结属于当前正处于活动状态的会话时才锁定当前编辑框与模式切换
     const isAutoSummarizingCurrentConv = !!state.isAutoSummarizing && (state.autoSummarizingConvId === state.currentConversationId);
 
     const shouldLock = isChatGenerating || isSummaryGenerating || isAutoSummarizingCurrentConv;
 
-    if (shouldLock) {
-        dom.hideSummaryResult.readOnly = true;
-        dom.hideSummaryResult.classList.add('editor-locked');
-        dom.hideSummaryResult.setAttribute('title', '⏳ AI 正在输出中，暂不可编辑（生成结束后自动解锁）');
-        if (dom.hideSummarySaveBtn) dom.hideSummarySaveBtn.disabled = true;
-        if (dom.hideSummaryClearBtn) dom.hideSummaryClearBtn.disabled = true;
-    } else {
-        dom.hideSummaryResult.readOnly = false;
-        dom.hideSummaryResult.classList.remove('editor-locked');
-        dom.hideSummaryResult.removeAttribute('title');
-        if (dom.hideSummarySaveBtn) dom.hideSummarySaveBtn.disabled = false;
-        if (dom.hideSummaryClearBtn) dom.hideSummaryClearBtn.disabled = false;
+    if (dom.hideSummaryResult) {
+        if (shouldLock) {
+            dom.hideSummaryResult.readOnly = true;
+            dom.hideSummaryResult.classList.add('editor-locked');
+            dom.hideSummaryResult.setAttribute('title', '⏳ AI 正在输出中，暂不可编辑（生成结束后自动解锁）');
+            if (dom.hideSummarySaveBtn) dom.hideSummarySaveBtn.disabled = true;
+            if (dom.hideSummaryClearBtn) dom.hideSummaryClearBtn.disabled = true;
+        } else {
+            dom.hideSummaryResult.readOnly = false;
+            dom.hideSummaryResult.classList.remove('editor-locked');
+            dom.hideSummaryResult.removeAttribute('title');
+            if (dom.hideSummarySaveBtn) dom.hideSummarySaveBtn.disabled = false;
+            if (dom.hideSummaryClearBtn) dom.hideSummaryClearBtn.disabled = false;
+        }
+    }
+
+    // — 为什么这么写 —
+    // 总结生成或主对话输出中，强制禁用记忆模式选项卡切换（递归滚动/列表拼接/结构双表），
+    // 杜绝大爷在模型异步生成时误切类型导致输出内容错写到另一模式的数据结构中。
+    if (dom.summaryModeTabsBtns) {
+        dom.summaryModeTabsBtns.forEach(btn => {
+            if (shouldLock) {
+                btn.setAttribute('aria-disabled', 'true');
+                btn.classList.add('disabled');
+                btn.setAttribute('title', '⏳ 总结生成或 AI 输出中，暂不可切换记忆模式（生成结束后自动解锁）');
+            } else {
+                btn.removeAttribute('aria-disabled');
+                btn.classList.remove('disabled');
+                btn.removeAttribute('title');
+            }
+        });
     }
 }
 
@@ -88,6 +118,7 @@ export function updateAllDynamicUI() {
     updateChooseTableButtonState();
     updateHideSummaryBtnColor();
     updateSessionTokenBadge(); // 乌鸦：同步刷新当前会话总 Token 数徽章
+    updateRealtimeButtonState(); // 同步刷新实时模式按钮绿点状态
     updateInputPlaceholder(); // 乌鸦：根据当前发送快捷键设置同步输入框占位提示
     if (dom.regexRuleList) {
         renderRegexRulesList(); // 乌鸦：同步刷新当前会话专属正则列表
@@ -97,18 +128,38 @@ export function updateAllDynamicUI() {
 
 /**
  * — 为什么这么写 —
- * 用户可在设置中切换发送快捷键（Enter / Ctrl+Enter），但输入框 placeholder
- * 是写死的"Shift+Enter 换行"，会与实际设置产生矛盾造成困惑。
- * 此函数根据 state.appSettings.sendKey 动态更新 placeholder 文案。
+ * 1. 移动端软键盘无物理 Shift/Ctrl 键，且换行按键已在手机模式下优化为纯换行，
+ *    显示桌面快捷键会给手机用户造成困惑并无谓占用移动端屏幕宽度；
+ * 2. 在手机模式下，placeholder 统一显示精简明了的 '输入消息...'；
+ * 3. 在 PC 桌面端，根据用户的设置（Enter / Ctrl+Enter / 仅按钮发送）动态呈现对应的操作指引。
  */
 export function updateInputPlaceholder() {
     if (!dom.messageInput) return;
+
+    if (isMobileDevice()) {
+        dom.messageInput.placeholder = '输入消息...';
+        return;
+    }
+
     const sendKey = state.appSettings.sendKey || 'enter';
     if (sendKey === 'ctrl-enter') {
         dom.messageInput.placeholder = '输入消息... (Ctrl+Enter 发送 · Enter 换行)';
+    } else if (sendKey === 'button-only') {
+        dom.messageInput.placeholder = '输入消息... (点击按钮发送 · Enter 换行)';
     } else {
         dom.messageInput.placeholder = '输入消息... (Enter 发送 · Shift+Enter 换行)';
     }
+}
+
+// 监听窗口尺寸变化，动态在移动端简要提示与 PC 快捷键说明之间平滑自适应
+if (typeof window !== 'undefined') {
+    let resizeTimer = null;
+    window.addEventListener('resize', () => {
+        if (resizeTimer) clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+            updateInputPlaceholder();
+        }, 150);
+    }, { passive: true });
 }
 
 /**
@@ -177,8 +228,11 @@ export function applyTheme(theme) {
         const isCdn = currentHref.startsWith('http://') || currentHref.startsWith('https://') || currentHref.startsWith('//');
 
         if (isCdn) {
-            const cdnLight = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-light.min.css';
-            const cdnDark = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css';
+            // — 为什么这么写 —
+            // 使用国内极速镜像 cdnjs.loli.net 替代海外的 cdnjs.cloudflare.com
+            // 解决国内网络直连 Cloudflare 容易超时 (ERR_CONNECTION_TIMED_OUT) 导致样式或库加载失败的问题
+            const cdnLight = 'https://cdnjs.loli.net/ajax/libs/highlight.js/11.9.0/styles/atom-one-light.min.css';
+            const cdnDark = 'https://cdnjs.loli.net/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css';
             hljsTheme.href = isLight ? cdnLight : cdnDark;
         } else {
             hljsTheme.href = isLight ? './libs/atom-one-light.min.css' : './libs/atom-one-dark.min.css';
@@ -191,19 +245,35 @@ export function applyTheme(theme) {
 }
 
 export function updateWorldBookButton() {
+    if (!dom.manageWorldBookBtn) return;
     const convId = state.currentConversationId;
     let enabledCount = 0;
     if (convId) {
-        enabledCount = Object.values(state.worldBook).filter(entry => {
+        enabledCount = Object.values(state.worldBook || {}).filter(entry => {
             return entry.enabled || (Array.isArray(entry.sessionIds) && entry.sessionIds.includes(convId));
         }).length;
     } else {
-        enabledCount = Object.values(state.worldBook).filter(entry => entry.enabled).length;
+        enabledCount = Object.values(state.worldBook || {}).filter(entry => entry.enabled).length;
     }
-    if (enabledCount > 0) {
-        dom.manageWorldBookBtn.textContent = `备忘录 (${enabledCount})`;
-    } else {
-        dom.manageWorldBookBtn.textContent = '备忘录';
+
+    // 确保按钮文本保持为“备忘”，保留原有的 SVG 图标
+    const textEl = dom.manageWorldBookBtn.querySelector('.btn-text');
+    if (textEl) {
+        textEl.textContent = '备忘录';
+    }
+
+    // 更新右上角角标
+    const badge = document.getElementById('worldbook-count-badge');
+    if (badge) {
+        if (enabledCount > 0) {
+            badge.textContent = enabledCount;
+            badge.classList.add('active');
+            badge.title = `当前会话生效备忘词条：${enabledCount} 条`;
+        } else {
+            badge.textContent = '';
+            badge.removeAttribute('title');
+            badge.classList.remove('active');
+        }
     }
 }
 
@@ -214,6 +284,7 @@ export function updateHideSummaryBtnColor() {
     let isHideEnabled = false;
     let isLimitEnabled = false;
     let limitValue = 0;
+    let showCountdown = false;
 
     if (convId && state.hideSummary && state.hideSummary[convId]) {
         const summaryConfig = state.hideSummary[convId];
@@ -257,23 +328,121 @@ export function updateHideSummaryBtnColor() {
     const isManualSummarizingCurrent = !!(window._hideSummaryAbort && state.currentConversationId === convId);
     const isSpinning = isAutoSummarizingCurrent || isManualSummarizingCurrent;
 
-    if (isSpinning) {
-        dom.hideSummaryBtn.classList.add('summarizing-spinning');
-        dom.hideSummaryBtn.setAttribute('title', '🔄 正在进行记忆总结中...');
+    // 动态构建富信息悬停提示 (Tooltip)
+    const summaryTipLines = ['隐藏与会话记忆总结', '──────────────────────'];
+
+    // 1. 发送限制状态
+    if (limitValue > 0) {
+        summaryTipLines.push(`• 消息限制：限制最近 ${limitValue} 楼`);
     } else {
-        dom.hideSummaryBtn.classList.remove('summarizing-spinning');
-        dom.hideSummaryBtn.setAttribute('title', '隐藏与总结');
+        summaryTipLines.push(`• 消息限制：未限制 (发送全部可见上下文)`);
     }
 
-    // 乌鸦：更新隐藏/总结按钮上的发送限制楼层数角标
+    // 2. 自动总结倒计时与进度
+    if (convId && state.hideSummary && state.hideSummary[convId]) {
+        const summaryConfig = state.hideSummary[convId];
+        const autoType = summaryConfig.autoSummaryType || 'floors';
+        const isAutoEnabled = !!summaryConfig.autoSummaryEnabled;
+
+        if (isAutoEnabled) {
+            if (autoType === 'floors') {
+                const floorInterval = Number(summaryConfig.autoSummaryFloorInterval) || 10;
+                const conv = state.conversations[convId];
+                const activeBranch = conv && conv.branches ? conv.branches[conv.activeBranchIndex] : [];
+                const currentTotalFloors = activeBranch ? activeBranch.length : 0;
+                const lastFloor = getNormalizedLastAutoSummaryFloor(activeBranch, summaryConfig);
+                const deltaFloors = Math.max(0, currentTotalFloors - lastFloor);
+                const remainingFloors = Math.max(0, floorInterval - deltaFloors);
+                summaryTipLines.push(`• 自动总结：还剩 ${remainingFloors} 楼触发 (步长: ${floorInterval} 楼，当前已累积: ${deltaFloors} 楼)`);
+            } else if (autoType === 'tokens') {
+                const conv = state.conversations[convId];
+                const progress = calculateAutoSummaryTokenProgress(conv, summaryConfig);
+                const remainingTokens = Math.max(0, progress.tokenThreshold - progress.accumulatedTokens);
+                summaryTipLines.push(`• 自动总结：还剩约 ${remainingTokens.toLocaleString()} Token 触发 (阈值: ${progress.tokenThreshold.toLocaleString()}，已累积: ${progress.accumulatedTokens.toLocaleString()})`);
+            }
+        } else {
+            summaryTipLines.push(`• 自动总结：未开启`);
+        }
+    } else {
+        summaryTipLines.push(`• 自动总结：未开启`);
+    }
+
+    summaryTipLines.push('──────────────────────');
+    summaryTipLines.push('点击打开会话记忆与智能总结');
+    const fullTooltip = summaryTipLines.join('\n');
+
+    if (isSpinning) {
+        dom.hideSummaryBtn.classList.add('summarizing-spinning');
+        dom.hideSummaryBtn.setAttribute('title', `🔄 正在进行记忆总结提炼中...\n\n${fullTooltip}`);
+    } else {
+        dom.hideSummaryBtn.classList.remove('summarizing-spinning');
+        dom.hideSummaryBtn.setAttribute('title', fullTooltip);
+    }
+
+    // 乌鸦：更新隐藏/总结按钮上的发送限制楼层数角标 (右上角)
     const badge = document.getElementById('hide-summary-limit-badge');
     if (badge) {
         if (limitValue > 0) {
             badge.textContent = limitValue;
             badge.classList.add('active');
+            badge.title = `当前会话消息发送限制：${limitValue} 楼`;
         } else {
             badge.textContent = '';
+            badge.removeAttribute('title');
             badge.classList.remove('active');
+        }
+    }
+
+    // 更新隐藏/总结按钮上的自动总结剩余楼层倒计时下标 (右下角，token模式不展示)
+    const countdownBadge = document.getElementById('hide-summary-countdown-badge');
+    if (countdownBadge) {
+        let remainingFloors = 0;
+        let tooltipText = '';
+
+        if (convId && state.hideSummary && state.hideSummary[convId]) {
+            const summaryConfig = state.hideSummary[convId];
+            const autoType = summaryConfig.autoSummaryType || 'floors';
+
+            // 仅当开启了自动总结，并且模式为 floors 时展示倒计时下标 (token模式或未开启不展示)
+            if (summaryConfig.autoSummaryEnabled && autoType === 'floors') {
+                const floorInterval = Number(summaryConfig.autoSummaryFloorInterval) || 10;
+                const conv = state.conversations[convId];
+                const activeBranch = conv && conv.branches ? conv.branches[conv.activeBranchIndex] : [];
+                const currentTotalFloors = activeBranch ? activeBranch.length : 0;
+                const lastFloor = getNormalizedLastAutoSummaryFloor(activeBranch, summaryConfig);
+                const deltaFloors = Math.max(0, currentTotalFloors - lastFloor);
+                remainingFloors = Math.max(0, floorInterval - deltaFloors);
+
+                showCountdown = true;
+                tooltipText = `距离下次自动记忆总结还剩 ${remainingFloors} 楼 (步长: ${floorInterval} 楼, 已累积: ${deltaFloors} 楼)`;
+            }
+        }
+
+        if (showCountdown) {
+            countdownBadge.textContent = remainingFloors;
+            countdownBadge.title = tooltipText;
+            countdownBadge.classList.add('active');
+            if (remainingFloors <= 2) {
+                countdownBadge.classList.add('near-trigger');
+            } else {
+                countdownBadge.classList.remove('near-trigger');
+            }
+        } else {
+            countdownBadge.textContent = '';
+            countdownBadge.removeAttribute('title');
+            countdownBadge.classList.remove('active', 'near-trigger');
+        }
+    }
+
+    // 控制 Plan B 复合角标容器 #hide-summary-badge-group 显隐
+    const badgeGroup = document.getElementById('hide-summary-badge-group');
+    if (badgeGroup) {
+        const hasLimit = limitValue > 0;
+        const hasCountdown = showCountdown;
+        if (hasLimit || hasCountdown) {
+            badgeGroup.classList.add('active');
+        } else {
+            badgeGroup.classList.remove('active');
         }
     }
 }
@@ -303,6 +472,7 @@ export function updateSessionTokenBadge() {
     const actualTokens = stats.actualSentEstimatedTokens || 0;
     const actualMainTokens = stats.actualSentMainTokens || 0;
     const actualSystemTokens = stats.actualSentSystemTokens || 0;
+    const regexExcludedTokens = stats.regexExcludedTokens || 0;
     const totalTokens = stats.totalEstimatedTokens || 0;
     const hiddenTokens = stats.hiddenEstimatedTokens || 0;
 
@@ -310,7 +480,8 @@ export function updateSessionTokenBadge() {
     if (textSpan) textSpan.textContent = formattedText;
     else badge.textContent = formattedText;
 
-    badge.title = `点击查看会话数据详情 (实际发送预估: ${actualTokens.toLocaleString()} Tokens [消息正文: ${actualMainTokens.toLocaleString()} + 设定与备忘: ${actualSystemTokens.toLocaleString()}] / 历史总预估: ${totalTokens.toLocaleString()} / 已隐藏: ${hiddenTokens.toLocaleString()})`;
+    const regexHint = regexExcludedTokens > 0 ? ` (已排除正则过滤: -${regexExcludedTokens.toLocaleString()} Tokens)` : '';
+    badge.title = `点击查看会话数据详情 (实际发送预估: ${actualTokens.toLocaleString()} Tokens [消息正文: ${actualMainTokens.toLocaleString()} + 设定与备忘: ${actualSystemTokens.toLocaleString()}]${regexHint} / 历史总预估: ${totalTokens.toLocaleString()} / 已隐藏: ${hiddenTokens.toLocaleString()})`;
 }
 
 export function showLoadingOverlay() {
@@ -364,9 +535,9 @@ export function updateSendButtonState() {
         }
     });
 
-    dom.sendButton.disabled = false;
-    dom.messageInput.disabled = false;
-    dom.attachmentBtn.disabled = false;
+    if (dom.sendButton) dom.sendButton.disabled = false;
+    if (dom.messageInput) dom.messageInput.disabled = false;
+    if (dom.attachmentBtn) dom.attachmentBtn.disabled = false;
     toggleSendButton(isGenerating);
 }
 
@@ -375,6 +546,7 @@ export function scrollToBottom() {
 }
 
 export function showNotification(message, type = 'info', duration = 3000) {
+    if (typeof document === 'undefined' || !document.body) return;
     const notification = document.createElement('div');
     notification.className = `notification notification-${type}`;
 
@@ -427,8 +599,9 @@ export const notify = {
  * 
  * @param {string} title - 弹窗标题
  * @param {string} message - 详细提示信息
+ * @param {'error'|'warning'|'info'} [type='error'] - 提示类型，仅影响标题图标颜色语义
  */
-export function showErrorDialog(title, message) {
+export function showErrorDialog(title, message, type = 'error') {
     const existingModal = document.getElementById('custom-error-dialog-modal');
     if (existingModal) {
         existingModal.remove();
@@ -444,7 +617,7 @@ export function showErrorDialog(title, message) {
     modalOverlay.innerHTML = `
         <div class="modal-content" style="max-width: 520px; width: 90%; background: var(--bg-primary, #ffffff); color: var(--text-primary, #333333); border-radius: 12px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); border: 1px solid var(--border-color, #e0e0e0); animation: modalFadeIn 0.2s cubic-bezier(0.4, 0, 0.2, 1);">
             <div class="modal-header" style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-color, #eeeeee); padding-bottom: 12px; margin-bottom: 16px;">
-                <h3 style="margin: 0; font-size: 1.15rem; display: flex; align-items: center; gap: 8px; color: var(--danger-color, #e53935);">
+                <h3 style="margin: 0; font-size: 1.15rem; display: flex; align-items: center; gap: 8px; color: ${type === 'warning' ? 'var(--accent-orange, #e6a23c)' : type === 'info' ? 'var(--accent-blue, #0969da)' : 'var(--danger-color, #e53935)'};">
                     <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
                     ${title || '文件解析提示'}
                 </h3>
@@ -483,9 +656,31 @@ export function showErrorDialog(title, message) {
     };
 }
 
+/**
+ * 实时模式按钮高亮状态刷新（根据当前会话 conv.realtimeMode.enabled 联动绿点高亮与提示文案）
+ */
+export function updateRealtimeButtonState() {
+    const btn = dom.realtimeModeBtn || document.getElementById('realtime-mode-btn');
+    if (!btn) return;
+
+    const convId = state.currentConversationId;
+    const conv = convId ? state.conversations[convId] : null;
+    const isEnabled = !!(conv && conv.realtimeMode && conv.realtimeMode.enabled);
+
+    if (isEnabled) {
+        btn.classList.add('active');
+        btn.title = '实时模式已开启 (点击配置时间与历法)';
+    } else {
+        btn.classList.remove('active');
+        btn.title = '实时模式配置 (时间与虚拟历法)';
+    }
+}
+
 // 自动挂载高频跨模块调用的 UI 刷新函数到全局 window 对象
 if (typeof window !== 'undefined') {
     window.updateSessionTokenBadge = updateSessionTokenBadge;
     window.updateHideSummaryBtnColor = updateHideSummaryBtnColor;
+    window.updateRealtimeButtonState = updateRealtimeButtonState;
+    window.notify = notify;
 }
 

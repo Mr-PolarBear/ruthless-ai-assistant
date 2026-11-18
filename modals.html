@@ -117,7 +117,7 @@
                     </div>
                     <div class="form-group">
                         <label>发送快捷键</label>
-                        <div class="radio-group" style="display: flex; gap: 1rem; margin-top: 0.5rem;">
+                        <div class="radio-group" style="display: flex; gap: 1rem; margin-top: 0.5rem; flex-wrap: wrap;">
                             <div>
                                 <input type="radio" id="send-key-enter" name="send-key" value="enter" checked>
                                 <label for="send-key-enter">Enter</label>
@@ -125,6 +125,10 @@
                             <div>
                                 <input type="radio" id="send-key-ctrl-enter" name="send-key" value="ctrl-enter">
                                 <label for="send-key-ctrl-enter">Ctrl+Enter</label>
+                            </div>
+                            <div>
+                                <input type="radio" id="send-key-button" name="send-key" value="button-only">
+                                <label for="send-key-button">仅按钮发送 (Enter 换行)</label>
                             </div>
                         </div>
                     </div>
@@ -1151,8 +1155,8 @@
                             <span id="worldbook-open-tags-badge" class="wb-open-tags-badge" style="display: none;">0</span>
                         </button>
                         <div class="worldbook-list-tabs">
-                            <button class="tab-btn active" data-tab="all">全部</button>
-                            <button class="tab-btn" data-tab="selected">已选中 <span id="selected-count"
+                            <button class="tab-btn" data-tab="all">全部</button>
+                            <button class="tab-btn active" data-tab="selected">已选中 <span id="selected-count"
                                     class="tab-count">(0)</span></button>
                         </div>
                     </div>
@@ -1179,8 +1183,8 @@
                                     <div class="form-label-right-tools">
                                         <div id="worldbook-char-counter" class="char-counter" title="文本统计：0 字符，预估消耗约 0 Tokens">0 字 · ~0 Tokens</div>
                                         <button type="button" id="worldbook-content-expand-btn" class="wb-expand-btn" title="放大编辑 (ESC退出)">
-                                            <svg class="icon-expand" xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
-                                            <svg class="icon-compress" style="display:none;" xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"></polyline><polyline points="20 10 14 10 14 4"></polyline><line x1="14" y1="10" x2="21" y2="3"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+                                            <svg class="icon-expand" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+                                            <svg class="icon-compress" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"></polyline><polyline points="20 10 14 10 14 4"></polyline><line x1="14" y1="10" x2="21" y2="3"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
                                         </button>
                                     </div>
                                 </div>
@@ -1326,142 +1330,222 @@
             <button class="modal-close-btn" title="关闭">&times;</button>
         </div>
         <div class="modal-body" style="flex: 1; overflow-y: auto;">
-            <!-- 当前分支 Token 状态概览 -->
-            <div id="hide-summary-token-overview" class="hide-summary-token-overview">
-                <span>实际发送: <strong id="hide-summary-actual-tokens">0</strong> Tokens</span>
-                <span>已隐藏: <strong id="hide-summary-hidden-tokens">0</strong> Tokens</span>
-                <span>总预估: <strong id="hide-summary-total-tokens">0</strong> Tokens</span>
-            </div>
 
-            <!-- 当前已隐藏楼层明细展示 -->
-            <div class="hide-summary-floors-banner">
-                <div class="floors-banner-main-row">
-                    <span class="floors-banner-label">当前已隐藏楼层：</span>
-                    <strong id="hide-summary-hidden-floors-text" class="floors-banner-value">无隐藏楼层</strong>
+            <!-- ============================================================ -->
+            <!-- 区域 1：状态概览条（Token 状态 + 楼层概览，紧凑双栏排列） -->
+            <!-- ============================================================ -->
+            <div class="summary-status-bar">
+                <div id="hide-summary-token-overview" class="hide-summary-token-overview">
+                    <span>实际发送: <strong id="hide-summary-actual-tokens">0</strong> Tokens</span>
+                    <span>已隐藏: <strong id="hide-summary-hidden-tokens">0</strong> Tokens</span>
+                    <span>总预估: <strong id="hide-summary-total-tokens">0</strong> Tokens</span>
                 </div>
-                <div id="hide-summary-unhidden-floors-row" class="floors-banner-unhidden-row" style="display: none;">
-                    <span class="unhidden-row-label">⚠️ 区间内未隐藏：</span>
-                    <div id="hide-summary-unhidden-floors-text" class="unhidden-row-scroll-content"></div>
-                </div>
-            </div>
-
-            <!-- 记忆总结总开关 -->
-            <div class="form-group-toggle hide-summary-enable-row" style="margin-bottom: 10px;">
-                <label for="hide-summary-enable" style="font-weight: 600;">启用记忆总结注入</label>
-                <label class="theme-switch">
-                    <input type="checkbox" id="hide-summary-enable">
-                    <span class="slider round"></span>
-                </label>
-                <span class="hide-summary-switch-tip">⚠️ 如进行总结方式切换，切记检查隐藏楼层是否正确？如首次总结应该放开所有隐藏楼层，避免遗漏。</span>
-            </div>
-
-            <!-- 记忆模式选择器 (3 种模式) -->
-            <div class="summary-mode-selector-wrapper">
-                <div class="summary-mode-tabs" id="summary-mode-tabs">
-                    <button type="button" class="summary-mode-tab active" data-mode="recursive" title="递归滚动：全量融合，不限字数，每次将前序记忆与新对话合并总结"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M3 22v-6h6"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path></svg>递归滚动</button>
-                    <button type="button" class="summary-mode-tab" data-mode="append" title="列表拼接：增量追加，仅提炼新楼层，以卡片流形式不断拼接"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>列表拼接</button>
-                    <button type="button" class="summary-mode-tab" data-mode="table" title="跑团双表：专为角色扮演设计，维护历史记录表与角色信息表"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"></rect><path d="M3 9h18"></path><path d="M3 15h18"></path><path d="M9 3v18"></path></svg>跑团双表</button>
+                <div class="hide-summary-floors-banner">
+                    <div class="floors-banner-main-row">
+                        <div class="floors-banner-left" style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                            <span class="floors-banner-label">已隐藏：</span>
+                            <strong id="hide-summary-hidden-floors-text" class="floors-banner-value">无隐藏楼层</strong>
+                        </div>
+                        <div class="floors-banner-total" id="hide-summary-total-floors-wrapper">
+                            <span class="floors-banner-label">总楼层：</span>
+                            <strong id="hide-summary-total-floors-text" class="floors-banner-total-value">0 层</strong>
+                        </div>
+                    </div>
+                    <div id="hide-summary-unhidden-floors-row" class="floors-banner-unhidden-row" style="display: none;">
+                        <span class="unhidden-row-label">⚠️ 区间内未隐藏：</span>
+                        <div id="hide-summary-unhidden-floors-text" class="unhidden-row-scroll-content"></div>
+                    </div>
                 </div>
             </div>
 
-            <!-- 自动总结设置面板 -->
-            <div class="summary-auto-card">
-                <div class="form-group-toggle" style="margin-bottom: 8px;">
-                    <label for="auto-summary-enable" style="font-weight: 600; font-size: 13px;">开启自动总结 (后台静默执行)</label>
+            <!-- ============================================================ -->
+            <!-- 区域 2：顶部主控制栏（发送限制滑块 + 记忆注入开关，并排直达） -->
+            <!-- ============================================================ -->
+            <div class="summary-top-controls">
+                <div class="summary-top-control-slider-group">
+                    <div class="summary-top-slider-header">
+                        <span class="summary-top-control-label">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>
+                            发送消息数量限制
+                        </span>
+                        <span id="message-limit-value" class="summary-top-slider-badge">全部</span>
+                    </div>
+                    <div class="summary-top-slider-row">
+                        <input type="range" id="message-limit-slider" min="0" max="50" value="0" class="summary-top-slider">
+                    </div>
+                    <div class="summary-top-slider-tip">仅截取发送最近 N 条未隐藏消息（0 为全部，系统记忆始终发送）</div>
+                </div>
+
+                <div class="summary-top-control-switch-group">
+                    <label for="hide-summary-enable" class="summary-top-switch-label">启用记忆注入</label>
                     <label class="theme-switch">
-                        <input type="checkbox" id="auto-summary-enable">
+                        <input type="checkbox" id="hide-summary-enable">
                         <span class="slider round"></span>
                     </label>
                 </div>
-                
-                <div id="auto-summary-options" class="auto-summary-options">
-                    <div class="auto-summary-trigger-group">
-                        <label class="auto-summary-radio">
-                            <input type="radio" name="auto-summary-type" id="auto-summary-type-floors" value="floors" checked>
-                            <span>每隔</span>
-                            <input type="number" id="auto-summary-floor-interval" min="2" max="100" value="10" class="auto-summary-num-input">
-                            <span>楼自动总结一次</span>
-                        </label>
-                        <label class="auto-summary-radio" style="display: inline-flex; align-items: center; gap: 4px; flex-wrap: wrap;">
-                            <input type="radio" name="auto-summary-type" id="auto-summary-type-tokens" value="tokens">
-                            <span>可见消息达</span>
-                            <input type="number" id="auto-summary-token-threshold" min="500" max="100000" step="500" value="4000" class="auto-summary-num-input auto-summary-token-input">
-                            <span>Token 自动总结</span>
-                            <span class="auto-summary-token-hint" style="color: var(--danger-color, #cf222e); font-size: 11px; font-weight: 500;">(按纯正文统计，建议开启下方自动隐藏释放上下文)</span>
-                            <span id="auto-summary-token-progress" class="auto-summary-token-progress" title="自上次总结基准楼层之后，当前已新产生的纯正文 Token 累积量">📈 当前自第 1 楼起已积累 0 / 4,000 Token</span>
-                        </label>
+            </div>
+
+            <!-- ============================================================ -->
+            <!-- 区域 3：高级设置（放在工作台上方，默认展开，可一键折叠） -->
+            <!-- ============================================================ -->
+            <div class="summary-advanced-section open" id="summary-advanced-section">
+                <button type="button" class="summary-advanced-header-btn" id="summary-advanced-toggle-btn" title="点击展开或收起高级设置">
+                    <div class="summary-advanced-header-title">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        <span>自动化策略与提示词 (高级设置)</span>
                     </div>
-                    <div class="form-group" style="margin-top: 8px; margin-bottom: 0;">
-                        <label class="form-group-checkbox" style="font-size: 12px; color: var(--text-primary); margin-bottom: 0;">
-                            <input type="checkbox" id="auto-summary-drop-floors" checked>
-                            总结完成后自动隐藏被总结的历史楼层 (释放上下文)
-                        </label>
+                    <div class="summary-advanced-header-action">
+                        <span class="summary-advanced-toggle-text">收起设置</span>
+                        <svg class="summary-advanced-chevron" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                     </div>
-                    <div class="form-group" style="margin-top: 6px; margin-bottom: 0;">
-                        <div style="display: flex; align-items: center; gap: 4px; flex-wrap: wrap;">
-                            <label class="form-group-checkbox" style="font-size: 12px; color: var(--text-primary); margin-bottom: 0; white-space: nowrap;">
-                                <input type="checkbox" id="auto-summary-keep-recent" checked>
-                                归档时保留最后
-                            </label>
-                            <input type="number" id="auto-summary-keep-recent-count" min="1" max="50" value="2" class="auto-summary-num-input">
-                            <span style="font-size: 12px; color: var(--text-primary); white-space: nowrap;">楼不隐藏 (供AI参考格式与近期语境)</span>
+                </button>
+
+                <div class="summary-advanced-content" id="summary-advanced-content">
+                    <!-- 卡片 1：自动总结触发规则 -->
+                    <div class="summary-settings-card">
+                        <div class="summary-settings-card-title">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
+                            <span>自动总结触发规则</span>
                         </div>
-                        <!-- 红色警示与控流指引卡片 -->
-                        <div id="auto-summary-keep-recent-hint" class="auto-summary-keep-hint" style="display: flex;">
-                            <span class="keep-hint-icon">⚠️</span>
-                            <div class="keep-hint-text">
-                                <span><strong>注意：</strong>保留楼层不会被归档隐藏。<span id="keep-hint-calc-text">若保留 2 楼且每隔 10 楼总结，下轮触发前最多将累积 <strong>12</strong> 楼未隐藏消息发送给AI。</span>建议搭配下方的 <a href="javascript:void(0)" id="keep-hint-jump-limit" class="keep-hint-link">【发送消息数量限制】</a> 减少实际发送量！</span>
+                        <div class="form-group-toggle" style="margin-bottom: 8px;">
+                            <label for="auto-summary-enable" style="font-weight: 600; font-size: 13px;">开启自动总结 (后台静默执行)</label>
+                            <label class="theme-switch">
+                                <input type="checkbox" id="auto-summary-enable">
+                                <span class="slider round"></span>
+                            </label>
+                        </div>
+                        
+                        <div id="auto-summary-options" class="auto-summary-options">
+                            <div class="auto-summary-trigger-group">
+                                <label class="auto-summary-radio" style="display: inline-flex; align-items: center; gap: 4px; flex-wrap: wrap;">
+                                    <input type="radio" name="auto-summary-type" id="auto-summary-type-floors" value="floors" checked>
+                                    <span>每隔</span>
+                                    <input type="number" id="auto-summary-floor-interval" min="2" max="100" value="10" class="auto-summary-num-input">
+                                    <span>楼自动总结一次</span>
+                                    <span id="auto-summary-floor-progress" class="auto-summary-floor-progress auto-summary-token-progress" title="自上次总结基准楼层之后，当前已累积楼层与距离下次自动总结还剩楼层"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; margin-right: 4px;"><path d="m12 2 10 5-10 5L2 7l10-5Z"></path><path d="m2 17 10 5 10-5"></path><path d="m2 12 10 5 10-5"></path></svg>还剩 10 楼总结 (已累积 0 / 10 楼)</span>
+                                </label>
+                                <label class="auto-summary-radio" style="display: inline-flex; align-items: center; gap: 4px; flex-wrap: wrap;">
+                                    <input type="radio" name="auto-summary-type" id="auto-summary-type-tokens" value="tokens">
+                                    <span>可见消息达</span>
+                                    <input type="number" id="auto-summary-token-threshold" min="500" max="100000" step="500" value="4000" class="auto-summary-num-input auto-summary-token-input">
+                                    <span>Token 自动总结</span>
+                                    <span class="auto-summary-token-hint" style="color: var(--danger-color, #cf222e); font-size: 11px; font-weight: 500;">(按纯正文统计，建议开启下方自动隐藏释放上下文)</span>
+                                    <span id="auto-summary-token-progress" class="auto-summary-token-progress" title="自上次总结基准楼层之后，当前已新产生的纯正文 Token 累积量"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; margin-right: 4px;"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline><polyline points="16 7 22 7 22 13"></polyline></svg>当前自第 1 楼起已积累 0 / 4,000 Token</span>
+                                </label>
+                            </div>
+                            <div class="form-group" style="margin-top: 8px; margin-bottom: 0;">
+                                <label class="form-group-checkbox" style="font-size: 12px; color: var(--text-primary); margin-bottom: 0;">
+                                    <input type="checkbox" id="auto-summary-drop-floors" checked>
+                                    总结完成后自动隐藏被总结的历史楼层 (释放上下文)
+                                </label>
+                            </div>
+                            <div class="form-group" style="margin-top: 6px; margin-bottom: 0;">
+                                <div style="display: flex; align-items: center; gap: 4px; flex-wrap: wrap;">
+                                    <label class="form-group-checkbox" style="font-size: 12px; color: var(--text-primary); margin-bottom: 0; white-space: nowrap;">
+                                        <input type="checkbox" id="auto-summary-keep-recent" checked>
+                                        归档时保留最后
+                                    </label>
+                                    <input type="number" id="auto-summary-keep-recent-count" min="1" max="50" value="2" class="auto-summary-num-input">
+                                    <span style="font-size: 12px; color: var(--text-primary); white-space: nowrap;">楼不隐藏 (供AI参考格式与近期语境)</span>
+                                </div>
+                                <!-- 红色警示与控流指引卡片 -->
+                                <div id="auto-summary-keep-recent-hint" class="auto-summary-keep-hint" style="display: flex;">
+                                    <span class="keep-hint-icon"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></span>
+                                    <div class="keep-hint-text">
+                                        <span><strong>注意：</strong>保留楼层不会被归档隐藏。<span id="keep-hint-calc-text">若保留 2 楼且每隔 10 楼总结，下轮触发前最多将累积 <strong>12</strong> 楼未隐藏消息发送给AI。</span>建议搭配顶部的 <a href="javascript:void(0)" id="keep-hint-jump-limit" class="keep-hint-link">【发送消息数量限制】</a> 减少实际发送量！</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group" id="auto-summary-relay-policy-group" style="margin-top: 10px; margin-bottom: 0; padding-top: 8px; border-top: 1px dashed var(--border-color, #e5e7eb);">
+                                <label style="font-size: 12px; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #3b82f6;"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"></path></svg>
+                                    <span>开启任务中转时的总结策略</span>
+                                    <span style="font-size: 11px; font-weight: normal; color: var(--text-secondary);">(防长连接断开)</span>
+                                </label>
+                                <div style="display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--text-primary);">
+                                    <label class="auto-summary-radio" style="display: inline-flex; align-items: center; gap: 4px; cursor: pointer;">
+                                        <input type="radio" name="auto-summary-relay-policy" id="auto-summary-relay-policy-ask" value="ask" checked>
+                                        <span>每次询问 (推荐)</span>
+                                    </label>
+                                    <label class="auto-summary-radio" style="display: inline-flex; align-items: center; gap: 4px; cursor: pointer;">
+                                        <input type="radio" name="auto-summary-relay-policy" id="auto-summary-relay-policy-relay" value="always_relay">
+                                        <span>总是云端中转</span>
+                                    </label>
+                                    <label class="auto-summary-radio" style="display: inline-flex; align-items: center; gap: 4px; cursor: pointer;">
+                                        <input type="radio" name="auto-summary-relay-policy" id="auto-summary-relay-policy-local" value="always_local">
+                                        <span>总是本地直连</span>
+                                    </label>
+                                </div>
                             </div>
                         </div>
                     </div>
+
+                    <!-- 卡片 2：总结提示词定制 -->
+                    <div class="summary-settings-card">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                            <div class="summary-settings-card-title" style="margin-bottom: 0;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                                <span id="hide-summary-prompt-label">总结提示词 (当前模式专属)</span>
+                            </div>
+                            <button id="hide-summary-reset-prompt-btn" type="button" class="summary-aux-btn" title="恢复当前模式官方默认提示词" style="display: inline-flex; align-items: center; gap: 4px;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>恢复默认提示词
+                            </button>
+                        </div>
+                        <textarea id="hide-summary-prompt" rows="4" placeholder="请输入总结提示词..."></textarea>
+                        <div id="hide-summary-prompt-char-counter" class="char-counter">0 字</div>
+                    </div>
+
+                    <!-- 卡片 3：附加选项 -->
+                    <div class="summary-settings-card" style="margin-bottom: 0;">
+                        <div class="summary-settings-card-title">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+                            <span>附加选项</span>
+                        </div>
+                        <div style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap;">
+                            <label class="form-group-checkbox" style="font-size: 13px; margin: 0;">
+                                <input type="checkbox" id="hide-summary-with-role">
+                                携带角色人设
+                            </label>
+                            <label class="form-group-checkbox" style="font-size: 13px; margin: 0;">
+                                <input type="checkbox" id="hide-summary-with-worldbook">
+                                携带备忘录内容
+                            </label>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- 总结提示词 (支持每种模式独立定制 + 恢复默认提示词) -->
-            <div class="form-group" style="margin-top: 10px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                    <label for="hide-summary-prompt" style="font-weight: 600; font-size: 13px; margin: 0;">
-                        <span id="hide-summary-prompt-label">总结提示词 (当前模式专属)</span>
-                    </label>
-                    <button id="hide-summary-reset-prompt-btn" type="button" class="summary-aux-btn" title="恢复当前模式官方默认提示词" style="display: inline-flex; align-items: center; gap: 4px;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>恢复默认提示词
-                    </button>
+            <!-- ============================================================ -->
+            <!-- 区域 4：模式切换提示与模式选择器 -->
+            <!-- ============================================================ -->
+            <div class="summary-mode-banner-wrapper">
+                <div class="summary-mode-switch-tip">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                    <span>如进行总结方式切换，切记检查隐藏楼层是否正确？首次总结应放开所有隐藏楼层，避免遗漏。</span>
                 </div>
-                <textarea id="hide-summary-prompt" rows="3" placeholder="请输入总结提示词..."></textarea>
-                <div id="hide-summary-prompt-char-counter" class="char-counter">0 字</div>
+                <div class="summary-mode-tabs" id="summary-mode-tabs">
+                    <button type="button" class="summary-mode-tab active" data-mode="recursive" title="递归滚动：全量融合，不限字数，每次将前序记忆与新对话合并总结"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M3 22v-6h6"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path></svg>递归滚动</button>
+                    <button type="button" class="summary-mode-tab" data-mode="append" title="列表拼接：增量追加，仅提炼新楼层，以卡片流形式不断拼接"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>列表拼接</button>
+                    <button type="button" class="summary-mode-tab" data-mode="table" title="结构双表：结构化维护关键事件历史表与核心实体信息表"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"></rect><path d="M3 9h18"></path><path d="M3 15h18"></path><path d="M9 3v18"></path></svg>结构双表</button>
+                </div>
             </div>
 
-            <!-- 附加选项 -->
-            <div style="display: flex; gap: 16px; margin-bottom: 10px;">
-                <label class="form-group-checkbox" style="font-size: 13px;">
-                    <input type="checkbox" id="hide-summary-with-role">
-                    携带角色人设
-                </label>
-                <label class="form-group-checkbox" style="font-size: 13px;">
-                    <input type="checkbox" id="hide-summary-with-worldbook">
-                    携带备忘录内容
-                </label>
-            </div>
-
-            <!-- 手动总结按钮 -->
-            <div class="form-group" style="margin-bottom: 10px;">
-                <button id="hide-summary-start-btn" style="width: 100%;">针对当前可见消息立即总结</button>
-            </div>
-
-            <!-- 记忆内容展示与编辑区（根据模式自适应） -->
-            <div class="form-group" style="margin-bottom: 10px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                        <label style="font-weight: 600; font-size: 13px; margin: 0;">
-                            <span id="summary-content-section-title">当前记忆内容</span>
-                        </label>
+            <!-- ============================================================ -->
+            <!-- 区域 5：当前记忆工作台（直接呈现，高频主视区，无多层 Tab 负担） -->
+            <!-- ============================================================ -->
+            <div class="summary-workbench-container">
+                <!-- 操作栏：当前记忆标题 + 字符/Token实时胶囊 + 【精炼与重构】按钮 + 【历史版本】按钮 -->
+                <div class="summary-workbench-toolbar">
+                    <div class="summary-workbench-title-group">
+                        <span id="summary-content-section-title" class="summary-workbench-title">当前记忆内容</span>
                         <span id="summary-memory-total-badge" class="summary-memory-total-badge" title="当前记忆内容实际发送给大模型时的总字数与预估Tokens">
                             0 字符 · 预估 0 Tokens
                         </span>
+                        <span id="summary-active-version-badge" class="summary-active-version-badge" style="display:none;"></span>
                     </div>
-                    <div style="display: flex; align-items: center; gap: 6px;">
-                        <button id="hide-summary-condense-btn" type="button" class="summary-aux-btn primary" title="对当前已有记忆总结进行二次精炼脱水，去除过时细节，压缩Token占用">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path></svg>二次浓缩
+                    <div class="summary-workbench-actions">
+                        <button id="hide-summary-condense-btn" type="button" class="summary-aux-btn primary" title="对当前已有记忆总结进行二次精炼脱水或跨模式重构">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path></svg>精炼与重构
                         </button>
                         <button id="hide-summary-history-btn" type="button" class="summary-history-btn" title="查看历史总结版本与回滚">
                             <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M12 7v5l3 3"></path></svg>历史版本 (<span id="hide-summary-history-count">0</span>)
@@ -1469,109 +1553,106 @@
                     </div>
                 </div>
 
-                <!-- 模式 1 视图：单段大文本框 (递归滚动记忆) -->
-                <div id="summary-mode-recursive-view" class="summary-mode-view">
-                    <textarea id="hide-summary-result" rows="4" placeholder="总结结果将在此显示，也可手动编辑..."></textarea>
-                    <div id="hide-summary-result-char-counter" class="char-counter">0 字</div>
+                <!-- 主操作行：【针对当前可见消息立即总结】大操作按钮 -->
+                <div class="summary-workbench-action-row">
+                    <button id="hide-summary-start-btn" style="width: 100%;">针对当前可见消息立即总结</button>
                 </div>
 
-                <!-- 模式 2 视图：卡片流列表 (列表拼接记忆) -->
-                <div id="summary-mode-append-view" class="summary-mode-view" style="display: none;">
-                    <div class="summary-append-toolbar">
-                        <span style="font-size: 12px; color: var(--text-secondary);">共 <strong id="summary-append-count">0</strong> 个记忆片段 (发送时按序拼接)</span>
-                        <button type="button" id="summary-append-add-btn" class="summary-aux-btn primary"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>新增片段</button>
+                <!-- 核心记忆内容呈现区：全高撑开可视区 -->
+                <div class="summary-workbench-content-area">
+                    <!-- 模式 1 视图：单段大文本框 (递归滚动记忆) -->
+                    <div id="summary-mode-recursive-view" class="summary-mode-view">
+                        <textarea id="hide-summary-result" placeholder="总结结果将在此显示，也可手动编辑..."></textarea>
+                        <div id="hide-summary-result-char-counter" class="char-counter">0 字</div>
                     </div>
-                    <div id="summary-append-cards-list" class="summary-append-cards-list">
-                        <div class="summary-append-empty">暂无记忆片段，可点击【立即总结】或手动【新增片段】</div>
-                    </div>
-                </div>
 
-                <!-- 模式 3 视图：角色扮演双表格 (跑团双表记忆) -->
-                <div id="summary-mode-table-view" class="summary-mode-view" style="display: none;">
-                    <div class="summary-table-header-bar">
-                        <div class="summary-table-subtabs">
-                            <button type="button" class="summary-table-subtab active" data-table="history"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>历史记录表</button>
-                            <button type="button" class="summary-table-subtab" data-table="character"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>角色信息表</button>
+                    <!-- 模式 2 视图：卡片流列表 (列表拼接记忆) -->
+                    <div id="summary-mode-append-view" class="summary-mode-view" style="display: none;">
+                        <div class="summary-append-toolbar">
+                            <span style="font-size: 12px; color: var(--text-secondary);">共 <strong id="summary-append-count">0</strong> 个记忆片段 (发送时按序拼接)</span>
+                            <button type="button" id="summary-append-add-btn" class="summary-aux-btn primary"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>新增片段</button>
                         </div>
-                        <div class="summary-table-actions">
-                            <div class="summary-table-row-lines-wrapper" title="设置单元格默认展示行数">
-                                <span class="summary-table-row-lines-label">行高:</span>
-                                <select id="summary-table-row-lines-select" class="summary-table-row-lines-select">
-                                    <option value="1">1 行</option>
-                                    <option value="2">2 行</option>
-                                    <option value="3" selected>3 行</option>
-                                    <option value="4">4 行</option>
-                                    <option value="6">6 行</option>
-                                </select>
+                        <div id="summary-append-cards-list" class="summary-append-cards-list">
+                            <div class="summary-append-empty">暂无记忆片段，可点击【立即总结】或手动【新增片段】</div>
+                        </div>
+                    </div>
+
+                    <!-- 模式 3 视图：结构化双表格 (结构双表记忆) -->
+                    <div id="summary-mode-table-view" class="summary-mode-view" style="display: none;">
+                        <div class="summary-table-header-bar">
+                            <div class="summary-table-subtabs">
+                                <button type="button" class="summary-table-subtab active" data-table="history"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>历史记录表</button>
+                                <button type="button" class="summary-table-subtab" data-table="character"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>实体信息表</button>
                             </div>
-                            <button type="button" id="summary-table-add-row-btn" class="summary-aux-btn primary"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>添加行</button>
-                            <button type="button" id="summary-table-raw-toggle-btn" class="summary-aux-btn" title="切换表格视图与 Markdown 源码"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>源码模式</button>
-                            <button type="button" id="summary-table-expand-btn" class="summary-aux-btn" title="放大/还原表格编辑窗口"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>放大编辑</button>
-                        </div>
-                    </div>
-
-                    <!-- 可视化表格容器 -->
-                    <div id="summary-table-grid-container" class="summary-table-grid-container">
-                        <!-- 表 1：历史记录表 -->
-                        <div id="summary-table-history-wrapper" class="summary-table-wrapper">
-                            <table class="summary-data-table" id="summary-table-history">
-                                <thead>
-                                    <tr>
-                                        <th>时间</th>
-                                        <th>地点</th>
-                                        <th>涉及角色</th>
-                                        <th>事件</th>
-                                        <th>涉及物品</th>
-                                        <th style="text-align:center;">操作</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="summary-table-history-tbody"></tbody>
-                            </table>
+                            <div class="summary-table-actions">
+                                <div class="summary-table-row-lines-wrapper" title="设置单元格默认展示行数">
+                                    <span class="summary-table-row-lines-label">行高:</span>
+                                    <select id="summary-table-row-lines-select" class="summary-table-row-lines-select">
+                                        <option value="1">1 行</option>
+                                        <option value="2">2 行</option>
+                                        <option value="3" selected>3 行</option>
+                                        <option value="4">4 行</option>
+                                        <option value="6">6 行</option>
+                                    </select>
+                                </div>
+                                <button type="button" id="summary-table-add-row-btn" class="summary-aux-btn primary"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>添加行</button>
+                                <button type="button" id="summary-table-raw-toggle-btn" class="summary-aux-btn" title="切换表格视图与 Markdown 源码"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>源码模式</button>
+                                <button type="button" id="summary-table-expand-btn" class="summary-aux-btn" title="放大/还原表格编辑窗口"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>放大编辑</button>
+                            </div>
                         </div>
 
-                        <!-- 表 2：角色信息表 -->
-                        <div id="summary-table-character-wrapper" class="summary-table-wrapper" style="display: none;">
-                            <table class="summary-data-table" id="summary-table-character">
-                                <thead>
-                                    <tr>
-                                        <th>姓名</th>
-                                        <th>简介</th>
-                                        <th>最新状态说明</th>
-                                        <th>持有关键道具</th>
-                                        <th style="text-align:center;">操作</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="summary-table-character-tbody"></tbody>
-                            </table>
+                        <!-- 可视化表格容器 -->
+                        <div id="summary-table-grid-container" class="summary-table-grid-container">
+                            <!-- 表 1：历史记录表 -->
+                            <div id="summary-table-history-wrapper" class="summary-table-wrapper">
+                                <table class="summary-data-table" id="summary-table-history">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 44px; text-align: center;">#</th>
+                                            <th>时间</th>
+                                            <th>地点</th>
+                                            <th>涉及角色</th>
+                                            <th>事件</th>
+                                            <th>涉及物品</th>
+                                            <th style="width: 44px; text-align: center;">操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="summary-table-history-tbody"></tbody>
+                                </table>
+                            </div>
+
+                            <!-- 表 2：实体信息表 -->
+                            <div id="summary-table-character-wrapper" class="summary-table-wrapper" style="display: none;">
+                                <table class="summary-data-table" id="summary-table-character">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 44px; text-align: center;">#</th>
+                                            <th>姓名</th>
+                                            <th>简介</th>
+                                            <th>最新状态说明</th>
+                                            <th>持有关键道具</th>
+                                            <th style="width: 44px; text-align: center;">操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="summary-table-character-tbody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Markdown 源码编辑模式 (可自由切入切出) -->
+                        <div id="summary-table-raw-wrapper" style="display: none;">
+                            <textarea id="summary-table-raw-textarea" rows="6" placeholder="### 历史记录表&#10;| 时间 | 地点 | 涉及角色 | 事件 | 涉及物品 |&#10;...&#10;&#10;### 最新实体信息表&#10;| 姓名 | 简介 | 最新状态说明 | 持有关键道具 |&#10;..."></textarea>
                         </div>
                     </div>
+                </div>
 
-                    <!-- Markdown 源码编辑模式 (可自由切入切出) -->
-                    <div id="summary-table-raw-wrapper" style="display: none;">
-                        <textarea id="summary-table-raw-textarea" rows="6" placeholder="### 历史记录表&#10;| 时间 | 地点 | 涉及角色 | 事件 | 涉及物品 |&#10;...&#10;&#10;### 最新角色信息表&#10;| 姓名 | 简介 | 最新状态说明 | 持有关键道具 |&#10;..."></textarea>
-                    </div>
+                <!-- 底部操作栏：【保存记忆配置与内容】与【清空当前记忆】 -->
+                <div class="summary-workbench-footer">
+                    <button id="hide-summary-save-btn" style="flex: 1;">保存记忆配置与内容</button>
+                    <button id="hide-summary-clear-btn" class="cancel-button" style="flex: 1;">清空当前记忆</button>
                 </div>
             </div>
 
-            <!-- 操作按钮 -->
-            <div class="form-group" style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
-                <button id="hide-summary-save-btn" style="flex: 1;">保存记忆配置与内容</button>
-                <button id="hide-summary-clear-btn" class="cancel-button" style="flex: 1;">清空当前记忆</button>
-            </div>
-
-            <hr style="border: 0.3px solid var(--border-color, #ccc); margin: 12px 0 10px 0;">
-
-            <!-- 发送消息数量限制 -->
-            <div class="form-group" style="margin-bottom: 0;">
-                <label for="message-limit-slider" style="font-weight: 600; font-size: 13px;">发送消息数量限制</label>
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <input type="range" id="message-limit-slider" min="0" max="50" value="0" style="flex: 1;">
-                    <span id="message-limit-value" style="min-width: 40px; font-weight: bold;">全部</span>
-                </div>
-                <p style="margin-top: 4px; color: var(--text-secondary); font-size: 0.85em;">
-                    仅截取发送最近 N 条未隐藏可见消息（系统记忆始终发送）
-                </p>
-            </div>
         </div>
     </div>
 </div>
@@ -1595,8 +1676,129 @@
     </div>
 </div>
 
+<!-- Summary History Detail Modal (历史总结版本详情查看弹窗) -->
+<div id="summary-history-detail-modal" class="modal-overlay" style="display:none; z-index: 1050;">
+    <div class="modal-content summary-history-detail-content" style="max-width: 860px; width: 92vw; max-height: 88vh; display: flex; flex-direction: column;">
+        <div class="modal-header" style="flex-shrink: 0;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <h2 style="font-size: 16px; margin: 0; display: flex; align-items: center; gap: 6px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-blue);"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    <span>历史总结版本详情</span>
+                </h2>
+                <span id="summary-history-detail-mode-badge" class="condense-mode-tag">结构双表</span>
+            </div>
+            <button class="modal-close-btn" id="summary-history-detail-close-btn" title="关闭">&times;</button>
+        </div>
+        
+        <!-- 元数据横幅 -->
+        <div class="summary-history-detail-meta" style="flex-shrink: 0; padding: 10px 18px; border-bottom: 1px solid var(--border-color, #e1e4e8); font-size: 12px; display: flex; flex-direction: column; gap: 6px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <span>⏱️ <strong id="summary-history-detail-time">-</strong></span>
+                    <span>🏷️ 来源: <strong id="summary-history-detail-source">-</strong></span>
+                </div>
+                <div id="summary-history-detail-stats" style="color: var(--text-secondary);">0 字符 · 0 Tokens</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="color: var(--text-secondary); flex-shrink: 0;">📌 当时隐藏楼层:</span>
+                <span id="summary-history-detail-floors" style="font-weight: 600; color: var(--text-primary);">-</span>
+            </div>
+        </div>
+
+        <!-- 内容区域 -->
+        <div class="modal-body" style="flex: 1; overflow-y: auto; padding: 14px 18px; display: flex; flex-direction: column; gap: 10px;">
+            <!-- 详情视图切换条（快照 / 对比上版，仅当存在上一版本时显示） -->
+            <div id="summary-history-detail-view-bar" class="summary-history-view-bar" style="display: none; margin-bottom: 0;">
+                <button type="button" class="summary-history-view-tab active" data-detail-view="snapshot" title="查看该版本保存后的完整内容">快照</button>
+                <button type="button" class="summary-history-view-tab" data-detail-view="compare" title="与上一版本左右对照对比增删">对比上版</button>
+            </div>
+            <!-- 结构双表模式专属视图切换栏（仅在双表模式下显示） -->
+            <div id="summary-history-detail-table-bar" style="display: none; justify-content: space-between; align-items: center;">
+                <div class="summary-table-subtabs">
+                    <button type="button" class="summary-table-subtab active" id="detail-table-subtab-history"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>历史记录表</button>
+                    <button type="button" class="summary-table-subtab" id="detail-table-subtab-character"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>实体信息表</button>
+                </div>
+                <button type="button" id="detail-table-raw-toggle-btn" class="summary-aux-btn" title="切换表格渲染与 Markdown 源码"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>源码视图</button>
+            </div>
+
+            <!-- 结构双表渲染区 -->
+            <div id="summary-history-detail-table-container" style="display: none; flex-direction: column; gap: 10px;">
+                <div id="detail-table-history-wrapper" class="summary-table-wrapper" style="max-height: 400px; overflow-y: auto;">
+                    <table class="summary-data-table" id="detail-table-history">
+                        <thead>
+                            <tr>
+                                <th style="width: 44px; text-align: center;">#</th>
+                                <th>时间</th>
+                                <th>地点</th>
+                                <th>涉及角色</th>
+                                <th>事件</th>
+                                <th>涉及物品</th>
+                            </tr>
+                        </thead>
+                        <tbody id="detail-table-history-tbody"></tbody>
+                    </table>
+                </div>
+                <div id="detail-table-character-wrapper" class="summary-table-wrapper" style="display: none; max-height: 400px; overflow-y: auto;">
+                    <table class="summary-data-table" id="detail-table-character">
+                        <thead>
+                            <tr>
+                                <th style="width: 44px; text-align: center;">#</th>
+                                <th>姓名</th>
+                                <th>简介</th>
+                                <th>最新状态说明</th>
+                                <th>持有关键道具</th>
+                            </tr>
+                        </thead>
+                        <tbody id="detail-table-character-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 文本与源码容器 (用于递归长文、列表卡片流反显、或双表源码视图) -->
+            <div id="summary-history-detail-text-wrapper" style="display: flex; flex: 1; flex-direction: column;">
+                <textarea id="summary-history-detail-textarea" readonly class="condense-pane-textarea" style="flex: 1; min-height: 280px; width: 100%; box-sizing: border-box; resize: vertical;" placeholder="历史版本完整内容..."></textarea>
+            </div>
+
+            <!-- 左右对照视图容器 (对比上版：左=上一版本，右=本版，滚动联动) -->
+            <div id="summary-history-detail-compare-wrapper" style="display: none; flex: 1; min-height: 0; flex-direction: column; gap: 8px;">
+                <div id="detail-compare-stats" class="detail-compare-stats">-</div>
+                <div class="detail-compare-grid">
+                    <div class="detail-compare-pane">
+                        <div class="detail-compare-pane-header">
+                            <span>上一版本</span>
+                            <span id="detail-compare-prev-time" class="detail-compare-pane-badge"></span>
+                        </div>
+                        <textarea id="detail-compare-prev-textarea" readonly class="detail-compare-textarea" placeholder="上一版本内容..."></textarea>
+                    </div>
+                    <div class="detail-compare-pane">
+                        <div class="detail-compare-pane-header">
+                            <span>本版 (当前查看)</span>
+                            <span id="detail-compare-cur-time" class="detail-compare-pane-badge"></span>
+                        </div>
+                        <textarea id="detail-compare-cur-textarea" readonly class="detail-compare-textarea" placeholder="本版内容..."></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-actions" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; margin-top: 0; border-top: 1px solid var(--border-color, #e1e4e8); flex-shrink: 0;">
+            <button type="button" id="summary-history-detail-copy-btn" class="secondary-button" style="display: inline-flex; align-items: center; gap: 6px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg>
+                <span>复制完整文本</span>
+            </button>
+            <div style="display: flex; gap: 8px;">
+                <button type="button" id="summary-history-detail-rollback-btn" class="primary-button" style="display: inline-flex; align-items: center; gap: 6px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
+                    <span>回滚至此版本</span>
+                </button>
+                <button type="button" id="summary-history-detail-close-btn2" class="cancel-button">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Summary Rollback Confirm Modal (回滚确认弹窗) -->
-<div id="summary-rollback-confirm-modal" class="modal-overlay" style="display:none;">
+<div id="summary-rollback-confirm-modal" class="modal-overlay" style="display:none; z-index: 1060;">
     <div class="modal-content" style="max-width: 460px;">
         <div class="modal-header">
             <h2 style="display: flex; align-items: center; gap: 6px;"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-orange, #e6a23c);"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>回滚历史总结确认</h2>
@@ -1669,13 +1871,282 @@
     </div>
 </div>
 
-<!-- Summary Condense Modal (记忆二次浓缩与精炼对比弹窗) -->
-<div id="summary-condense-modal" class="modal-overlay" style="display:none;">
+<!-- Load All Messages Confirm Modal (全量渲染确认弹窗) -->
+<div id="load-all-confirm-modal" class="modal-overlay" style="display:none; z-index: 1050;">
+    <div class="modal-content load-all-confirm-content">
+        <div class="modal-header" style="margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-blue, #2563eb); flex-shrink: 0;">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                <h2 style="font-size: 16px; margin: 0; font-weight: 600;">全量渲染确认</h2>
+            </div>
+            <button class="modal-close-btn" id="load-all-confirm-close-btn" title="关闭">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <div class="modal-body" style="padding: 0; display: flex; flex-direction: column; gap: 10px;">
+            <p style="font-size: 13.5px; line-height: 1.6; margin: 0; color: var(--text-primary);">
+                当前会话共包含 <strong id="load-all-total-count" style="color: var(--accent-blue, #2563eb);">--</strong> 条消息。
+            </p>
+            <div class="load-all-confirm-notice">
+                <div style="font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 5px; color: var(--accent-blue, #2563eb);">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                    渲染提示与性能说明
+                </div>
+                点击【确认加载】后，系统将一次性完整渲染当前分支的所有历史楼层。
+                <br>
+                若会话楼层较多（如上百楼），可能会带来短暂的排版计算或渲染压力。
+            </div>
+            <p style="font-size: 12px; line-height: 1.5; margin: 0; color: var(--text-secondary); display: flex; align-items: flex-start; gap: 5px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 2px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                <span><strong>恢复提示</strong>：全量加载仅在当前页面有效。若感觉卡顿，<strong>直接刷新页面</strong>（F5 或下拉刷新）即可立刻恢复默认首屏加载。</span>
+            </p>
+        </div>
+        <div class="modal-actions" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border-color);">
+            <button id="load-all-cancel-btn" class="load-all-cancel-btn">取消</button>
+            <button id="load-all-confirm-btn" class="load-all-confirm-btn">确认加载</button>
+        </div>
+    </div>
+</div>
+
+<!-- Summary Format Error Modal (记忆总结格式异常专属处理弹窗 Plan A) -->
+<div id="summary-format-error-modal" class="modal-overlay" style="display:none; z-index: 1050;">
+    <div class="modal-content summary-format-error-content" style="max-width: 580px; width: 92vw; max-height: 85vh; display: flex; flex-direction: column;">
+        <div class="modal-header" style="flex-shrink: 0;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #f59e0b;"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                <h2 id="summary-error-modal-title" style="font-size: 16px; margin: 0; font-weight: 600;">记忆总结格式异常提醒</h2>
+            </div>
+            <button class="modal-close-btn" id="summary-format-error-close-btn" title="关闭">&times;</button>
+        </div>
+        <div class="modal-body" style="flex: 1; overflow-y: auto; padding: 16px 20px; display: flex; flex-direction: column; gap: 14px;">
+            <div class="summary-error-banner" style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 8px; padding: 12px 14px; font-size: 13px; line-height: 1.6; color: var(--text-primary);">
+                <div style="font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between;">
+                    <span id="summary-error-title-text">⚠️ AI 返回的双表内容格式有误，无法精准解析合并</span>
+                    <span id="summary-error-floor-tag" class="summary-error-floor-tag" style="font-size: 11px; padding: 2px 8px; border-radius: 12px; background: rgba(245, 158, 11, 0.2); font-weight: normal;">第 -- 楼</span>
+                </div>
+                <div id="summary-error-desc-text" style="color: var(--text-secondary); font-size: 12px;">
+                    系统已启动数据安全保护，<strong>前文沉淀的历史记忆 100% 完好无损</strong>，未被破坏或冲刷。请选择如何处理本次新增楼层的总结：
+                </div>
+            </div>
+
+            <!-- 可折叠展开查看原始文本 -->
+            <div class="summary-error-raw-box" style="border: 1px solid var(--border-color, #e1e4e8); border-radius: 8px; overflow: hidden;">
+                <button type="button" id="summary-error-raw-toggle" style="width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: var(--bg-hover, #f6f8fa); border: none; cursor: pointer; font-size: 12px; color: var(--text-secondary);">
+                    <span style="display: flex; align-items: center; gap: 6px;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        <span>展开查看 AI 原始返回内容</span>
+                    </span>
+                    <span id="summary-error-raw-arrow" style="transition: transform 0.2s;">▼</span>
+                </button>
+                <div id="summary-error-raw-wrapper" style="display: none; padding: 10px 14px; background: var(--bg-input, #ffffff); border-top: 1px solid var(--border-color, #e1e4e8);">
+                    <textarea id="summary-error-raw-textarea" readonly rows="8" style="width: 100%; font-family: monospace; font-size: 12px; line-height: 1.5; border: none; resize: vertical; background: transparent; color: var(--text-primary); outline: none;"></textarea>
+                </div>
+            </div>
+        </div>
+        <div class="modal-actions" style="display: flex; justify-content: flex-end; align-items: center; gap: 10px; padding: 12px 20px; border-top: 1px solid var(--border-color, #e1e4e8); background: var(--bg-footer, #fcfcfd);">
+            <button type="button" id="summary-error-ignore-btn" class="cancel-button" style="padding: 7px 16px; font-size: 13px; display: inline-flex; align-items: center; gap: 6px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+                <span id="summary-error-ignore-btn-text">忽略本次总结</span>
+            </button>
+            <button type="button" id="summary-error-retry-btn" class="primary-button" style="padding: 7px 20px; font-size: 13px; display: inline-flex; align-items: center; gap: 6px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
+                <span id="summary-error-retry-btn-text">立即重新总结</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Summary Execution Confirm Modal (手动总结执行前确认决策弹窗) -->
+<div id="summary-execution-confirm-modal" class="modal-overlay" style="display:none; z-index: 1060;">
+    <div class="modal-content" style="max-width: 520px; width: 92vw; max-height: 85vh; display: flex; flex-direction: column;">
+        <div class="modal-header" style="flex-shrink: 0;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-blue);"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
+                <h2 style="font-size: 16px; margin: 0; font-weight: 600;">针对可见消息总结确认</h2>
+            </div>
+            <button class="modal-close-btn" id="summary-confirm-close-btn" title="关闭">&times;</button>
+        </div>
+        <div class="modal-body" style="flex: 1; overflow-y: auto; padding: 16px 20px; display: flex; flex-direction: column; gap: 12px;">
+            <!-- 楼层概览卡片 -->
+            <div class="summary-confirm-info-card">
+                <div class="confirm-info-row">
+                    <span class="confirm-info-label">当前总楼层：</span>
+                    <strong id="summary-confirm-total-floors" class="confirm-info-val">0 层</strong>
+                </div>
+                <div class="confirm-info-row">
+                    <span class="confirm-info-label">当前已隐藏：</span>
+                    <strong id="summary-confirm-hidden-floors" class="confirm-info-val">无隐藏楼层</strong>
+                </div>
+                <div class="confirm-info-row highlight">
+                    <span class="confirm-info-label">本次总结范围：</span>
+                    <strong id="summary-confirm-visible-floors" class="confirm-info-val" style="color: var(--accent-blue);">0 楼</strong>
+                </div>
+            </div>
+
+            <!-- 空记忆断层红色强提醒卡片 -->
+            <div id="summary-confirm-empty-table-warning" class="summary-confirm-warning-card" style="display: none;">
+                <div class="confirm-warning-header">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="confirm-warning-icon"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                    <span id="summary-confirm-warning-title" class="confirm-warning-title">检测到长期记忆尚未初始化，直接总结将丢失历史！</span>
+                </div>
+                <div id="summary-confirm-empty-table-desc" class="confirm-warning-desc">
+                    当前处于该记忆模式，但内容为空，且历史上有楼层已被隐藏。若直接基于当前可见消息总结，被隐藏的历史剧情与设定将无法沉淀，造成长期记忆断层！
+                </div>
+                <div class="confirm-warning-options">
+                    <div class="confirm-warning-option-item" id="summary-confirm-unhide-option-item">
+                        <div class="option-item-main">
+                            <button type="button" id="summary-confirm-unhide-all-btn" class="warning-action-btn danger">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 9.9-1"></path></svg>
+                                <span>放开所有楼层隐藏（全量重构）</span>
+                            </button>
+                            <span class="option-item-tip warning">楼层越多费用越贵 · 不推荐</span>
+                        </div>
+                        <div id="summary-confirm-unhide-sub-desc" class="option-item-sub">解除所有楼层隐藏，将全量对话发给 AI 重新生成完整记忆。</div>
+                    </div>
+                    <!-- 动态可用的跨模式重构来源卡片容器（支持单源推荐或多源并列自主选择） -->
+                    <div id="summary-confirm-condense-sources-container" style="display: flex; flex-direction: column; gap: 8px;">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 保留楼层设置与动态预期计算 -->
+            <div class="summary-confirm-calc-card">
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;">
+                    <label style="font-size: 13px; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+                        <span>归档时保留末尾</span>
+                        <input type="number" id="summary-confirm-keep-count-input" min="0" max="50" value="2" class="auto-summary-num-input" style="width: 52px; text-align: center;">
+                        <span>楼不隐藏</span>
+                    </label>
+                    <span style="font-size: 11px; color: var(--text-secondary);">(供AI参考近期语境)</span>
+                </div>
+                <div id="summary-confirm-calc-preview" class="summary-confirm-preview-box">
+                    <!-- 动态计算文字注入 -->
+                </div>
+            </div>
+
+            <p style="font-size: 12px; color: var(--text-secondary); margin: 0; line-height: 1.4;">
+                请选择本次总结的处理方式。建议在提炼长期记忆的同时归档隐藏历史楼层，释放宝贵的上下文空间。
+            </p>
+        </div>
+        <div class="modal-actions" style="display: flex; flex-direction: column; gap: 8px; padding: 12px 20px; border-top: 1px solid var(--border-color); background: var(--bg-footer);">
+            <div style="display: flex; gap: 10px; width: 100%;">
+                <button type="button" id="summary-confirm-proceed-hide-btn" class="primary-button" style="flex: 1.3; padding: 9px 12px; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    <span>总结并按规则隐藏</span>
+                </button>
+                <button type="button" id="summary-confirm-proceed-no-hide-btn" class="secondary-button" style="flex: 1; padding: 9px 12px; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                    <span>仅总结 (不隐藏)</span>
+                </button>
+            </div>
+            <button type="button" id="summary-confirm-cancel-btn" class="cancel-button" style="width: 100%; padding: 7px 12px; font-size: 12px;">
+                取消
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Summary Execution Complete Modal (手动总结完成报告弹窗) -->
+<div id="summary-execution-complete-modal" class="modal-overlay" style="display:none; z-index: 1060;">
+    <div class="modal-content" style="max-width: 480px; width: 90vw; max-height: 80vh; display: flex; flex-direction: column;">
+        <div class="modal-header" style="flex-shrink: 0;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--success-color, #1a7f37);"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                <h2 style="font-size: 16px; margin: 0; font-weight: 600;">记忆总结已完成</h2>
+            </div>
+            <button class="modal-close-btn" id="summary-complete-close-btn" title="关闭">&times;</button>
+        </div>
+        <div class="modal-body" style="flex: 1; overflow-y: auto; padding: 18px 20px; display: flex; flex-direction: column; gap: 14px;">
+            <!-- 记忆更新概要 -->
+            <div class="summary-complete-summary-card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <span style="font-size: 12px; color: var(--text-secondary);">记忆更新模式</span>
+                    <span id="summary-complete-mode-badge" class="condense-mode-tag" style="font-size: 11px;">结构双表</span>
+                </div>
+                <div id="summary-complete-stats" style="font-size: 13px; font-weight: 600; color: var(--text-primary);">
+                    本次提炼约 0 字符 · 预估 0 Tokens
+                </div>
+            </div>
+
+            <!-- 楼层归档结果卡片 -->
+            <div id="summary-complete-archive-result" class="summary-complete-archive-box">
+                <!-- 归档状态详情动态注入 -->
+            </div>
+        </div>
+        <div class="modal-actions" style="display: flex; justify-content: flex-end; padding: 12px 20px; border-top: 1px solid var(--border-color); background: var(--bg-footer);">
+            <button type="button" id="summary-complete-ok-btn" class="primary-button" style="width: 100%; padding: 8px 16px; font-size: 13px; font-weight: 600;">
+                确定 (返回工作台)
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Summary Card Edit Modal (列表拼接记忆片段多行编辑/新增弹窗) -->
+<div id="summary-card-edit-modal" class="modal-overlay" style="display:none; z-index: 1060;">
+    <div class="modal-content summary-card-edit-content" style="max-width: 620px; width: 92vw; max-height: 88vh; display: flex; flex-direction: column;">
+        <div class="modal-header" style="flex-shrink: 0;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-blue);"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path><path d="m15 5 4 4"></path></svg>
+                <h2 id="summary-card-edit-title" style="font-size: 16px; margin: 0; font-weight: 600;">编辑记忆片段</h2>
+            </div>
+            <button class="modal-close-btn" id="summary-card-edit-close-btn" title="关闭">&times;</button>
+        </div>
+        <div class="modal-body" style="flex: 1; overflow-y: auto; padding: 16px 20px; display: flex; flex-direction: column; gap: 14px;">
+            <!-- 阶段名称与时间 -->
+            <div class="summary-card-edit-row" style="display: flex; gap: 12px; align-items: flex-end;">
+                <div style="flex: 1; display: flex; flex-direction: column; gap: 6px;">
+                    <label style="font-size: 12px; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+                        <span>阶段标识 / 楼层区间</span>
+                        <span style="font-size: 11px; font-weight: normal; color: var(--text-secondary);">(如: 阶段 5 (入京途阻) 或 第 1~10 楼)</span>
+                    </label>
+                    <input type="text" id="summary-card-edit-range" class="summary-card-edit-input" placeholder="例如：阶段 1 (开端) 或 第 1~10 楼" style="width: 100%; box-sizing: border-box; padding: 7px 10px; font-size: 13px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-input); color: var(--text-primary); outline: none;">
+                </div>
+                <div id="summary-card-edit-time" style="font-size: 11px; color: var(--text-secondary); padding-bottom: 9px; white-space: nowrap;">
+                    生成时间: --
+                </div>
+            </div>
+
+            <!-- 片段内容多行编辑器 -->
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <label style="font-size: 12px; font-weight: 600; color: var(--text-primary);">
+                        记忆片段内容 (Markdown)
+                    </label>
+                    <span style="font-size: 11px; color: var(--text-secondary);">快捷键: Ctrl + Enter 保存</span>
+                </div>
+                <textarea id="summary-card-edit-content" rows="11" placeholder="请输入本阶段发生的重大事件、人物状态或因果脉络..." style="width: 100%; box-sizing: border-box; padding: 10px 12px; font-size: 13px; line-height: 1.6; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-input); color: var(--text-primary); resize: vertical; min-height: 180px; max-height: 52vh; outline: none; font-family: inherit;"></textarea>
+                <div style="display: flex; justify-content: flex-end;">
+                    <div id="summary-card-edit-char-counter" class="char-counter" style="font-size: 11px; color: var(--text-secondary);">0 字</div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-actions" style="display: flex; justify-content: flex-end; align-items: center; gap: 10px; padding: 12px 20px; border-top: 1px solid var(--border-color); background: var(--bg-footer);">
+            <button type="button" id="summary-card-edit-cancel-btn" class="cancel-button" style="padding: 7px 16px; font-size: 13px; display: inline-flex; align-items: center; gap: 6px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+                <span>取消</span>
+            </button>
+            <button type="button" id="summary-card-edit-save-btn" class="primary-button" style="padding: 7px 20px; font-size: 13px; display: inline-flex; align-items: center; gap: 6px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                <span>保存片段</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Summary Condense Modal (记忆精炼与跨模式重构中心) -->
+<div id="summary-condense-modal" class="modal-overlay" style="display:none; z-index: 1060;">
     <div class="modal-content summary-condense-modal-content" style="max-width: 960px; width: 94vw; max-height: 90vh; display: flex; flex-direction: column;">
         <div class="modal-header" style="flex-shrink: 0;">
             <div style="display: flex; align-items: center; gap: 8px;">
                 <h2 style="font-size: 16px; margin: 0; display: flex; align-items: center; gap: 6px;">
-                    <span>🧪</span> 记忆二次浓缩与精炼
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-blue);"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path></svg>记忆精炼与跨模式重构中心
                 </h2>
                 <span id="summary-condense-mode-tag" class="condense-mode-tag">递归滚动</span>
             </div>
@@ -1685,16 +2156,25 @@
             <!-- 策略选择与自定义提示词 -->
             <div class="condense-strategy-box">
                 <div class="condense-strategy-header">
-                    <span style="font-weight: 600; font-size: 13px;">🎯 精炼策略选择：</span>
+                    <span style="font-weight: 600; font-size: 13px;">🎯 精炼与重构策略：</span>
                     <div class="condense-strategy-pills">
                         <button type="button" class="condense-strategy-pill active" data-strategy="balanced" title="削减约40%~60%篇幅，保留关键设定、人际脉络与事件因果">
-                            ⚖️ 均衡精炼 (推荐)
+                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"></path><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"></path><path d="M7 21h10"></path><path d="M12 3v18"></path><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"></path></svg><span>均衡精炼 (推荐)</span>
                         </button>
                         <button type="button" class="condense-strategy-pill" data-strategy="extreme" title="极限脱水，削减约70%~80%，仅保留最核心主干骨架与终态">
-                            ⚡ 极限脱水
+                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg><span>极限脱水</span>
+                        </button>
+                        <button type="button" class="condense-strategy-pill" data-strategy="to_table" id="condense-pill-to-table" style="display:none;" title="AI 深度实体对齐抽取，重构生成历史记录表与实体状态表">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"></rect><path d="M3 9h18"></path><path d="M3 15h18"></path><path d="M9 3v18"></path></svg><span>转为结构双表</span>
+                        </button>
+                        <button type="button" class="condense-strategy-pill" data-strategy="to_recursive" id="condense-pill-to-recursive" style="display:none;" title="将双表结构化数据融合成逻辑严密、叙事连贯的全景长文">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M3 22v-6h6"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path></svg><span>转为递归长文</span>
+                        </button>
+                        <button type="button" class="condense-strategy-pill" data-strategy="to_append" id="condense-pill-to-append" style="display:none;" title="按时间发展阶段将双表重构成可独立维护的卡片流">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg><span>转为列表卡片</span>
                         </button>
                         <button type="button" class="condense-strategy-pill reset" id="condense-reset-prompt-btn" title="还原当前策略的官方默认提示词">
-                            🔄 还原提示词
+                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg><span>还原提示词</span>
                         </button>
                     </div>
                 </div>
@@ -1710,10 +2190,22 @@
             </div>
 
             <!-- 控制栏：发起浓缩按钮与状态 -->
-            <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+            <div class="condense-controls-row" style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+                <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
                 <button type="button" id="summary-condense-start-btn" class="primary-button" style="padding: 6px 18px; display: inline-flex; align-items: center; gap: 6px;">
-                    <span>✨ 开始二次浓缩</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path></svg><span>开始二次浓缩</span>
                 </button>
+                    <div class="condense-options" style="display: inline-flex; align-items: center; gap: 14px;">
+                        <label class="form-group-checkbox condense-checkbox-label" style="font-size: 12.5px; margin: 0; cursor: pointer; user-select: none; display: inline-flex; align-items: center; gap: 5px;">
+                            <input type="checkbox" id="summary-condense-with-role" checked style="margin: 0; cursor: pointer;">
+                            <span>携带角色设定</span>
+                        </label>
+                        <label class="form-group-checkbox condense-checkbox-label" style="font-size: 12.5px; margin: 0; cursor: pointer; user-select: none; display: inline-flex; align-items: center; gap: 5px;">
+                            <input type="checkbox" id="summary-condense-with-worldbook" style="margin: 0; cursor: pointer;">
+                            <span>携带备忘录</span>
+                        </label>
+                    </div>
+                </div>
                 <div id="summary-condense-status-text" style="font-size: 12px; color: var(--text-secondary);">
                     准备就绪，点击开始浓缩提炼
                 </div>
@@ -1725,7 +2217,7 @@
                 <div class="condense-pane original-pane">
                     <div class="condense-pane-header">
                         <div class="pane-title">
-                            <span>📜 浓缩前原记忆</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg><span>浓缩前原记忆</span>
                         </div>
                         <span id="condense-orig-stats" class="condense-pane-badge">0 字符 · 0 Tokens</span>
                     </div>
@@ -1738,7 +2230,7 @@
                 <div class="condense-pane target-pane">
                     <div class="condense-pane-header">
                         <div class="pane-title">
-                            <span>✨ 精炼后新记忆</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path></svg><span>精炼后新记忆</span>
                             <span id="condense-reduction-badge" class="condense-reduction-badge" style="display:none;">-0%</span>
                         </div>
                         <span id="condense-target-stats" class="condense-pane-badge">0 字符 · 0 Tokens</span>
@@ -1753,7 +2245,7 @@
         <div class="modal-actions" style="display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 0; padding: 12px 18px; border-top: 1px solid var(--border-color, #e1e4e8); flex-shrink: 0;">
             <button type="button" id="summary-condense-cancel-btn" class="cancel-button">取消</button>
             <button type="button" id="summary-condense-apply-btn" class="primary-button" disabled style="padding: 6px 20px;">
-                <span>✨ 确认替换并备份原记忆</span>
+                <span id="summary-condense-apply-btn-text">确认替换并备份原记忆</span>
             </button>
         </div>
     </div>
@@ -1771,23 +2263,34 @@
         </div>
         
         <!-- 概览仪表盘 -->
-        <div class="simulate-send-stats-bar" style="flex-shrink: 0;">
-            <div class="simulate-stat-item">
-                <span class="stat-label">实际发送预估:</span>
-                <strong id="sim-total-tokens" class="stat-highlight">0</strong> Tokens
+        <div class="simulate-send-stats-bar" id="simulate-send-stats-bar" style="flex-shrink: 0;">
+            <div class="simulate-stats-items-wrapper" id="simulate-stats-items-wrapper">
+                <div class="simulate-stat-item">
+                    <span class="stat-label">实际发送预估:</span>
+                    <strong id="sim-total-tokens" class="stat-highlight">0</strong> Tokens
+                </div>
+                <div class="simulate-stat-item">
+                    <span class="stat-label">总消息数:</span>
+                    <strong id="sim-total-messages">0</strong> 条
+                    <small id="sim-messages-breakdown" class="stat-sub">(System: 0 | User: 0 | AI: 0)</small>
+                </div>
+                <div class="simulate-stat-item">
+                    <span class="stat-label">生效模型:</span>
+                    <span id="sim-target-model" class="stat-model-name">-</span>
+                </div>
+                <div id="sim-regex-stat-item" class="simulate-stat-item" style="display: none;">
+                    <span class="stat-label">正则过滤削减:</span>
+                    <strong id="sim-regex-tokens" style="color: var(--accent-green, #10b981); font-weight: 600;">-0</strong> Tokens
+                    <small id="sim-regex-chars" class="stat-sub">(-0 字)</small>
+                </div>
+                <div id="sim-limit-notice" class="sim-limit-notice" style="display: none;">
+                    ⚠️ 已限制发送最近 <strong id="sim-limit-count">0</strong> 条可见消息
+                </div>
             </div>
-            <div class="simulate-stat-item">
-                <span class="stat-label">总消息数:</span>
-                <strong id="sim-total-messages">0</strong> 条
-                <small id="sim-messages-breakdown" class="stat-sub">(System: 0 | User: 0 | AI: 0)</small>
-            </div>
-            <div class="simulate-stat-item">
-                <span class="stat-label">生效模型:</span>
-                <span id="sim-target-model" class="stat-model-name">-</span>
-            </div>
-            <div id="sim-limit-notice" class="sim-limit-notice" style="display: none;">
-                ⚠️ 已限制发送最近 <strong id="sim-limit-count">0</strong> 条可见消息
-            </div>
+            <button type="button" id="sim-stats-collapse-btn" class="sim-stats-collapse-btn" title="收起/展开概览统计">
+                <svg class="sim-collapse-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
+                <span id="sim-stats-collapse-text">收起</span>
+            </button>
         </div>
 
         <!-- 视图切换选项卡与卡片操作 -->
@@ -2011,13 +2514,14 @@
             <button class="modal-close-btn" title="关闭">&times;</button>
         </div>
         <div class="session-stats-bar">
-            <p>实际发送Token: <span id="actual-sent-tokens" style="font-weight:bold;color:var(--accent-blue);">0</span> <small style="opacity:0.85;font-size:0.9em;">(消息正文: <span id="actual-sent-main-tokens">0</span> / 设定与备忘: <span id="actual-sent-system-tokens">0</span> / 字符: <span id="actual-sent-characters">0</span>)</small></p>
+            <p>实际发送Token: <span id="actual-sent-tokens" style="font-weight:bold;color:var(--accent-blue);">0</span> <small style="opacity:0.85;font-size:0.9em;">(消息正文: <span id="actual-sent-main-tokens">0</span> <span id="actual-sent-regex-badge" style="display:none;color:var(--accent-green, #10b981);font-weight:600;">[正则排除: -<span id="actual-sent-regex-tokens">0</span>]</span> / 设定与备忘: <span id="actual-sent-system-tokens">0</span> / 字符: <span id="actual-sent-characters">0</span>)</small></p>
             <p>总预估Token: <span id="total-estimated-tokens">0</span> <small style="opacity:0.85;font-size:0.9em;">(已隐藏: <span id="hidden-tokens">0</span> / 正文: <span id="main-tokens">0</span> / 思考: <span id="thinking-tokens">0</span>)</small></p>
             <p>总字符数量: <span id="total-characters">0</span> <small style="opacity:0.85;font-size:0.9em;">(已隐藏: <span id="hidden-characters">0</span> / 正文: <span id="main-characters">0</span> / 思考: <span id="thinking-characters">0</span>)</small></p>
             <p>附件数据: <span id="attachments-tokens">0</span> tokens / <span id="attachments-chars">0</span> 字符</p>
             <p>MCP工具调用: <span id="mcp-tool-calls-count">0</span> 次</p>
             <p>MCP分析内容: <span id="mcp-analysis-tokens">0</span> tokens / <span id="mcp-analysis-chars">0</span> 字符</p>
             <p>MCP工具数据: <span id="mcp-tool-data-tokens">0</span> tokens / <span id="mcp-tool-data-chars">0</span> 字符</p>
+            <p id="regex-excluded-stats-row">正则过滤排除: <span id="regex-excluded-tokens" style="font-weight:600;color:var(--accent-green, #10b981);">0</span> tokens / <span id="regex-excluded-chars">0</span> 字符</p>
         </div>
         <div class="modal-body">
             <details open>
@@ -2071,28 +2575,220 @@
         <div class="modal-body" style="max-height: 65vh; overflow-y: auto;">
             <!-- 更新日志标签内容 -->
             <div id="changelog-content" class="changelog-tab-content active">
+                <!-- v3.6.5 -->
+                <div class="changelog-version">
+                    <div class="changelog-version-header">
+                        <span class="changelog-version-tag">v3.6.5</span>
+                        <span class="changelog-version-date">2026-11-17</span>
+                    </div>
+                    <ul class="changelog-list">
+                        <li class="changelog-item feat">【云端快照批量清理与配额秒级释放】在云同步【云端快照时间线】中新增「批量管理」模式，支持一键多选/全选快照（含手风琴内历史版本），底部工具栏实时统计选中数量与占用体积，由 Go 服务端在单一事务内原子完成物理删除与配额全额释放。</li>
+                        <li class="changelog-item opt">【主密码二次安全验密防爆破铁闸】针对批量物理删除高危操作增加主密码二次校验，由 Web Worker 硬件加速派生（约 50ms）后校验，连续输错 3/5/10 次自动触发锁定期；验证模态框支持视口居中、深浅双模主题自适应、回车防抖与 ESC 安全退出。</li>
+                    </ul>
+                </div>
+                <!-- v3.6.4 -->
+                <div class="changelog-version">
+                    <div class="changelog-version-header">
+                        <span class="changelog-version-tag">v3.6.4</span>
+                        <span class="changelog-version-date">2026-11-17</span>
+                    </div>
+                    <ul class="changelog-list">
+                        <li class="changelog-item fix">【外网 CDN 加速版稳定性升级】将所有第三方库及高亮主题全面切换至国内多线高速镜像源 (cdnjs.loli.net)，彻底根除直连海外 Cloudflare 引起的超时挂死 (ERR_CONNECTION_TIMED_OUT) 与应用启动失败。</li>
+                        <li class="changelog-item opt">【端到端加密与 Worker 链路自愈】在 CDN 模式下安全保留轻量 E2EE 加密算法库，杜绝 404 遗漏；同步打通主题动态切换、多线程解析与 PDF 渲染降级链路。</li>
+                    </ul>
+                </div>
+                <!-- v3.6.3 -->
+                <div class="changelog-version">
+                    <div class="changelog-version-header">
+                        <span class="changelog-version-tag">v3.6.3</span>
+                        <span class="changelog-version-date">2026-11-17</span>
+                    </div>
+                    <ul class="changelog-list">
+                        <li class="changelog-item feat">【空记忆断层防御与多源重构】目标模式为空且有历史楼层隐藏时，确认弹窗醒目展示红色强提醒卡片；当历史同时沉淀了双表、长文等多种记忆时，系统智能识别并列展示所有来源专属卡片与体量摘要，支持自主一键直达重构。</li>
+                        <li class="changelog-item opt">【就地解隐与执意总结二级拦截】弹窗内提供【放开所有楼层隐藏（全量重构）】就地刷新全量楼层范围，红标自愈消除；强提醒下若执意总结配备显式二级警示拦截。</li>
+                    </ul>
+                </div>
+                <!-- v3.6.2 -->
+                <div class="changelog-version">
+                    <div class="changelog-version-header">
+                        <span class="changelog-version-tag">v3.6.2</span>
+                        <span class="changelog-version-date">2026-11-17</span>
+                    </div>
+                    <ul class="changelog-list">
+                        <li class="changelog-item fix">【中转模式自动总结全链路闭环】修复开启 AI 任务中转后达到步长未触发总结的缺陷，在实时轮询完成与离线自愈补齐后均精准接入自动总结检测调度。</li>
+                        <li class="changelog-item feat">【自动总结决策弹窗与状态自愈】达阈值时支持自主选择【云端中转总结】、【本地直连总结】或【稍后提醒】，未连云端强制置灰保护；开启中转时智能重置历史本地选择，并在总结设置面板中提供常驻策略管理。</li>
+                    </ul>
+                </div>
+                <!-- v3.6.1 -->
+                <div class="changelog-version">
+                    <div class="changelog-version-header">
+                        <span class="changelog-version-tag">v3.6.1</span>
+                        <span class="changelog-version-date">2026-11-13</span>
+                    </div>
+                    <ul class="changelog-list">
+                        <li class="changelog-item opt">【超长聊天丝滑不卡顿】大幅优化长对话（数百楼）下的滑动与侧边栏响应速度，手机端展开/收起侧边栏秒开，彻底告别卡顿与延迟。</li>
+                        <li class="changelog-item feat">【手机端加载全部消息优化】将按钮调整为精致轻巧的小圆钮，避免遮挡角色栏；点击后新增安全确认弹窗，提醒刷新即可恢复默认加载，使用更安心。</li>
+                    </ul>
+                </div>
+                <!-- v3.6.0 -->
+                <div class="changelog-version">
+                    <div class="changelog-version-header">
+                        <span class="changelog-version-tag">v3.6.0</span>
+                        <span class="changelog-version-date">2026-11-12</span>
+                    </div>
+                    <ul class="changelog-list">
+                        <li class="changelog-item feat">【断网与切后台保护】在云同步中新增「AI 后台任务中转」开关；开启后，手机切后台、息屏锁屏或进电梯网络中断，AI 生成都会在后台接力长跑，切回页面时自动无缝接续。</li>
+                        <li class="changelog-item feat">【自动找回未完成的回复】重新打开浏览器或切换会话时，自动检查是否有之前后台还没写完的回答；若已生成完毕立刻自动填入完整回复，不怕白等。</li>
+                    </ul>
+                </div>
+                <!-- v3.5.2 -->
+                <div class="changelog-version">
+                    <div class="changelog-version-header">
+                        <span class="changelog-version-tag">v3.5.2</span>
+                        <span class="changelog-version-date">2026-11-11</span>
+                    </div>
+                    <ul class="changelog-list">
+                        <li class="changelog-item feat">【手机打字防误发】手机上输入框按回车键回归正常的“换行”，只有点击发送按钮才会发送消息；打中文选拼音时按回车也不会再意外手滑发出。</li>
+                        <li class="changelog-item feat">【仅按钮发送模式】设置中新增「仅按钮发送 (Enter 换行)」模式，满足电脑端写长文或代码时回车只换行、点按钮发送的输入习惯；输入提示文字也更简洁自适应。</li>
+                    </ul>
+                </div>
+                <!-- v3.5.1 -->
+                <div class="changelog-version">
+                    <div class="changelog-version-header">
+                        <span class="changelog-version-tag">v3.5.1</span>
+                        <span class="changelog-version-date">2026-11-10</span>
+                    </div>
+                    <ul class="changelog-list">
+                        <li class="changelog-item feat">【沉浸阅读模式】右侧新增一键清爽模式开关，自动收起头像、昵称和多余操作条，专心专注正文阅读，刷新自动保持偏好。</li>
+                        <li class="changelog-item opt">【手机端弹窗与表格优化】优化手机端提示词预览排版；表格区域支持手指与鼠标直接左右拖拽平移，纵向滑动顺畅自如。</li>
+                        <li class="changelog-item opt">【手机顶栏横向滑动引导】顶栏右侧新增平滑渐隐遮罩与小箭头微动指示，轻触即可平滑翻看右侧按钮。</li>
+                        <li class="changelog-item fix">【移动端细节修复】修复手机端备忘录按钮图标缺失问题，补齐思维导图弹窗移动端的返回和关闭按钮。</li>
+                    </ul>
+                </div>
+                <!-- v3.5.0 -->
+                <div class="changelog-version">
+                    <div class="changelog-version-header">
+                        <span class="changelog-version-tag">v3.5.0</span>
+                        <span class="changelog-version-date">2026-11-10</span>
+                    </div>
+                    <ul class="changelog-list">
+                        <li class="changelog-item feat">【单会话一键云备份】在左侧会话旁直接点击云同步按钮即可一键备份当前对话，告别之前必须手动勾选打包的繁琐步骤；云端快照支持按需单独拉取单条对话。</li>
+                        <li class="changelog-item feat">【会话覆盖冲突智能透视】从云端恢复或导入对话若遇到同名冲突，自动弹出对比面板，清晰展示最后修改时间与末尾内容差异，支持覆盖并备份、另存副本或跳过。</li>
+                        <li class="changelog-item feat">【会话回收站（10天防误删）】删除的对话会自动放入独立的「回收站」，保留 10 天随时一键找回；超过 10 天的废弃对话由系统自动彻底清理，省心安全。</li>
+                    </ul>
+                </div>
+                <!-- v3.4.1 -->
+                <div class="changelog-version">
+                    <div class="changelog-version-header">
+                        <span class="changelog-version-tag">v3.4.1</span>
+                        <span class="changelog-version-date">2026-11-09</span>
+                    </div>
+                    <ul class="changelog-list">
+                        <li class="changelog-item fix">【会话记录导入规则防冲突】优化导入会话时的规则比对逻辑，防止同名规则误报冲突；严密保护内置卡片渲染规则不被外部导入数据篡改覆盖；修复冲突弹窗中个别图标显示异常。</li>
+                    </ul>
+                </div>
+                <!-- v3.4.0 -->
+                <div class="changelog-version">
+                    <div class="changelog-version-header">
+                        <span class="changelog-version-tag">v3.4.0</span>
+                        <span class="changelog-version-date">2026-11-09</span>
+                    </div>
+                    <ul class="changelog-list">
+                        <li class="changelog-item feat">【会话专属时间系统】支持为对话设定专属的虚拟年月日与时间推演规则（如故事跨越数年或异世界历法），星期自动根据日历计算；AI 发言时间更自然逼真，防穿帮防出戏。</li>
+                        <li class="changelog-item opt">【界面工具排布优化】侧边栏常用工具更紧凑有序；顶栏新增直观的实时模式时钟按钮与状态绿点。</li>
+                        <li class="changelog-item fix">【导出导入完整保留时间设置】会话导出为 JSON、TXT、Markdown 或云备份恢复时，完整保留虚拟时间配置，导入后自动点亮顶栏状态。</li>
+                    </ul>
+                </div>
+                <!-- v3.3.0 -->
+                <div class="changelog-version">
+                    <div class="changelog-version-header">
+                        <span class="changelog-version-tag">v3.3.0</span>
+                        <span class="changelog-version-date">2026-11-09</span>
+                    </div>
+                    <ul class="changelog-list">
+                        <li class="changelog-item feat">【记忆与限制状态合体微标】顶栏总结按钮右上角升级为紧凑拼色微标，鼠标悬停可直观查看发送消息限制范围、距离下次自动总结剩余字数与进度。</li>
+                        <li class="changelog-item feat">【自动总结前置醒目提醒】对话接近自动总结上限时，在输入框上方滑出醒目提示横条，提前知晓上下文情况，支持手动点击关闭。</li>
+                        <li class="changelog-item feat">【长消息一键回顶】阅读长篇 AI 回复时底部配套提供“回本条顶部”按钮，且在 AI 还在持续打字时不会被强制拽回底部。</li>
+                        <li class="changelog-item opt">【顶栏界面净化】总结按钮移至顶栏随时掌控，更新日志移入侧边栏，角色选择框宽度优化防撑爆，整体视觉更整洁开阔。</li>
+                    </ul>
+                </div>
+                <!-- v3.2.1 -->
+                <div class="changelog-version">
+                    <div class="changelog-version-header">
+                        <span class="changelog-version-tag">v3.2.1</span>
+                        <span class="changelog-version-date">2026-11-08</span>
+                    </div>
+                    <ul class="changelog-list">
+                        <li class="changelog-item fix">【首发消息秒发无闪烁】彻底修复刷新页面或未选对话时直接打字发送导致的界面闪烁、打字被清空以及必须发送两次的缺陷，首发消息直达顺畅。</li>
+                    </ul>
+                </div>
+                <!-- v3.2.0 -->
+                <div class="changelog-version">
+                    <div class="changelog-version-header">
+                        <span class="changelog-version-tag">v3.2.0</span>
+                        <span class="changelog-version-date">2026-11-05</span>
+                    </div>
+                    <ul class="changelog-list">
+                        <li class="changelog-item feat">【记忆工作台全新改版】记忆管理弹窗全面重构：发送消息数量限制与注入开关置顶直达，高级设置可折叠，记忆内容直接一屏纵览，编辑更从容。</li>
+                        <li class="changelog-item feat">【手动总结明确决策与完成报告】点击“立即总结”时前置弹出确认弹窗，明确说明将隐藏哪些历史楼层；总结完成后弹出反馈卡片展示提炼字数与最新状态。</li>
+                        <li class="changelog-item fix">【剧情表格防错列与列宽校准】优化角色剧情推演表格，自动识别表格列，防止内容错列挤占；提示词增加日常杂物过滤，剧情记录更纯粹核心。</li>
+                        <li class="changelog-item feat">【自动总结剩余楼层提示】“每隔 N 楼自动总结”设置后直观显示还剩几楼触发；优化初次总结判定逻辑，老对话开启后立即可触发。</li>
+                        <li class="changelog-item feat">【自动过滤历史思考内容】发给 AI 前自动清洗历史助手消息中的多余思考标签，避免浪费上下文字数。</li>
+                    </ul>
+                </div>
+                <!-- v3.1.0 -->
+                <div class="changelog-version">
+                    <div class="changelog-version-header">
+                        <span class="changelog-version-tag">v3.1.0</span>
+                        <span class="changelog-version-date">2026-11-04</span>
+                    </div>
+                    <ul class="changelog-list">
+                        <li class="changelog-item feat">【云同步安全升级】密码输入错误多级锁定保护，备份时支持智能差分比对与冲突选择，自建服务端支持配置热生效。</li>
+                        <li class="changelog-item feat">【记忆精炼与跨模式重构中心】支持对累积的长篇记忆一键精简（“适度精简”或“强力脱水”），或者在长文、卡片流与双表记忆之间一键互相转换。</li>
+                        <li class="changelog-item feat">【历史记忆版本详情与回滚】新增富文本详情弹窗，清晰反显每个历史版本的字数与覆盖楼层，支持一键复制全文与一键撤销回滚。</li>
+                        <li class="changelog-item opt">【视觉图标全面规范】全站图标统一规范为现代细线条矢量 SVG 风格，深浅双主题无缝自适应。</li>
+                    </ul>
+                </div>
+
+                <!-- v3.0.1 -->
+                <div class="changelog-version">
+                    <div class="changelog-version-header">
+                        <span class="changelog-version-tag">v3.0.1</span>
+                        <span class="changelog-version-date">2026-11-04</span>
+                    </div>
+                    <ul class="changelog-list">
+                        <li class="changelog-item feat">【字数统计严格扣除过滤内容】顶栏字数徽章精准剔除被规则过滤削减的内容，统计数值 100% 吻合实际发送量，不再虚高。</li>
+                        <li class="changelog-item feat">【模拟发送预览升级】预览面板中所有消息默认整齐折叠，被规则过滤削减的消息自动打上绿标徽章并直观展示削减量。</li>
+                        <li class="changelog-item feat">【快捷直达互通】点击顶栏字数徽章直接打开模拟发送全景预览，点击正则图标一秒直达设置里的规则管理。</li>
+                    </ul>
+                </div>
+
+                <!-- v3.0.0 -->
+                <div class="changelog-version">
+                    <div class="changelog-version-header">
+                        <span class="changelog-version-tag">v3.0.0</span>
+                        <span class="changelog-version-date">2026-11-03</span>
+                    </div>
+                    <ul class="changelog-list">
+                        <li class="changelog-item feat">【多设备会话云同步重磅上线】推出自建云同步方案！支持手机、平板与电脑跨设备备份与恢复对话；数据在本地加密后再上传，服务端零知识，主密码绝不上网。</li>
+                        <li class="changelog-item feat">【多设备管理与配额看板】支持查看已绑定的各设备最后活跃时间并支持一键下线；直观监控账号云端存储占用与配额进度。</li>
+                        <li class="changelog-item feat">【极简自建服务】随安装包提供轻量单文件自建同步服务（sync-server），支持 Windows 和 Linux，开箱即用。</li>
+                    </ul>
+                </div>
+
+                <!-- v2.9.15 -->
                 <div class="changelog-version">
                     <div class="changelog-version-header">
                         <span class="changelog-version-tag">v2.9.15</span>
                         <span class="changelog-version-date">2026-11-01</span>
                     </div>
                     <ul class="changelog-list">
-                        <li class="changelog-item fix">【Token 自动总结真增量步进重构 (Plan A)】彻底解耦保留楼层长度干扰，以自上次总结基准楼层之后新产生累积的纯正文 Token（deltaTokens >= tokenThreshold）为统一判定条件；无论保留楼层自身有多长（小说创作长文本或长代码），均严格等待新写满扎实的设定阈值后才触发，彻底根除隔轮频繁误触发；配套完善了分支回滚与截断自愈机制；</li>
-                        <li class="changelog-item feat">【自动总结实时进度监控胶囊】在弹窗设置行新增动态进度胶囊 Badge（📈 当前自第 X 楼起已积累 Y / Z Token），自上次总结以来的新增进度一目了然；达到 80% 时自动切换高亮橙色预警，拦截点击冒泡防误触，且深度适配浅色与暗夜幽蓝双模式主题；</li>
-                        <li class="changelog-item fix">【阈值输入合法范围安全钳制与失焦回填】输入监听与底层计算强制执行 500 ~ 100,000 合法范围安全防御；增加失焦规范化回填事件，输入非法或超限数值失焦后自动纠正回填，杜绝界面显示与底层运行不一致。</li>
+                        <li class="changelog-item feat">【长线记忆二次浓缩】新增双栏独立滚动对比面板，预设“均衡精炼”与“极限脱水”两种提炼策略，精简长线剧情同时自动备份原记忆。</li>
+                        <li class="changelog-item fix">【自动总结触发算法优化】彻底排除思考过程干扰，仅统计新产生正文的真实累积字数，长文创作时不再频繁抢跑误触发。</li>
+                        <li class="changelog-item feat">【总结进度监控胶囊】设置项旁直观显示当前新累积字数进度，接近上限时提前橙色预警，输入阈值更安全。</li>
                     </ul>
                 </div>
-                <div class="changelog-version">
-                    <div class="changelog-version-header">
-                        <span class="changelog-version-tag">v2.9.14</span>
-                        <span class="changelog-version-date">2026-11-01</span>
-                    </div>
-                    <ul class="changelog-list">
-                        <li class="changelog-item feat">【长线记忆二次浓缩与精炼系统】新增独立二次浓缩弹窗（960px 宽屏），提供「⚖️ 均衡精炼」与「⚡ 极限脱水」双策略预设；提示词支持即点即灌且任意自由编辑修改，自带防误触覆盖二次确认与 Esc 快捷键关闭；首创左右双栏独立上下滚动对比视窗，提炼结果流式打字机实时渲染并动态展示瘦身百分比；替换前自动在快照树中备份原记忆，支持一键无损回滚与双表/卡片/递归多模式自适应反解析；</li>
-                        <li class="changelog-item fix">【Token 自动总结增量闭环与纯净计算 (Plan A)】彻底重构按 Token 自动总结判定逻辑：引入 extractThinkingFromContent 严格剔除 AI 思考链（仅按纯正文计算），与 API 实际发送口径 100% 吻合，根除推理模型超长思考过程导致的过早误触发；引入增量步进闭环机制，未开启自动隐藏时自动转为增量步进判定，彻底消灭每轮对话必总结的死循环，并阻断末尾保留长楼层造成的连环轰炸；</li>
-                        <li class="changelog-item feat">【归档保留楼层累积警示与控流指引】针对“归档时保留最后 K 楼不隐藏”机制，新增醒目红色动态警示卡片，实时计算并展现下一轮触发前最多累积发送给 AI 的 (K + N) 楼未隐藏消息上限；内置一键平滑锚点跳转并带 1.5s 醒目黄色发光聚焦环，引导用户搭配【发送消息数量限制】进行上下文控流；在 Token 自动总结行增加红色醒目纯正文与归档提醒。</li>
-                    </ul>
-                </div>
+
                 <!-- v2.9.13 -->
                 <div class="changelog-version">
                     <div class="changelog-version-header">
@@ -2100,13 +2796,13 @@
                         <span class="changelog-version-date">2026-10-31</span>
                     </div>
                     <ul class="changelog-list">
-                        <li class="changelog-item feat">【备忘录全面迁移至 IndexedDB 数据库】数据库版本升级至 5，新增独立 worldbook_store 对象仓库；突破 LocalStorage 5MB 容量限制，海量大部头知识库随心存；首次启动自动无损平滑迁移老数据，老用户数据 100% 留存；</li>
-                        <li class="changelog-item fix">【单条原子存取与跨窗口秒级协同】单条备忘录增删改原生 store.put 原子入库，彻底根治多窗口/多标签页并发编辑时整包覆盖冲刷的重大缺陷；引入原生 BroadcastChannel 广播，多页面实时无损协同；</li>
-                        <li class="changelog-item fix">【深度绝对优先与拖拽展示权责分离】发送给模型前严格以挂载深度 depth 绝对决定先后顺序（数值越小越靠前，如 10 -&gt; 20 -&gt; 140），彻底纠正拖拽 order 越权压制 depth 导致排序反转的问题；仅在同深度下按页面拖拽顺序决定；列表展示则以拖拽为主；</li>
-                        <li class="changelog-item feat">【表单未保存脏检查防丢系统】全面监听名称、内容、位置、挂载深度、角色、标签以及全局/局部生效开关；编辑中途切换其他条目坚决拦截告警，杜绝误触丢失未保存草稿；</li>
-                        <li class="changelog-item feat">【已选中列表放开拖拽排序与实时 Token 预估】解除“已选中”Tab 禁拖硬编码，复用底层子集相对重排算法；编辑区字数统计接入实时预估 Token（0 字 · ~0 Tokens）与 hover 统计浮层，深浅双主题色像素级适配。</li>
+                        <li class="changelog-item feat">【备忘录存储容量突破】全面升级本地数据库存储，彻底打破旧版 5MB 容量限制，海量小说大纲与资料库随心存放，老数据 100% 自动无缝迁移。</li>
+                        <li class="changelog-item fix">【多窗口协同不覆盖】单条备忘录独立存取，同时开多个网页标签页编辑也不会互相冲刷覆盖；改动即时在所有窗口自动同步。</li>
+                        <li class="changelog-item feat">【表单未保存防丢失提醒】编辑备忘录途中若点击其他条目，系统会自动弹窗提醒保存，守护用户草稿心血。</li>
+                        <li class="changelog-item feat">【已选条目支持拖拽排序】在已选视图中可直接拖动调整备忘录先后顺序，编辑区实时显示预估字数。</li>
                     </ul>
                 </div>
+
                 <!-- v2.9.12 -->
                 <div class="changelog-version">
                     <div class="changelog-version-header">
@@ -2114,10 +2810,8 @@
                         <span class="changelog-version-date">2026-10-30</span>
                     </div>
                     <ul class="changelog-list">
-                        <li class="changelog-item feat">【设置弹窗移动端全屏沉浸式适配 (Plan A)】全面解除桌面端 780px 宽度限制与行内样式束缚，断点覆盖扩大至 &lt;= 900px；四向固定贴边铺满（100% / 100dvh），彻底消除移动端与平板边缘溢出、留白缝隙与圆角残缺；</li>
-                        <li class="changelog-item fix">【下方内容窗口 90vw 卡死根治】彻底切断全局裸写 .modal-body 的作用域污染（限定为 .modal &gt; .modal-body），彻底解决设置弹窗内部滚动窗口被 90vw 截断导致右侧留白 39px 与列表卡片多余圆角的问题；</li>
-                        <li class="changelog-item feat">【标签栏单行横滑轨道与居中聚焦】10 个设置 Tab 升级为单行横向平滑滑动导轨，隐藏原生粗滚动条；加入标签激活自动平滑居中算法，切换或打开时当前标签平滑滚入正中央；</li>
-                        <li class="changelog-item fix">【纵向滚动链加固与单列自适应】补齐 flex: 1 1 auto 与 overscroll-behavior: contain，根治 WebKit 弹性高度塌陷导致的上下滑动失效与背景滚动穿透；正则表达式双栏及通用多列表单自适应为单列流式排布。</li>
+                        <li class="changelog-item feat">【设置弹窗移动端全屏适配】手机与平板端设置弹窗升级为贴边全屏铺满，彻底消除右侧留白缝隙与圆角黑边。</li>
+                        <li class="changelog-item feat">【设置标签单行平滑导轨】设置页签升级为单行横向手势滑轨，选中的标签自动平滑滑到屏幕中央，上下滑动更流畅。</li>
                     </ul>
                 </div>
 
@@ -2128,9 +2822,8 @@
                         <span class="changelog-version-date">2026-10-30</span>
                     </div>
                     <ul class="changelog-list">
-                        <li class="changelog-item feat">【会话记忆与智能总结视觉交互升级】会话记忆弹窗改为点击阴影不关闭，杜绝长文编辑手抖误触丢失；内部全量升级为系统统一的现代矢量 SVG 轮廓图标（模式标签、历史版本、双表子标签与操作按钮）；</li>
-                        <li class="changelog-item fix">【跑团双表详情反显与等高对齐】会话数据详情弹窗完美自适应反显跑团双表 Markdown 内容并支持一键复制，空内容不计伪 Token；行高选择框与操作栏按钮统一度量高度（24px），消除下边缘凸出对齐问题；</li>
-                        <li class="changelog-item fix">【实际发送Token精准纠偏 (Plan A)】彻底纠偏会话详情与外部徽章算法：历史 AI 消息严格剥离思考过程（API 仅发送纯正文），全额计入系统提示词、启用的备忘录（含动态宏解析）与记忆总结，弹窗新增正文/设定/字符三维细分透视。</li>
+                        <li class="changelog-item feat">【记忆弹窗防误触保护】记忆弹窗修改为点击外部阴影不关闭，编辑长文时不小心手滑不会丢失内容。</li>
+                        <li class="changelog-item fix">【实际发送字数精准校准】统计会话字数时，严格剥离历史回答中的思考过程，完整计入人设提示词与启用的备忘录，数字更真实透明。</li>
                     </ul>
                 </div>
 
@@ -2141,8 +2834,8 @@
                         <span class="changelog-version-date">2026-10-29</span>
                     </div>
                     <ul class="changelog-list">
-                        <li class="changelog-item feat">【正则表达式全方位体验升级】顶栏与折叠分组新增多维快速添加入口，表单头部提供「新建空白规则」；重构三段式常驻底栏，保存与取消按钮始终吸底常驻；弹窗放宽至 92vw / 1360px，保底左侧 420px 并配备防挤压药丸与现代细滚动条；</li>
-                        <li class="changelog-item feat">【正则速查指南与示例中心上线】新增「📖 正则示例与说明」独立弹窗，内置 18 组 7 大分类高频实用正则，支持关键字实时检索、一键复制与「⚡ 一键套用到编辑表单」。</li>
+                        <li class="changelog-item feat">【正则表达式管理体验升级】弹窗支持更开阔的排版，新增规则入口更多维，保存与取消按钮吸底常驻，再长也不用上下翻找。</li>
+                        <li class="changelog-item feat">【常用正则示例中心上线】新增内置速查弹窗，收录 18 组高频实用规则（如选项过滤、去除多余空行等），支持搜索、一键复制与一键套用。</li>
                     </ul>
                 </div>
 
@@ -2153,9 +2846,9 @@
                         <span class="changelog-version-date">2026-10-29</span>
                     </div>
                     <ul class="changelog-list">
-                        <li class="changelog-item fix">【自动总结步进引擎与因果同步重构】判定算法重构为真实步进增量（ΔFloors ≥ N），彻底根除保留历史楼层时触发间隔严重缩水缺陷，以及未隐藏时的连环死循环；完善从此重发、截断回退与快照回滚的因果状态同步；</li>
-                        <li class="changelog-item feat">【全模式实时总Tokens与字符胶囊】「当前记忆内容」标题旁新增实时高对比度徽章，全面覆盖跑团双表、卡片流与递归模式，单元格打字、增删行与源码编辑毫秒级联动重算；</li>
-                        <li class="changelog-item feat">【恢复默认提示词防误触确认】点击「恢复默认提示词」增加智能防呆校验与显式二次确认弹窗，坚决保护精心微调的提示词心血不被误覆盖。</li>
+                        <li class="changelog-item fix">【自动总结步进优化】优化触发逻辑，彻底解决保留末尾楼层时触发间隔缩水以及未勾选隐藏时的死循环；分支回退后也能准确保持进度。</li>
+                        <li class="changelog-item feat">【记忆内容实时字数胶囊】记忆编辑区标题旁实时显示当前内容字数与预估 Tokens，打字修改即时更新。</li>
+                        <li class="changelog-item feat">【恢复默认提示词防误触】点击“恢复默认提示词”增加二次确认提示，保护自己用心写好的提示词不被覆盖。</li>
                     </ul>
                 </div>
 
@@ -2166,9 +2859,9 @@
                         <span class="changelog-version-date">2026-10-29</span>
                     </div>
                     <ul class="changelog-list">
-                        <li class="changelog-item feat">【MCP会话专属隔离】废除全局共享，转为会话私有状态；新建对话默认干净无勾选，切换对话即时联动底栏徽章与菜单，导入导出与复制全链路持久化；</li>
-                        <li class="changelog-item fix">【执行失败重试彻底修复】全 DOM 分支统一事件委托，调用参数全生命周期持久固化，断网/跨轮次/刷新后均可 100% 成功重试；</li>
-                        <li class="changelog-item feat">【精细卡片化排版与独立诊断弹窗】Header 纯净展现元信息杜绝错位，操作统一下沉专注操作栏；新增独立诊断弹窗高亮展示参数与响应体，深浅双主题色深度适配。</li>
+                        <li class="changelog-item feat">【MCP工具会话专属隔离】每个对话单独记住启用的 MCP 工具，新建对话默认干净，切换对话自动同步底栏状态。</li>
+                        <li class="changelog-item fix">【工具调用失败重试加固】工具调用参数永久固化，遇到网络波动或刷新页面后，点击重试均可顺利重新调用。</li>
+                        <li class="changelog-item feat">【工具卡片排版优化】卡片视觉更清晰，新增独立诊断弹窗查看参数与回复，支持一键复制完整诊断信息。</li>
                     </ul>
                 </div>
 
@@ -2179,10 +2872,9 @@
                         <span class="changelog-version-date">2026-10-29</span>
                     </div>
                     <ul class="changelog-list">
-                        <li class="changelog-item feat">【动态变量宏引擎】备忘录支持快捷插入 <code>{{date}}</code>、<code>{{time}}</code>、<code>{{datetime}}</code>、<code>{{weekday}}</code>、<code>{{model}}</code>、<code>{{conversation_title}}</code> 等上下文动态宏；</li>
-                        <li class="changelog-item feat">【4类注入锚点与时间线合并】支持顶部系统区、对话历史前、历史流倒数插入与跟随用户发言；「跟随用户发言」支持按历史各条时间戳动态求值解析；</li>
-                        <li class="changelog-item feat">【空白会话自动绑定与排序解耦】空白会话配置局部备忘录时无感自动创建并绑定；展示顺序（order）与插入深度（depth）彻底解耦；</li>
-                        <li class="changelog-item fix">【多模态安全防御】重构消息脚标追加函数，深度防御多模态带图带附件消息，杜绝转为 <code>[object Object]</code> 引发 API 报错。</li>
+                        <li class="changelog-item feat">【备忘录动态变量支持】备忘录中支持快捷插入当前日期、时间、星期、模型名称与会话标题等动态变量。</li>
+                        <li class="changelog-item feat">【多种注入位置可选】备忘录支持插入到系统人设区、对话历史前、末尾插入或跟随用户发言，时间脉络更真实。</li>
+                        <li class="changelog-item fix">【附件多模态安全保护】优化多模态消息拼接逻辑，带图带附件的问答发送更稳定。</li>
                     </ul>
                 </div>
 
@@ -2193,13 +2885,13 @@
                         <span class="changelog-version-date">2026-10-18</span>
                     </div>
                     <ul class="changelog-list">
-                        <li class="changelog-item feat">【长图海报】消息一键生成「优雅长图 / 海报分享卡片」：支持将单条消息渲染为高颜值海报，内置极光、极简、落日、赛博四套艺术主题；提供自由编辑标题、切换时间与楼层展示的响应式配置条；离线化集成 html2canvas 解决跨域导出，支持一键复制到剪贴板与保存 PNG 图片；</li>
-                        <li class="changelog-item feat">【思维导图】长文本 AI 回答一键转「思维导图 (Mindmap)」与 100% 全景无损导出：消息操作栏新增思维导图按钮，支持拖拽平移、平滑缩放与全屏沉浸展示；支持 AI 智能提炼增强，实时感知深度思考与输出流；攻克仅导出可见切片的难题，基于节点边界推导算法实现 100% 全貌无截断全景画幅导出；</li>
-                        <li class="changelog-item feat">【模型展示】AI 消息气泡头部突出显示具体模型与来源 API (Plan C)：药丸胶囊核心突出显示驱动回答的具体模型名称（如 deepseek-chat），次级展示来源渠道（via API端点名），支持重名智能去重与历史模型快照固化；深浅双主题深度适配；</li>
-                        <li class="changelog-item opt">【界面自适应】气泡头部窄屏防挤压截断与悬浮导航按钮靠右对齐：小窗口与移动端挤压时，模型与 API 副标自适应缩短截断为前 n 个字 + 省略号，hover 可查完整全称；悬浮回底与楼层导航按钮容器重构为靠右对齐（align-items: flex-end），彻底消除上方圆形按钮与下方展开胶囊的错位割裂；</li>
-                        <li class="changelog-item fix">【状态隔离】修复跨 API 切换模型状态残留 BUG：彻底修复在同一会话中切换 API 端点时，前一个 API 私有的模型选择残留在下拉列表中导致 400 报错的问题，实现多 API 模型配置隔离。</li>
+                        <li class="changelog-item feat">【高颜值长图分享海报】AI 回复一键生成分享长图海报，内置极光、极简、落日、赛博四套艺术主题，支持复制到剪贴板或保存为图片。</li>
+                        <li class="changelog-item feat">【长回复一键转思维导图】长文回答一键解析为树状思维导图，支持全屏拖拽缩放、AI 智能提炼核心结构，并支持高清无损全景图导出。</li>
+                        <li class="changelog-item feat">【消息气泡显示具体模型】气泡头部清晰显示生成该回答的模型名称（如 deepseek-chat）与来源渠道，并永久保留历史记录。</li>
+                        <li class="changelog-item opt">【窄屏自适应与按钮靠右】手机与小窗口下模型胶囊自适应收缩，悬浮导航按钮靠右整齐对齐。</li>
                     </ul>
                 </div>
+
                 <!-- v2.9.5 -->
                 <div class="changelog-version">
                     <div class="changelog-version-header">
@@ -2207,17 +2899,15 @@
                         <span class="changelog-version-date">2026-10-17</span>
                     </div>
                     <ul class="changelog-list">
-                        <li class="changelog-item feat">【输入草稿】多会话输入草稿自动暂存与隔离：切换会话自动暂存当前输入文本，切换回对应会话丝滑无损回填；侧边栏实时呈现琥珀金 [草稿] 标识，消息发送或会话删除时原子清理；</li>
-                        <li class="changelog-item feat">【极速回溯】输入框为空时按键盘 ↑ 键回填上一条消息：无需手动重新输入，秒级抓取上一条发送文本，光标自动落入末尾，支持多模态与高度自适应；</li>
-                        <li class="changelog-item feat">【引用追问】划选内容一键「引用追问」与智能避障：鼠标划选即浮出圆润胶囊，一键生成快照 Markdown 引用格式填入输入框；穿透 Shadow DOM 隔离边界全面兼容正文与思考展开区；智能落点算法默认定位在鼠标正下方，彻底避开 Chromium 浏览器自带的上方搜索/复制迷你工具栏冲突；</li>
-                        <li class="changelog-item feat">【动态感知】悬浮回底按钮升级为「生成态动态感知胶囊」：离开底部时动态感知 AI 生成状态，平滑展开为圆角胶囊伴随绿色呼吸脉冲光晕，直观显示「生成中 ↓」与「新回复 ↓」，触底自动复位隐藏；</li>
-                        <li class="changelog-item feat">【会话置顶】时间分组模式下「置顶会话」独立吸顶专区：置顶会话不再散落于时间分类中，而是独立提取至最上方 📌 置顶会话 专属吸顶专区，并配备数量徽标与高亮样式，永远吸顶；</li>
-                        <li class="changelog-item feat">【移动适配】移动端软键盘弹起高度自适应（Visual Viewport 适配）：原生监听 window.visualViewport 动态高度，键盘升起时精确收缩 #app 物理高度，彻底杜绝头部 Header 被顶出屏幕或工具栏被遮挡；</li>
-                        <li class="changelog-item opt">【交互精简】选择数据库与数据表按钮二合一整合：将输入区原独立的选表按钮无缝收敛至选择数据库按钮，选库确认后自动无缝拉起选表弹窗，单按钮动态呈现已绑定库名与已选表数量；</li>
-                        <li class="changelog-item opt">【空间提效】输入区外边框间距优化：主聊天输入区 .input-area 内边距 padding 从 1.5rem 缩减为 0.5rem，垂直空白大幅收窄，聊天可视区更加舒展；</li>
-                        <li class="changelog-item opt">【配置引导】API 端点配置模型名称增加引导提示：在添加与编辑 API 端点表单的模型名称下方添加清晰引导「💡 该模型为默认模型，可在会话中切换不同模型」。</li>
+                        <li class="changelog-item feat">【输入草稿自动暂存】打了一半的字切换到别的对话不会丢失，切回来自动恢复，侧边栏显示金色的 [草稿] 标识。</li>
+                        <li class="changelog-item feat">【按键盘「↑」提取上一条】输入框为空时按方向键「↑」，快速调出上一条已发送的消息，方便追问微调。</li>
+                        <li class="changelog-item feat">【划选文字一键引用】用鼠标选中 AI 回答的任意文字，立即浮现引用小胶囊，点击自动引用并放入输入框。</li>
+                        <li class="changelog-item feat">【悬浮回底按钮呼吸感知】向上翻阅历史消息时，回底按钮动态感知生成状态，呼吸光效提示「生成中」或「新回复」。</li>
+                        <li class="changelog-item feat">【置顶会话独立吸顶专区】侧边栏时间分组模式下，置顶会话单独收录在最顶部的“置顶会话”专区，永远触手可及。</li>
+                        <li class="changelog-item feat">【手机软键盘弹起自适应】手机键盘弹起时页面高度自适应收缩，顶栏与底栏不再被键盘顶出屏幕。</li>
                     </ul>
                 </div>
+
                 <!-- v2.9.4 -->
                 <div class="changelog-version">
                     <div class="changelog-version-header">
@@ -2225,12 +2915,9 @@
                         <span class="changelog-version-date">2026-10-17</span>
                     </div>
                     <ul class="changelog-list">
-                        <li class="changelog-item feat">【模型选择】输入区 API 与模型快捷选择器解耦重构：由单一下拉选框升级为两枚独立快捷按钮，左侧选 API 端点、右侧直选该 API 下的具体模型（Model），支持实时无缝切换与按会话持久化存储；</li>
-                        <li class="changelog-item feat">【输入交互】现代 AI 对话两层堆叠输入区布局：第一层为 100% 满宽自由伸缩的多行文本输入框；第二层为独立工具栏，彻底解决窄屏与手机端输入框被挤压狭窄问题；</li>
-                        <li class="changelog-item feat">【触屏体验】移动端与触屏会话列表防误触重构（Plan A）：通过现代媒体查询强制隔离触屏环境，触碰会话条目彻底禁止弹出密集 6 按钮，根除点选切换会话时误删、误改的重大隐患；</li>
-                        <li class="changelog-item feat">【手势交互】会话列表新增 500ms 长按手势交互：按住条目 500ms 触发微震动反馈并唤起底部 Action Sheet 抽屉面板；具备滑动防误判（位移 >10px 取消）与松手防误切拦截机制；右侧常驻一枚小巧独立的 32px「···」操作按钮；</li>
-                        <li class="changelog-item fix">【实时联动】修复在「隐藏与总结」弹窗中调节发送消息数量限制滑动条时，会话头部 Token 统计徽章未实时联动的 BUG；</li>
-                        <li class="changelog-item opt">【视觉升级】全局 Emoji 表情全面替换为现代精简的 Lucide 风格矢量 SVG 轮廓图标，杜绝跨平台系统渲染风格割裂。</li>
+                        <li class="changelog-item feat">【API与模型快捷选择器】解耦为两个独立按钮，左侧选接口、右侧直选具体模型，切换直观又省事。</li>
+                        <li class="changelog-item feat">【两层堆叠输入区布局】输入区改为上方满宽多行打字框、下方独立操作工具栏，手机与小窗口输入更从容开阔。</li>
+                        <li class="changelog-item feat">【触屏防误触与长按抽屉】手机触控时禁用密集小按钮防止误删，支持按住会话 500ms 呼出操作抽屉，手感极佳。</li>
                     </ul>
                 </div>
                 <!-- v2.9.3 -->
@@ -2515,64 +3202,78 @@
                     <div class="roadmap-item priority-high">
                         <span class="roadmap-priority">高优先</span>
                         <div class="roadmap-detail">
-                            <strong>🎙️ 语音输入/输出</strong>
-                            <p>支持语音识别输入和AI语音回复（TTS），打造免手动交互体验</p>
+                            <strong>🎙️ 语音输入与语音朗读</strong>
+                            <p>支持语音直接说话输入与 AI 语音自然朗读回答（TTS/STT），动嘴不动手，解放双手</p>
                         </div>
                     </div>
                     <div class="roadmap-item priority-high">
                         <span class="roadmap-priority">高优先</span>
                         <div class="roadmap-detail">
-                            <strong>🖼️ 多模态图片理解</strong>
-                            <p>接入Vision API，支持上传图片让AI分析和理解图片内容</p>
+                            <strong>🔍 对话关键词搜索与快速定位</strong>
+                            <p>在超长历史对话与楼层跳转浮窗中支持关键词模糊搜索，一秒定位历史问答</p>
+                        </div>
+                    </div>
+                    <div class="roadmap-item priority-high">
+                        <span class="roadmap-priority">高优先</span>
+                        <div class="roadmap-detail">
+                            <strong>📱 手机端手势交互优化</strong>
+                            <p>优化移动端触摸滑动体验，支持边缘手势左右滑动呼出与收起侧边栏</p>
+                        </div>
+                    </div>
+                    <div class="roadmap-item priority-high">
+                        <span class="roadmap-priority">高优先</span>
+                        <div class="roadmap-detail">
+                            <strong>📑 代码预览多标签页切换</strong>
+                            <p>代码预览侧边栏支持多文件 Tabs 标签页并排切换，像专业代码编辑器一样顺手</p>
                         </div>
                     </div>
                     <div class="roadmap-item priority-medium">
                         <span class="roadmap-priority">中优先</span>
                         <div class="roadmap-detail">
-                            <strong>🧩 插件系统</strong>
-                            <p>提供插件化扩展机制，允许用户自定义功能模块和第三方集成</p>
+                            <strong>🎲 丰富世界观与故事模板</strong>
+                            <p>内置修仙、科幻、克苏鲁、末日废土等丰富预设模版，一键载入沉浸式角色扮演</p>
                         </div>
                     </div>
                     <div class="roadmap-item priority-medium">
                         <span class="roadmap-priority">中优先</span>
                         <div class="roadmap-detail">
-                            <strong>📄 会话导出为 PDF/Word</strong>
-                            <p>支持将完整聊天记录导出为格式化的PDF或Word文档</p>
+                            <strong>🌳 剧情多分支独立记忆树</strong>
+                            <p>同一对话分叉出不同剧情走向时，各分支保持独立记忆状态与对比，互不串戏</p>
                         </div>
                     </div>
                     <div class="roadmap-item priority-medium">
                         <span class="roadmap-priority">中优先</span>
                         <div class="roadmap-detail">
-                            <strong>📱 移动端APP适配</strong>
-                            <p>优化移动端触控体验，支持PWA或包装为独立APP</p>
+                            <strong>📲 移动端原生能力整合</strong>
+                            <p>完善移动端文件选择器与操作触觉震动反馈，体验更接近原生应用</p>
                         </div>
                     </div>
                     <div class="roadmap-item priority-low">
                         <span class="roadmap-priority">规划中</span>
                         <div class="roadmap-detail">
                             <strong>👥 多人协作会话</strong>
-                            <p>支持多个用户加入同一会话，共同与AI进行对话</p>
+                            <p>支持多个用户加入同一会话，共同与 AI 进行多方协作交流</p>
                         </div>
                     </div>
                     <div class="roadmap-item priority-low">
                         <span class="roadmap-priority">规划中</span>
                         <div class="roadmap-detail">
-                            <strong>🤖 自动摘要标题</strong>
-                            <p>AI根据对话内容自动生成会话标题，省去手动命名</p>
+                            <strong>🤖 对话内容自动提炼标题</strong>
+                            <p>AI 根据前几轮问答内容自动智能提炼简短会话标题，省去手动重命名</p>
                         </div>
                     </div>
                     <div class="roadmap-item priority-low">
                         <span class="roadmap-priority">规划中</span>
                         <div class="roadmap-detail">
-                            <strong>⌨️ 快捷键自定义</strong>
-                            <p>支持用户自定义键盘快捷键配置，提升操作效率</p>
+                            <strong>⌨️ 键盘快捷键自定义</strong>
+                            <p>支持根据个人习惯自定义常用键盘快捷键，提升日常打字操作效率</p>
                         </div>
                     </div>
                     <div class="roadmap-item priority-low">
                         <span class="roadmap-priority">规划中</span>
                         <div class="roadmap-detail">
-                            <strong>🌍 国际化多语言</strong>
-                            <p>支持英文、日文等多语言界面切换</p>
+                            <strong>🌍 国际化多语言支持</strong>
+                            <p>支持简体中文、繁体中文、英文等多语言界面自由切换</p>
                         </div>
                     </div>
                 </div>
@@ -2890,7 +3591,7 @@
 
 <!-- 导入配置冲突批量处理弹窗 -->
 <div id="import-conflict-modal" class="modal-overlay" style="z-index: 2100;">
-    <div class="modal-content" style="max-width: 680px; width: 95%; max-height: 85vh; display: flex; flex-direction: column;">
+    <div class="modal-content" style="max-width: 880px; width: 92%; max-height: 88vh; display: flex; flex-direction: column;">
         <div class="modal-header">
             <h3 style="color: var(--accent-orange, #f59e0b); display: flex; align-items: center; gap: 8px;">
                 <span>⚠️ 导入项目冲突</span>
@@ -2900,24 +3601,59 @@
         </div>
         
         <!-- 批量快捷操作栏 -->
-        <div style="padding: 10px 2rem; background: var(--bg-surface); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+        <div class="import-conflict-toolbar" style="background: var(--bg-surface); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
             <span class="settings-hint" style="margin: 0; font-size: 0.85em;">以下导入项与本地现有条目 ID 重复，请指定处理策略：</span>
             <div style="display: flex; gap: 6px;">
                 <button type="button" id="import-conflict-batch-overwrite" class="secondary-button" style="padding: 3px 9px; font-size: 0.8em;">全部覆盖</button>
-                <button type="button" id="import-conflict-batch-keep" class="secondary-button" style="padding: 3px 9px; font-size: 0.8em;">全部都保留</button>
+                <button type="button" id="import-conflict-batch-keep" class="secondary-button" style="padding: 3px 9px; font-size: 0.8em; display: inline-flex; align-items: center; gap: 4px;"><span>全部都保留</span><span class="conflict-help-tooltip" data-tooltip="【都保留】策略说明：&#10;• 本地现有条目保持原样，绝不覆盖；&#10;• 待导入条目将新建为独立的「同步副本」（名称自动追加 (同步副本)）；&#10;• 新导入的会话将自动关联至新副本，两者互不干扰互不污染。" title="【都保留】策略说明：保留本地原条目，为待导入版本创建独立同步副本并绑定新会话">!</span></button>
                 <button type="button" id="import-conflict-batch-skip" class="secondary-button" style="padding: 3px 9px; font-size: 0.8em;">全部跳过</button>
             </div>
         </div>
 
-        <div class="modal-body" style="padding: 1rem 2rem; overflow-y: auto; flex: 1;">
+        <div class="modal-body import-conflict-body" style="overflow-y: auto; flex: 1;">
             <div id="import-conflict-items-container" class="import-conflict-list" style="display: flex; flex-direction: column; gap: 10px;">
                 <!-- 动态填充各冲突项 -->
             </div>
         </div>
 
-        <div class="modal-actions" style="padding: 0.85rem 2rem; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 10px;">
+        <div class="modal-actions import-conflict-actions" style="border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 10px;">
             <button id="import-conflict-cancel-btn" class="cancel-button">取消导入</button>
             <button id="import-conflict-confirm-btn">确认执行导入</button>
+        </div>
+    </div>
+</div>
+
+<!-- 会话同步/导入覆盖冲突对比与保护弹窗 -->
+<div id="sync-conflict-modal" class="modal-overlay" style="z-index: 2150; display: none;">
+    <div class="modal-content sync-conflict-modal-content" style="max-width: 920px; width: 94%; max-height: 90vh; display: flex; flex-direction: column;">
+        <div class="modal-header">
+            <h3 style="color: var(--accent-orange, #f59e0b); display: flex; align-items: center; gap: 8px;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                <span>会话冲突对比与覆盖保护</span>
+                <span id="sync-conflict-count-badge" class="scope-badge" style="font-size: 0.75em; background: rgba(245, 158, 11, 0.15); color: var(--accent-orange, #f59e0b); font-weight: normal;">共 1 项冲突</span>
+            </h3>
+            <button class="modal-close-btn" id="sync-conflict-close-btn">&times;</button>
+        </div>
+        
+        <!-- 批量快捷操作栏 -->
+        <div class="sync-conflict-toolbar" style="background: var(--bg-surface); border-bottom: 1px solid var(--border-color); padding: 8px 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+            <span class="settings-hint" style="margin: 0; font-size: 0.85em;">检测到待导入/同步的会话与本地已有记录冲突。选择【覆盖本地】会将本地原版安全移入【回收站】保留 10 天，绝不丢失数据。</span>
+            <div id="sync-conflict-batch-tools" style="display: flex; gap: 6px;">
+                <button type="button" id="sync-conflict-batch-overwrite" class="secondary-button" style="padding: 3px 9px; font-size: 0.8em;">全部覆盖本地 (移入回收站)</button>
+                <button type="button" id="sync-conflict-batch-keep" class="secondary-button" style="padding: 3px 9px; font-size: 0.8em;">全部都保留 (建副本)</button>
+                <button type="button" id="sync-conflict-batch-skip" class="secondary-button" style="padding: 3px 9px; font-size: 0.8em;">全部跳过</button>
+            </div>
+        </div>
+
+        <div class="modal-body sync-conflict-body" style="overflow-y: auto; flex: 1; padding: 16px;">
+            <div id="sync-conflict-items-container" class="sync-conflict-list" style="display: flex; flex-direction: column; gap: 16px;">
+                <!-- 动态填充会话冲突项对比 -->
+            </div>
+        </div>
+
+        <div class="modal-actions sync-conflict-actions" style="border-top: 1px solid var(--border-color); padding: 12px 16px; display: flex; justify-content: flex-end; gap: 10px;">
+            <button id="sync-conflict-cancel-btn" class="cancel-button">取消</button>
+            <button id="sync-conflict-confirm-btn" class="primary-button" style="background: var(--primary-color, #3b82f6); color: white; border: none; padding: 8px 18px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; cursor: pointer;">确认并应用处理策略</button>
         </div>
     </div>
 </div>
@@ -3130,6 +3866,335 @@
                 <button id="mcp-error-retry-action-btn" type="button" class="primary-button" style="padding: 7px 14px; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 4px;">
                     <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><polyline points="3 3 3 8 8 8"></polyline></svg>立即重试
                 </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- Sync Modal (跨设备会话云同步) -->
+<div id="sync-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-content" style="max-width: 680px; position: relative;">
+        <div class="modal-header">
+            <h2 style="display: flex; align-items: center; gap: 8px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--primary-color, #3b82f6);"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>
+                跨设备会话云同步
+                <span style="font-size: 11px; padding: 2px 6px; border-radius: 4px; background: rgba(59, 130, 246, 0.1); color: var(--primary-color, #3b82f6); font-weight: normal;">E2EE 端到端加密</span>
+            </h2>
+            <button class="modal-close-btn" id="sync-modal-close-btn" title="关闭">&times;</button>
+        </div>
+
+        <div class="modal-body sync-modal-container">
+            <!-- 顶部服务器状态与配置卡片 (Plan A 一体化状态机) -->
+            <div class="sync-server-card">
+                <div class="sync-server-row">
+                    <span id="sync-server-status-dot" class="sync-status-indicator" title="未连接"></span>
+                    <span id="sync-server-status-text" style="font-size: 13px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 360px;">未配置同步服务</span>
+                    <div style="margin-left: auto; display: flex; gap: 6px; align-items: center; flex-shrink: 0;">
+                        <button id="sync-header-logout-btn" type="button" class="sync-btn sync-btn-secondary" style="padding: 3px 8px; font-size: 12px; display: none;" title="退出当前账号登录状态">退出登录</button>
+                        <button id="sync-change-server-btn" type="button" class="sync-btn sync-btn-secondary" style="padding: 3px 8px; font-size: 12px; display: none;" title="更换或重新配置云同步服务器地址">切换节点</button>
+                    </div>
+                </div>
+                <div id="sync-server-config-section" class="sync-server-row">
+                    <div class="sync-server-input-wrapper">
+                        <input id="sync-server-url-input" type="text" class="sync-server-input" placeholder="请输入自建同步服务地址 (例如 https://sync.example.com 或 http://192.168.1.100:8443)">
+                        <button id="sync-test-server-btn" type="button" class="sync-btn sync-btn-primary" style="display: inline-flex; align-items: center; gap: 6px;">
+                            <svg class="sync-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                            测试连接
+                        </button>
+                    </div>
+                </div>
+                <div class="sync-help-hint">
+                    <svg class="sync-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; margin-right: 2px;"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> 数据在客户端完成 AES-256 加密后上传，服务端零知识。若使用内网自签名证书，请先在浏览器<a id="sync-cert-test-link" href="#" target="_blank" rel="noopener noreferrer">在新窗口打开此地址</a>并点击“信任证书”。
+                </div>
+            </div>
+
+            <!-- AI 后台任务中转配置卡片 (防断网/切后台) -->
+            <div class="sync-relay-card" id="sync-relay-settings-card">
+                <div class="sync-relay-header">
+                    <div class="sync-relay-title-group">
+                        <svg class="sync-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--primary-color, #3b82f6);"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+                        <span class="sync-relay-title">启用 AI 后台任务中转 (防断网/切后台)</span>
+                        <div class="sync-help-tooltip-trigger" data-tooltip="开启后，向大模型发起的请求将由自建云同步服务端在后台接力稳定执行。&#10;&#10;即使遭遇手机切后台、息屏锁屏、网络抖动或切换 Wi-Fi，大模型依然在云端后台稳定长跑。&#10;切回前台或刷新网页后秒级自动恢复轮询并填补完整回复，彻底告别掉线重来！">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                        </div>
+                    </div>
+                    <label class="sync-switch" id="sync-relay-switch-label" title="开启/关闭 AI 后台任务中转">
+                        <input type="checkbox" id="sync-enable-ai-relay-checkbox" disabled>
+                        <span class="sync-slider"></span>
+                    </label>
+                </div>
+                <div class="sync-relay-desc" id="sync-relay-desc-text">
+                    请先连接云同步服务
+                </div>
+            </div>
+
+            <!-- 主业务 Tabs 导航栏 (连接可用时展示) -->
+            <div id="sync-main-tabs" class="sync-nav-tabs" style="display: none;">
+                <div class="sync-tab-item active" data-tab="upload">会话快照上传</div>
+                <div class="sync-tab-item" data-tab="download">云端快照时间线</div>
+                <div class="sync-tab-item" data-tab="devices">设备与配额</div>
+            </div>
+
+            <!-- Pane 0: 账号登录 / 注册 (未登录时展示) -->
+            <div id="sync-auth-pane" class="sync-tab-pane active">
+                <div style="display: flex; gap: 8px; border-bottom: 1px dashed var(--border-color, #cbd5e1); padding-bottom: 8px;">
+                    <button id="sync-switch-login-btn" type="button" class="sync-btn sync-btn-primary" style="flex: 1;">账号登录</button>
+                    <button id="sync-switch-register-btn" type="button" class="sync-btn sync-btn-secondary" style="flex: 1;">凭邀请码注册</button>
+                </div>
+
+                <!-- 登录表单 -->
+                <div id="sync-login-form" style="display: flex; flex-direction: column; gap: 10px;">
+                    <div class="sync-form-group">
+                        <label class="sync-form-label">用户名</label>
+                        <input id="sync-login-username" type="text" class="sync-server-input" placeholder="输入用户名">
+                    </div>
+                    <div class="sync-form-group">
+                        <label class="sync-form-label">主密码</label>
+                        <input id="sync-login-password" type="password" class="sync-server-input" placeholder="输入主密码 (用于解锁端到端加密)">
+                    </div>
+                    <div class="sync-form-group">
+                        <label class="sync-form-label">当前设备标识</label>
+                        <input id="sync-login-device-name" type="text" class="sync-server-input" placeholder="例如：家用台式机 / 办公室笔记本">
+                    </div>
+                    <button id="sync-submit-login-btn" type="button" class="sync-btn sync-btn-primary" style="margin-top: 6px; padding: 10px;">登 录</button>
+                </div>
+
+                <!-- 注册表单 -->
+                <div id="sync-register-form" style="display: none; flex-direction: column; gap: 10px;">
+                    <div class="sync-form-group">
+                        <label class="sync-form-label">注册邀请码</label>
+                        <input id="sync-reg-invite" type="text" class="sync-server-input" placeholder="由服务端管理员生成的邀请码">
+                    </div>
+                    <div class="sync-form-group">
+                        <label class="sync-form-label">用户名 (3~32 位)</label>
+                        <input id="sync-reg-username" type="text" class="sync-server-input" placeholder="字母/数字/下划线">
+                    </div>
+                    <div class="sync-form-group">
+                        <label class="sync-form-label">主密码</label>
+                        <input id="sync-reg-password" type="password" class="sync-server-input" placeholder="用于身份校验与数据加密">
+                    </div>
+                    <div class="sync-form-group">
+                        <label class="sync-form-label">确认主密码</label>
+                        <input id="sync-reg-confirm-password" type="password" class="sync-server-input" placeholder="再次输入主密码">
+                    </div>
+                    <div class="sync-form-group">
+                        <label class="sync-form-label">设备名称</label>
+                        <input id="sync-reg-device-name" type="text" class="sync-server-input" placeholder="例如：我的 MacBook Pro">
+                    </div>
+                    <div class="sync-security-warning-card">
+                        <div class="sync-security-warning-title">
+                            <svg class="sync-icon sync-icon-alert" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                            <strong>极度重要安全提示</strong>
+                        </div>
+                        <p class="sync-security-warning-desc">
+                            云同步采用端到端零知识加密（E2EE），服务端<strong>绝无找回密码功能</strong>！若遗忘主密码，云端快照将<strong>永久无法解密恢复</strong>！
+                        </p>
+                        <div style="margin: 6px 0;">
+                            <button type="button" id="sync-copy-credentials-btn" class="sync-btn sync-btn-secondary" style="width: 100%; font-size: 12px; padding: 6px 10px; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
+                                <svg class="sync-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                                一键复制账号与密码备忘
+                            </button>
+                        </div>
+                        <label class="sync-security-confirm-label" style="display: flex; align-items: flex-start; gap: 6px; font-size: 12px; cursor: pointer; line-height: 1.4;">
+                            <input type="checkbox" id="sync-confirm-backup-checkbox" style="margin-top: 2px; cursor: pointer;">
+                            <span>我已先复制好账号与主密码，并妥善存放到其他软件/备忘录中</span>
+                        </label>
+                    </div>
+                    <button id="sync-submit-register-btn" type="button" class="sync-btn sync-btn-primary" style="margin-top: 6px; padding: 10px;" disabled>注 册</button>
+                </div>
+            </div>
+
+            <!-- Pane 1: 上传快照 -->
+            <div id="sync-upload-pane" class="sync-tab-pane">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                    <span style="font-size: 13px; font-weight: 600;">选择要备份至云端的会话：</span>
+                    <div style="display: flex; gap: 8px;">
+                        <button id="sync-select-all-btn" type="button" class="sync-btn sync-btn-secondary" style="padding: 4px 8px; font-size: 12px;">全选当前页</button>
+                        <button id="sync-select-global-btn" type="button" class="sync-btn sync-btn-secondary" style="padding: 4px 8px; font-size: 12px;">全选所有</button>
+                        <button id="sync-deselect-all-btn" type="button" class="sync-btn sync-btn-secondary" style="padding: 4px 8px; font-size: 12px;">清空已选</button>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <input type="text" id="sync-conv-search-input" class="sync-server-input" placeholder="快速搜索会话标题..." style="padding: 6px 10px; font-size: 12px; flex: 1;">
+                    <select id="sync-page-size-select" class="sync-server-input" style="width: auto; padding: 6px 8px; font-size: 12px; cursor: pointer;">
+                        <option value="50">50条/页</option>
+                        <option value="100" selected>100条/页</option>
+                        <option value="200">200条/页</option>
+                    </select>
+                </div>
+                <div id="sync-upload-conv-list" class="sync-snapshot-list" style="max-height: 280px;">
+                    <!-- 动态注入会话复选列表 -->
+                </div>
+                <!-- 分页控制器 -->
+                <div id="sync-upload-pagination" style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--text-muted, #64748b);">
+                    <span id="sync-page-info">第 1 / 1 页 (共 0 条)</span>
+                    <div style="display: flex; gap: 6px;">
+                        <button id="sync-prev-page-btn" type="button" class="sync-btn sync-btn-secondary" style="padding: 3px 10px; font-size: 11px; display: inline-flex; align-items: center; gap: 4px;">
+                            <svg class="sync-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg> 上一页
+                        </button>
+                        <button id="sync-next-page-btn" type="button" class="sync-btn sync-btn-secondary" style="padding: 3px 10px; font-size: 11px; display: inline-flex; align-items: center; gap: 4px;">
+                            下一页 <svg class="sync-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                        </button>
+                    </div>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 8px; border-top: 1px solid var(--border-color, #e2e8f0);">
+                    <span id="sync-upload-summary-text" style="font-size: 12px; color: var(--text-muted, #64748b);">已勾选 0 个会话</span>
+                    <button id="sync-start-upload-btn" type="button" class="sync-btn sync-btn-primary">打包并加密上传</button>
+                </div>
+            </div>
+
+            <!-- Pane 2: 云端快照时间线 (下载与追加) -->
+            <div id="sync-download-pane" class="sync-tab-pane">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                    <span style="font-size: 13px; font-weight: 600;">云端快照记录：</span>
+                    <div style="display: flex; gap: 6px; align-items: center;">
+                        <button id="sync-batch-manage-btn" type="button" class="sync-btn sync-btn-secondary" style="padding: 4px 8px; font-size: 12px; display: inline-flex; align-items: center; gap: 5px;" title="开启或退出批量管理模式">
+                            <svg class="sync-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 11 3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                            <span id="sync-batch-manage-btn-text">批量管理</span>
+                        </button>
+                        <button id="sync-refresh-snapshots-btn" type="button" class="sync-btn sync-btn-secondary" style="padding: 4px 8px; font-size: 12px; display: inline-flex; align-items: center; gap: 5px;">
+                            <svg class="sync-icon sync-refresh-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+                            刷新列表
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 批量管理操作浮动工具栏 -->
+                <div id="sync-batch-toolbar" class="sync-batch-toolbar" style="display: none;">
+                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                        <button id="sync-batch-select-all-btn" type="button" class="sync-btn sync-btn-secondary" style="padding: 3px 8px; font-size: 11px;">全选</button>
+                        <button id="sync-batch-deselect-all-btn" type="button" class="sync-btn sync-btn-secondary" style="padding: 3px 8px; font-size: 11px;">清空已选</button>
+                        <span id="sync-batch-selected-info" style="font-size: 12px; color: var(--text-muted, #64748b);">已勾选 0 个快照 (0.00 MB)</span>
+                    </div>
+                    <button id="sync-batch-delete-btn" type="button" class="sync-btn sync-btn-danger" style="padding: 4px 10px; font-size: 12px; display: inline-flex; align-items: center; gap: 4px;" disabled>
+                        <svg class="sync-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                        批量清理
+                    </button>
+                </div>
+
+                <div id="sync-snapshots-timeline" class="sync-snapshot-list">
+                    <!-- 动态注入快照时间线 -->
+                </div>
+            </div>
+
+            <!-- Pane 3: 设备与配额管理 -->
+            <div id="sync-devices-pane" class="sync-tab-pane">
+                <div class="sync-quota-bar-wrapper">
+                    <div style="display: flex; justify-content: space-between; font-size: 13px;">
+                        <span>云端已用空间：<strong id="sync-used-quota-text">0 MB</strong></span>
+                        <span>总配额：<strong id="sync-total-quota-text">-- MB</strong></span>
+                    </div>
+                    <div class="sync-quota-progress-track">
+                        <div id="sync-quota-progress-bar" class="sync-quota-progress-fill" style="width: 0%;"></div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 10px;">
+                    <span style="font-size: 13px; font-weight: 600;">已授权的设备列表：</span>
+                    <div id="sync-devices-list" class="sync-snapshot-list" style="max-height: 200px; margin-top: 8px;">
+                        <!-- 动态注入设备列表 -->
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 12px; border-top: 1px solid var(--border-color, #e2e8f0); margin-top: 8px;">
+                    <span style="font-size: 12px; color: var(--text-muted, #64748b);">当前登录：<strong id="sync-current-user-text">-</strong></span>
+                    <button id="sync-logout-btn" type="button" class="sync-btn sync-btn-danger">退出登录</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 批量清理主密码安全验证模态遮罩 -->
+        <div id="sync-batch-pwd-dialog" class="sync-pwd-dialog-overlay" style="display: none;">
+            <div class="sync-pwd-dialog-box">
+                <div class="sync-pwd-dialog-header">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <svg class="sync-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--danger-color, #ef4444);"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                        <span style="font-weight: 600; font-size: 14px;">安全验证 · 批量清理云端快照</span>
+                    </div>
+                    <button type="button" id="sync-batch-pwd-close-btn" class="sync-close-btn" title="关闭">&times;</button>
+                </div>
+                <div class="sync-pwd-dialog-body">
+                    <div class="sync-pwd-warning-alert">
+                        <svg class="sync-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 1px;"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                        <div id="sync-batch-pwd-warning-text">即将从云端彻底删除选中的快照并全额释放存储空间。此操作不可逆，请验证主密码以确认本人操作。</div>
+                    </div>
+                    <div class="form-group" style="margin-top: 12px; margin-bottom: 6px;">
+                        <label for="sync-batch-pwd-input" style="font-size: 12px; font-weight: 600; display: block; margin-bottom: 6px;">云同步主密码</label>
+                        <div class="input-with-button" style="display: flex; gap: 6px;">
+                            <input type="password" id="sync-batch-pwd-input" class="sync-server-input" placeholder="输入主密码确认删除" style="flex: 1;" autocomplete="current-password">
+                            <button type="button" id="sync-batch-pwd-toggle-btn" class="sync-btn sync-btn-secondary" style="padding: 4px 10px; font-size: 12px;">显示</button>
+                        </div>
+                    </div>
+                    <div id="sync-batch-pwd-error" style="color: var(--danger-color, #ef4444); font-size: 12px; min-height: 18px; margin-top: 4px;"></div>
+                </div>
+                <div class="sync-pwd-dialog-footer">
+                    <button type="button" id="sync-batch-pwd-cancel-btn" class="sync-btn sync-btn-secondary">取消</button>
+                    <button type="button" id="sync-batch-pwd-confirm-btn" class="sync-btn sync-btn-danger" style="display: inline-flex; align-items: center; gap: 5px;">
+                        <svg class="sync-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                        确认清理
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 全屏 Loading 遮罩与进度提示 -->
+        <div id="sync-loading-overlay" class="sync-loading-overlay">
+            <div class="sync-spinner"></div>
+            <div id="sync-loading-message" style="font-size: 13px; font-weight: 500;">正在处理...</div>
+        </div>
+    </div>
+</div>
+
+<!-- DeepSeek 官方导出会话导入弹窗（工具箱入口） -->
+<div id="deepseek-import-modal" class="modal-overlay" style="z-index: 2200;">
+    <div class="modal-content ds-import-dialog">
+        <div class="ds-import-header">
+            <!-- nowrap 内联兜底：CSS 文件被强缓存/旧部署时也能保证标题一行 -->
+            <h2 style="white-space:nowrap;flex-shrink:0;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                DeepSeek 会话导入
+            </h2>
+            <button class="modal-close-btn" title="关闭">&times;</button>
+        </div>
+        <div class="ds-import-toolbar">
+            <button type="button" id="ds-pick-folder-btn" class="ds-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                选择导入文件夹
+            </button>
+            <button type="button" id="ds-pick-files-btn" class="ds-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                选择 JSON 文件
+            </button>
+            <input type="file" id="ds-folder-input" webkitdirectory style="display:none;">
+            <input type="file" id="ds-files-input" accept=".json,application/json" multiple style="display:none;">
+            <span id="ds-load-summary" class="ds-load-summary">未加载数据</span>
+            <div class="ds-toolbar-right">
+                <input type="text" id="ds-filter-input" class="ds-filter-input" placeholder="按标题搜索">
+                <div class="ds-sort-group">
+                    <button type="button" id="ds-sort-time-btn" class="ds-sort-btn active">时间倒序</button>
+                    <button type="button" id="ds-sort-title-btn" class="ds-sort-btn">按标题</button>
+                </div>
+            </div>
+        </div>
+        <div class="ds-import-body">
+            <div class="ds-session-list-wrap" id="ds-session-list"></div>
+            <div class="ds-session-preview-wrap" id="ds-session-preview"></div>
+        </div>
+        <div class="ds-import-footer">
+            <label class="ds-opt-label" title="将会话中的联网搜索/网页打开记录以引用块形式插入AI正文开头">
+                <input type="checkbox" id="ds-opt-search-refs"> 保留联网搜索记录
+            </label>
+            <label class="ds-opt-label" title="图片附件以 base64 形式写入会话（会明显增大本地存储占用）">
+                <input type="checkbox" id="ds-opt-embed-images"> 嵌入图片附件
+            </label>
+            <div class="ds-footer-right">
+                <button type="button" id="ds-check-all-btn" class="ds-btn">全选</button>
+                <button type="button" id="ds-check-none-btn" class="ds-btn">清空选择</button>
+                <button type="button" id="ds-import-selected-btn" class="ds-btn ds-btn-primary" disabled>
+                    导入选中 (<span id="ds-selected-count">0</span>)
+                </button>
+                <button type="button" id="ds-import-all-btn" class="ds-btn" disabled>全部导入</button>
             </div>
         </div>
     </div>

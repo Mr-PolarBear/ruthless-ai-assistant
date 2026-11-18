@@ -38,9 +38,12 @@ async function initLibraries(paths) {
         } catch (e) {
             console.warn('Worker 首选库加载失败，正在尝试公共 CDN 备用地址降级:', e);
             try {
+                // — 为什么这么写 —
+                // 使用国内极速镜像 cdnjs.loli.net 替代海外的 cdnjs.cloudflare.com
+                // 解决国内网络环境直连 Cloudflare 容易发生 ERR_CONNECTION_TIMED_OUT 导致降级依然失败的问题
                 importScripts(
-                    'https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.1/marked.min.js',
-                    'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js'
+                    'https://cdnjs.loli.net/ajax/libs/marked/12.0.1/marked.min.js',
+                    'https://cdnjs.loli.net/ajax/libs/highlight.js/11.9.0/highlight.min.js'
                 );
             } catch (fallbackErr) {
                 console.error('Worker 公共 CDN 备选地址加载亦失败:', fallbackErr);

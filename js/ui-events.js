@@ -15,6 +15,8 @@ import { scrollManager } from './scroll-manager.js?v=temp';
 import { openChangelogModal } from './services/changelog-manager.js?v=temp';
 import { draftManager } from './services/draft-manager.js?v=temp';
 import { scrollPillManager } from './services/scroll-pill-manager.js?v=temp';
+import { openLoadAllConfirmModal } from './modals/load-all-confirm-modal.js?v=temp';
+import { isMobileDevice } from './services/viewport-manager.js?v=temp';
 
 function positionPopupNearButton(button, popup) {
     if (!button || !popup) return;
@@ -44,12 +46,15 @@ function positionPopupNearButton(button, popup) {
 
 /**
  * 关闭移动端侧边栏抽屉
+ * — 为什么这么写 —
+ * 移除对 document.body 增删 'sidebar-open' 的无用操作。
+ * 在根节点修改 class 会触发整个 DOM 树上万节点的全局样式重算（Style Recalculation）。
+ * 移动端关闭由遮罩层 #sidebar-backdrop 与关闭按钮精准接管。
  */
 export function closeSidebarMobile() {
     if (dom.sidebar) {
         dom.sidebar.classList.remove('sidebar-visible');
     }
-    document.body.classList.remove('sidebar-open');
     const backdrop = document.getElementById('sidebar-backdrop');
     if (backdrop) backdrop.classList.remove('active');
 }
@@ -61,7 +66,6 @@ export function openSidebarMobile() {
     if (dom.sidebar) {
         dom.sidebar.classList.add('sidebar-visible');
     }
-    document.body.classList.add('sidebar-open');
     const backdrop = document.getElementById('sidebar-backdrop');
     if (backdrop) backdrop.classList.add('active');
 }
@@ -82,8 +86,36 @@ export function toggleSidebarMobile() {
 export function setupUIEvents() {
     // Sidebar toggle
     if (dom.sidebarToggleBtn) {
+        // — 为什么这么写 —
+        // 1. 移动端极速通道：监听 touchend 并在松手瞬间立即触发，彻底跳过 Alook / 移动端 WebView
+        //    默认等待 300ms 判定双击缩放或滑动的手势延迟与长任务队列积压；
+        // 2. 时间戳防抖锁 (400ms)：调用 preventDefault 阻断合成虚拟 click，同时记录时间戳，
+        //    防止部分安卓国产浏览器穿透执行随后的 click 事件导致抽屉被秒开又秒关；
+        // 3. 桌面端平滑保留原有 click 逻辑，100% 互不干扰。
+        let lastToggleTime = 0;
+
+        const handleMobileFastToggle = (e) => {
+            const isMobile = isMobileDevice();
+            if (!isMobile) return;
+
+            const now = performance.now ? performance.now() : Date.now();
+            if (now - lastToggleTime < 400) return;
+            lastToggleTime = now;
+
+            if (e && e.cancelable) {
+                e.preventDefault();
+            }
+            toggleSidebarMobile();
+        };
+
+        dom.sidebarToggleBtn.addEventListener('touchend', handleMobileFastToggle, { passive: false });
+
         dom.sidebarToggleBtn.addEventListener('click', () => {
-            if (window.innerWidth <= 768) { // Mobile view
+            const isMobile = isMobileDevice();
+            if (isMobile) {
+                const now = performance.now ? performance.now() : Date.now();
+                if (now - lastToggleTime < 400) return; // 已被 touchend 极速通道处理过，直接跳过
+                lastToggleTime = now;
                 toggleSidebarMobile();
             } else { // Desktop view
                 dom.app.classList.toggle('sidebar-collapsed');
@@ -92,16 +124,45 @@ export function setupUIEvents() {
         });
     }
 
-    // 移动端遮罩层点击关闭侧边栏
+    // 移动端遮罩层点击关闭侧边栏（同步接入 touchend 极速通道）
     const backdrop = document.getElementById('sidebar-backdrop');
     if (backdrop) {
-        backdrop.addEventListener('click', closeSidebarMobile);
+        let lastBackdropCloseTime = 0;
+
+        const handleBackdropFastClose = (e) => {
+            const now = performance.now ? performance.now() : Date.now();
+            if (now - lastBackdropCloseTime < 400) return;
+            lastBackdropCloseTime = now;
+
+            if (e && e.cancelable) {
+                e.preventDefault();
+            }
+            closeSidebarMobile();
+        };
+
+        backdrop.addEventListener('touchend', handleBackdropFastClose, { passive: false });
+        backdrop.addEventListener('click', () => {
+            const now = performance.now ? performance.now() : Date.now();
+            if (now - lastBackdropCloseTime < 400) return;
+            lastBackdropCloseTime = now;
+            closeSidebarMobile();
+        });
     }
 
     // 移动端侧边栏顶部显式关闭按钮
     const sidebarCloseBtn = document.getElementById('sidebar-close-btn');
     if (sidebarCloseBtn) {
-        sidebarCloseBtn.addEventListener('click', closeSidebarMobile);
+        let lastBtnCloseTime = 0;
+        const handleBtnFastClose = (e) => {
+            const now = performance.now ? performance.now() : Date.now();
+            if (now - lastBtnCloseTime < 400) return;
+            lastBtnCloseTime = now;
+
+            if (e && e.cancelable) e.preventDefault();
+            closeSidebarMobile();
+        };
+        sidebarCloseBtn.addEventListener('touchend', handleBtnFastClose, { passive: false });
+        sidebarCloseBtn.addEventListener('click', handleBtnFastClose);
     }
 
     // Fullscreen toggle
@@ -156,13 +217,9 @@ export function setupUIEvents() {
 
     // General body click handlers
     document.body.addEventListener('click', (e) => {
-        // 快捷提示菜单和侧边栏的外部点击关闭逻辑
+        // 快捷提示菜单的外部点击关闭逻辑
         if (dom.quickPromptMenu && !dom.quickPromptMenu.contains(e.target) && !e.target.closest('#quick-prompt-btn')) {
             dom.quickPromptMenu.style.display = 'none';
-        }
-        if (e.target === document.body && document.body.classList.contains('sidebar-open')) {
-            dom.sidebar.classList.remove('sidebar-visible');
-            document.body.classList.remove('sidebar-open');
         }
     }, true); // Use capture to catch the click early
 
@@ -262,6 +319,9 @@ export function setupUIEvents() {
 
     // 开源代码仓库地址复制事件绑定
     setupRepoLinkEvents();
+
+    // 移动端顶栏横向滚动指引（Plan A: 渐隐 + 动态向右微标）
+    setupPersonaBarScrollHint();
 }
 
 /**
@@ -417,8 +477,9 @@ function setupThemeAndAppearanceEvents() {
  * Sets up send key related events
  */
 function setupSendKeyEvents() {
-    dom.sendKeyEnter.addEventListener('change', handleSendKeyChange);
-    dom.sendKeyCtrlEnter.addEventListener('change', handleSendKeyChange);
+    if (dom.sendKeyEnter) dom.sendKeyEnter.addEventListener('change', handleSendKeyChange);
+    if (dom.sendKeyCtrlEnter) dom.sendKeyCtrlEnter.addEventListener('change', handleSendKeyChange);
+    if (dom.sendKeyButton) dom.sendKeyButton.addEventListener('change', handleSendKeyChange);
 }
 
 /**
@@ -502,15 +563,17 @@ function setupLazyLoadEvents() {
         });
     }
 
-    // 乌鸦：加载全部消息按钮事件
+    // 乌鸦/小鸡：加载全部消息按钮事件（带确认弹窗与性能安全提示）
     if (dom.loadAllMessagesBtn) {
         const btn = dom.loadAllMessagesBtn.querySelector('button');
         if (btn) {
             btn.addEventListener('click', function () {
-                // 乌鸦：加载全部是一次性操作，不应该永久保存
-                // 只在当前会话显示全部，刷新后应该回到用户设置的值
-                renderChatMessages({ scrollBehavior: 'bottom', forceLoadAll: true });
-                console.log('乌鸦：用户选择加载全部消息');
+                openLoadAllConfirmModal(() => {
+                    // 乌鸦：加载全部是一次性操作，不应该永久保存
+                    // 只在当前会话显示全部，刷新后应该回到用户设置的值
+                    renderChatMessages({ scrollBehavior: 'bottom', forceLoadAll: true });
+                    console.log('乌鸦：用户确认加载全部消息');
+                });
             });
         }
     }
@@ -584,4 +647,66 @@ function setupRepoLinkEvents() {
             });
         }
     });
+}
+
+
+/**
+ * 移动端顶栏横向滚动提示指引 (Plan A: 渐隐遮罩 + 动态微动小箭头)
+ * 监听 personaBar 的滚动、视口尺寸及内容宽度变化，动态控制右侧微标与渐隐的显隐，并支持一键顺滑翻屏
+ */
+let personaBarHintUpdater = null;
+
+export function updatePersonaBarScrollHint() {
+    if (typeof personaBarHintUpdater === 'function') {
+        personaBarHintUpdater();
+    }
+}
+
+function setupPersonaBarScrollHint() {
+    const bar = dom.personaBar;
+    const hint = dom.personaBarScrollHint || document.getElementById('persona-bar-scroll-hint');
+    if (!bar || !hint) return;
+
+    let rafId = null;
+    function updateHintVisibility() {
+        if (rafId) cancelAnimationFrame(rafId);
+        rafId = requestAnimationFrame(() => {
+            if (window.innerWidth > 768) {
+                hint.classList.remove('visible');
+                return;
+            }
+
+            const canScroll = bar.scrollWidth > bar.clientWidth + 5;
+            const reachedEnd = bar.scrollLeft + bar.clientWidth >= bar.scrollWidth - 10;
+
+            if (canScroll && !reachedEnd) {
+                hint.classList.add('visible');
+            } else {
+                hint.classList.remove('visible');
+            }
+        });
+    }
+
+    personaBarHintUpdater = updateHintVisibility;
+
+    bar.addEventListener('scroll', updateHintVisibility, { passive: true });
+    window.addEventListener('resize', updateHintVisibility, { passive: true });
+
+    // — 为什么这么写 —
+    // 监听角色容器内部尺寸与子节点变动，无论是异步载入人设、动态字体渲染还是增删角色，
+    // 均能瞬时自适应重新测量并刷新微标可见性，彻底告别单次 setTimeout 的生命周期脆弱性
+    if (window.ResizeObserver) {
+        try {
+            const ro = new ResizeObserver(() => updateHintVisibility());
+            ro.observe(bar);
+        } catch (_) {}
+    }
+    window.addEventListener('personabar:update', updateHintVisibility);
+
+    hint.addEventListener('click', (e) => {
+        e.stopPropagation();
+        bar.scrollBy({ left: 160, behavior: 'smooth' });
+    });
+
+    setTimeout(updateHintVisibility, 350);
 }

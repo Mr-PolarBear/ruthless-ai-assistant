@@ -5,6 +5,12 @@
     position: relative;
 }
 
+/* — 为什么这么写 —
+   1. 动画精简：原 transition 杂糅了 width、min-width、padding、transform、opacity 5 个属性，
+      不仅属性间存在动画竞争，还在宽度过渡的同时做 translateX 位移，造成双重排版与视觉撕裂；
+   2. 精简为统一的 width/min-width/padding 贝塞尔平滑过渡，并增加 overflow: hidden 保证收缩过程中内部结构不溢出；
+   3. will-change: width 提前告知渲染引擎优化几何变换流程。
+*/
 .sidebar {
     width: 400px;
     min-width: 400px;
@@ -15,7 +21,10 @@
     flex-direction: column;
     height: 100%;
     border-right: 1px solid var(--border-color);
-    transition: width 0.3s ease, min-width 0.3s ease, padding 0.3s ease, transform 0.3s ease, opacity 0.3s ease;
+    box-sizing: border-box;
+    overflow: hidden;
+    transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1), min-width 0.25s cubic-bezier(0.4, 0, 0.2, 1), padding 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: width;
     box-shadow: var(--shadow-lg);
     z-index: 20;
     position: relative;
@@ -39,9 +48,9 @@
 .sidebar.collapsed {
     min-width: 0;
     width: 0;
-    padding: 1rem 0;
-    transform: translateX(-100%);
+    padding: 0;
     border-right: none;
+    box-shadow: none;
 }
 
 /* 乌鸦：侧边栏收缩时，隐藏头部、内容区和底部统计栏 */

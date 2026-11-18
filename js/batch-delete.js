@@ -77,7 +77,7 @@ export function exitBatchMode() {
 }
 
 export function selectAllConversations() {
-    const convIds = Object.keys(state.conversations || {});
+    const convIds = Object.keys(state.conversations || {}).filter(id => !state.conversations[id]?.isDeleted);
     convIds.forEach(id => state.selectedConvIds.add(id));
     updateBatchSelectedCount();
     updateAllCheckboxes();
@@ -132,32 +132,10 @@ async function handleBatchDelete() {
     const count = state.selectedConvIds.size;
     if (count === 0) return;
     
-    if (!confirm(`确定要删除选中的 ${count} 个会话吗？此操作不可撤销。`)) return;
+    if (!confirm(`确定要将选中的 ${count} 个会话移入回收站吗？\n（回收站将安全保留 10 天，随时可恢复）`)) return;
     
-    const deletePromises = [];
-    state.selectedConvIds.forEach(convId => {
-        delete state.conversations[convId];
-        draftManager.onConversationDeleted(convId);
-        deletePromises.push(deleteConversation(convId).catch(err => {
-            console.error(`删除会话 ${convId} 失败:`, err);
-        }));
-    });
-    
-    await Promise.all(deletePromises);
-    
-    saveToLocalStorage();
-    
-    if (state.selectedConvIds.has(state.currentConversationId)) {
-        state.currentConversationId = null;
-        const remainingIds = Object.keys(state.conversations);
-        const { switchToConversation } = await import('./main.js?v=temp');
-        if (remainingIds.length > 0) {
-            switchToConversation(remainingIds[0]);
-        } else {
-            // 所有会话已删光，彻底清空当前会话界面、输入草稿与 MCP 徽章状态
-            switchToConversation(null);
-        }
-    }
-    
+    const { trashManager } = await import('./services/trash-manager.js?v=temp');
+    await trashManager.batchMoveToTrash(state.selectedConvIds);
     exitBatchMode();
+    notify.success(`已将 ${count} 个会话移入回收站`);
 }

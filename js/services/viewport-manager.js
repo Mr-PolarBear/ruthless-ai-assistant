@@ -120,4 +120,33 @@ class ViewportManager {
     }
 }
 
+/**
+ * 判定当前环境是否处于移动端/手机交互模式
+ * — 为什么这么写 —
+ * 1. 移动端软键盘无法触发物理 Shift 键，输入法自带的换行按键本质上触发的是 Enter 事件，
+ *    桌面默认的 Enter 发送行为极易导致输入过程中误触发提交流水线；
+ * 2. 结合移动端 UA 与视口/触控特性，确保手机各浏览器（iOS Safari、Android Chrome/Edge/微信内置）、
+ *    Capacitor 移动打包壳以及 DevTools 移动端模拟 100% 准确识别；
+ * 3. 避免大屏触控笔记本（>768px 且带有精确指针鼠标）被误判为手机模式。
+ * @returns {boolean} 是否为移动端模式
+ */
+export function isMobileDevice() {
+    // 1. 移动设备 UserAgent 特征匹配
+    const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    if (isMobileUA) return true;
+
+    // 2. 纯触控、粗指针交互特征（无精确定点鼠标指针）
+    const isTouchOnly = window.matchMedia && window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+    if (isTouchOnly) return true;
+
+    // 3. 移动端常规窄屏视口（<= 768px）且具备触屏能力
+    const isSmallTouchScreen = window.innerWidth <= 768 && (('ontouchstart' in window) || (navigator.maxTouchPoints > 0));
+    if (isSmallTouchScreen) return true;
+
+    // 4. 窄屏视口（<= 768px）安全兜底：即便在 PC 上将窗口拉至极窄，输入区域过小，也应遵循移动端防止手滑误发的保护策略
+    if (window.innerWidth <= 768) return true;
+
+    return false;
+}
+
 export const viewportManager = new ViewportManager();

@@ -144,30 +144,141 @@ body[data-theme="dark"] #hide-summary-btn.summarizing-spinning svg {
     stroke: #58a6ff !important;
 }
 
-/* 乌鸦：发送限制楼层数角标样式 */
-.hide-summary-limit-badge {
+/* ========================================================
+   乌鸦：顶部隐藏与总结按钮右上角微胶囊徽章 (Plan B)
+   ======================================================== */
+.hide-summary-badge-group {
     position: absolute;
-    top: -6px;
-    right: -3px;
+    top: -4px;
+    right: -6px;
+    display: none;
+    align-items: center;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
+    border: 1.5px solid var(--bg-medium);
+    z-index: 5;
+    pointer-events: none;
+    box-sizing: border-box;
+    line-height: 1;
+}
+
+.hide-summary-badge-group.active {
+    display: inline-flex;
+}
+
+/* 内部倒计时部分 (蓝色渐变) */
+.hide-summary-countdown-badge {
+    background: linear-gradient(135deg, #0284c7, #0369a1);
+    color: #ffffff;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 1px 4px;
+    min-width: 12px;
+    height: 13px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+.hide-summary-countdown-badge.active {
+    display: inline-flex;
+}
+
+/* 临近触发状态 (剩余 <= 2 楼)：警示红橙动效与呼吸脉冲 */
+.hide-summary-countdown-badge.near-trigger {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    box-shadow: 0 0 6px rgba(239, 68, 68, 0.7);
+    animation: countdown-badge-pulse 1.8s infinite ease-in-out;
+}
+
+@keyframes countdown-badge-pulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.15);
+    }
+}
+
+/* 内部消息限制部分 (橙色渐变) */
+.hide-summary-limit-badge {
     background: linear-gradient(135deg, #ff9800, #f57c00);
     color: #ffffff;
-    font-size: 10px;
+    font-size: 9px;
     font-weight: 700;
-    padding: 1px 5px;
-    border-radius: 10px;
-    line-height: 1.2;
-    min-width: 16px;
-    text-align: center;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.25);
+    padding: 1px 4px;
+    min-width: 12px;
+    height: 13px;
     display: none;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+.hide-summary-limit-badge.active {
+    display: inline-flex;
+}
+
+/* 当两个角标同时激活时，中间以半透明细线分界，呈现精致的 Split Badge [ 14 | 20 ] */
+.hide-summary-countdown-badge.active + .hide-summary-limit-badge.active {
+    border-left: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+/* 顶部 persona-bar 中隐藏与总结按钮规格 */
+.persona-bar #hide-summary-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    margin-right: 2px;
+    border-radius: var(--radius-full);
+    flex-shrink: 0;
+}
+
+/* ========================================================
+   乌鸦：备忘按钮右上角激活数量角标
+   ======================================================== */
+#manage-worldbook-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+
+.worldbook-count-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: #ffffff;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 0 4px;
+    border-radius: 8px;
+    line-height: 1;
+    min-width: 13px;
+    height: 13px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
     pointer-events: none;
     z-index: 5;
     border: 1.5px solid var(--bg-medium);
     box-sizing: border-box;
 }
 
-.hide-summary-limit-badge.active {
-    display: inline-block;
+.worldbook-count-badge.active {
+    display: inline-flex;
 }
 
 /* 乌鸦：当前会话总 Token 数徽章样式 */
@@ -220,6 +331,7 @@ body[data-theme="dark"] .session-token-badge-btn:hover {
     border-color: rgba(88, 166, 255, 0.5);
 }
 
+.quick-regex-btn,
 .simulate-send-btn {
     display: inline-flex;
     align-items: center;
@@ -233,11 +345,13 @@ body[data-theme="dark"] .session-token-badge-btn:hover {
     transition: all 0.15s ease;
 }
 
+.quick-regex-btn:hover,
 .simulate-send-btn:hover {
     background: var(--bg-hover, rgba(0,0,0,0.06));
     color: var(--accent-blue, #1976d2);
 }
 
+body[data-theme="dark"] .quick-regex-btn:hover,
 body[data-theme="dark"] .simulate-send-btn:hover {
     background: var(--bg-hover, rgba(255,255,255,0.08));
     color: #58a6ff;
@@ -354,6 +468,7 @@ body[data-theme="dark"] .simulate-send-btn:hover {
 /* 侧边栏辅助功能按钮（工具箱、隐藏与总结）统一高质感规格 */
 .sidebar-secondary-btn,
 #tool-box-btn,
+.sidebar-nav-actions #changelog-btn,
 .sidebar-nav-actions #hide-summary-btn {
     width: 40px;
     height: 40px;
@@ -2030,6 +2145,10 @@ body[data-theme="dark"] .scroll-nav-buttons button#scroll-to-bottom-btn.has-new 
     animation: floor-jump-flash 0.5s ease-out 2;
 }
 
+.persona-bar-scroll-hint {
+    display: none;
+}
+
 /* 乌鸦：persona-bar 独立定位与防拥挤自适应样式 */
 .persona-bar {
     position: absolute;
@@ -2101,6 +2220,10 @@ body[data-theme="dark"] .scroll-nav-buttons button#scroll-to-bottom-btn.has-new 
     cursor: pointer;
     -webkit-appearance: auto;
     appearance: auto;
+    max-width: 8.5em; /* 乌鸦：保留约8个汉字宽度 */
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
 }
 
 /* 乌鸦：combo 内的按钮 - 右侧齿轮图标 */
@@ -2592,8 +2715,28 @@ body[data-theme="dark"] .scroll-nav-buttons button#scroll-to-bottom-btn.has-new 
     transform: scale(1.1);
 }
 
+/* 停止生成红色警示按钮风格 - 悬停高亮与暗色模式完整适配 */
 #send-button.stop {
-    background-color: var(--accent-red);
+    background-color: var(--accent-danger, #cf222e) !important;
+    color: #ffffff !important;
+    box-shadow: 0 2px 8px rgba(207, 34, 46, 0.35);
+}
+
+#send-button.stop:hover {
+    background-color: #a40e26 !important;
+    box-shadow: 0 4px 12px rgba(207, 34, 46, 0.5);
+    transform: scale(1.08);
+}
+
+body[data-theme="dark"] #send-button.stop {
+    background-color: #f85149 !important;
+    color: #ffffff !important;
+    box-shadow: 0 2px 8px rgba(248, 81, 73, 0.35);
+}
+
+body[data-theme="dark"] #send-button.stop:hover {
+    background-color: #da3633 !important;
+    box-shadow: 0 4px 12px rgba(248, 81, 73, 0.5);
 }
 
 .attachment-preview {
@@ -2735,9 +2878,22 @@ body[data-theme="dark"] .scroll-nav-buttons button#scroll-to-bottom-btn.has-new 
     border-color: rgba(255, 255, 255, 0.5);
 }
 
-.toggle-collapse-btn {
-    display: block;
+.message-bottom-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
     margin: 8px auto 0;
+    width: 100%;
+}
+
+.toggle-collapse-btn,
+.scroll-to-msg-top-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    margin: 0;
     padding: 4px 12px;
     border: 1px solid var(--border-color);
     background-color: var(--bg-light);
@@ -2745,12 +2901,20 @@ body[data-theme="dark"] .scroll-nav-buttons button#scroll-to-bottom-btn.has-new 
     border-radius: var(--radius-full);
     cursor: pointer;
     font-size: 0.8rem;
-    transition: background-color 0.2s, color 0.2s;
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s, transform 0.1s ease;
+    user-select: none;
 }
 
-.toggle-collapse-btn:hover {
+.toggle-collapse-btn:hover,
+.scroll-to-msg-top-btn:hover {
     background-color: var(--bg-deep);
     color: var(--text-primary);
+    border-color: var(--border-color-hover, var(--border-color));
+}
+
+.toggle-collapse-btn:active,
+.scroll-to-msg-top-btn:active {
+    transform: scale(0.96);
 }
 
 .copy-code-btn,
@@ -2978,13 +3142,32 @@ body[data-theme="dark"] #hide-summary-clear-btn.undo-state:hover {
     opacity: 0.7;
 }
 
-#hide-summary-start-btn.summarizing,
-#hide-summary-start-btn.summarizing:hover {
-    background: #e53935 !important;
-    border: 1px solid #d32f2f !important;
-    color: #fff !important;
-    box-shadow: 0 2px 8px 0 rgba(229, 57, 53, 0.10);
+#hide-summary-start-btn.summarizing {
+    background: var(--accent-danger, #cf222e) !important;
+    border: 1px solid #b02a37 !important;
+    color: #ffffff !important;
+    box-shadow: 0 2px 8px rgba(207, 34, 46, 0.35);
     background-image: none !important;
+}
+
+#hide-summary-start-btn.summarizing:hover {
+    background: #a40e26 !important;
+    border-color: #8c0c20 !important;
+    box-shadow: 0 4px 12px rgba(207, 34, 46, 0.5);
+    background-image: none !important;
+}
+
+body[data-theme="dark"] #hide-summary-start-btn.summarizing {
+    background: #f85149 !important;
+    border: 1px solid #da3633 !important;
+    color: #ffffff !important;
+    box-shadow: 0 2px 8px rgba(248, 81, 73, 0.35);
+}
+
+body[data-theme="dark"] #hide-summary-start-btn.summarizing:hover {
+    background: #da3633 !important;
+    border-color: #b62324 !important;
+    box-shadow: 0 4px 12px rgba(248, 81, 73, 0.5);
 }
 
 /* Checkboxes & Toggles */
@@ -4928,4 +5111,99 @@ body[data-theme="dark"] .persona-item.batch-mode:hover {
 body[data-theme="dark"] .persona-item.batch-mode.selected {
     background-color: var(--bg-surface, #2d3748);
     border-left: 3px solid var(--accent-blue, #3b82f6);
+}
+/* ============================================
+   自动总结前瞻醒目预警横条 (Plan A)
+   ============================================ */
+.auto-summary-pre-warning {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 14px;
+    margin-bottom: 6px;
+    border-radius: var(--radius-md, 8px);
+    background: color-mix(in srgb, #f59e0b 12%, var(--bg-light));
+    border: 1px solid color-mix(in srgb, #f59e0b 35%, transparent);
+    color: var(--text-primary);
+    font-size: 13px;
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.12);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    animation: pre-warning-slide-down 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.auto-summary-pre-warning.hidden {
+    display: none !important;
+}
+
+@keyframes pre-warning-slide-down {
+    from {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.auto-summary-pre-warning .pre-warning-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #f59e0b;
+    flex-shrink: 0;
+}
+
+.auto-summary-pre-warning .pre-warning-text {
+    flex: 1;
+    font-size: 13px;
+    line-height: 1.4;
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.auto-summary-pre-warning .pre-warning-close-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 9px;
+    border-radius: var(--radius-full);
+    border: 1px solid color-mix(in srgb, #f59e0b 35%, transparent);
+    background: color-mix(in srgb, #f59e0b 16%, var(--bg-light));
+    color: var(--text-primary);
+    font-size: 12px;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+}
+
+.auto-summary-pre-warning .pre-warning-close-btn:hover {
+    background: #f59e0b;
+    color: #ffffff;
+    border-color: #f59e0b;
+}
+
+body[data-theme="dark"] .auto-summary-pre-warning {
+    background: color-mix(in srgb, #f59e0b 16%, var(--bg-medium));
+    border-color: color-mix(in srgb, #f59e0b 45%, transparent);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+body[data-theme="dark"] .auto-summary-pre-warning .pre-warning-close-btn {
+    background: rgba(245, 158, 11, 0.2);
+    border-color: rgba(245, 158, 11, 0.4);
+    color: #fbbf24;
+}
+
+body[data-theme="dark"] .auto-summary-pre-warning .pre-warning-close-btn:hover {
+    background: #f59e0b;
+    color: #111827;
+}
+
+/* 隐藏最右侧系统设置图标 */
+#top-settings-btn {
+    display: none !important;
 }

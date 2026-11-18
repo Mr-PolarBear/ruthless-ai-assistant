@@ -314,6 +314,7 @@ $excludeNames = @(
     '.git', '.idea', '.windsurf', 'android', 'node_modules', 'www',
     '手机端打包工具', '发布打包工具', '_dist_build_temp', 'clearDB',
     'mcp导入模板', '预设角色导入包.json', '功能说明', 'package.json', 'package-lock.json',
+    'sync-server', 'scratch',
     'ruthless-ai-assistant', '_test_unpacked_dist', '_test_cdn_dist', '_test_verify_cdn'
 )
 
@@ -322,26 +323,22 @@ if ($isCdn) {
     $excludeNames += @('libs', 'font')
 }
 
-$includeLauncherFiles = @('启动智能摸鱼.bat', 'server.ps1')
-
 Write-Host "[1/3] 正在扫描并过滤纯净源码文件..." -ForegroundColor Green
 
+# 排除启动脚本与所有批处理/脚本/文档文件，不打包后端及无关工程文件
 Get-ChildItem -Path $projectRoot | Where-Object {
     $name = $_.Name
     $ext = $_.Extension
     if ($name -match '^\.') { return $false }
     if ($excludeNames -contains $name) { return $false }
-    if ($includeLauncherFiles -contains $name) { return $true }
     if ($ext -in @('.md', '.bat', '.ps1', '.zip', '.apk', '.log')) { return $false }
     return $true
 } | ForEach-Object {
     Copy-Item -Path $_.FullName -Destination (Join-Path $tempDir $_.Name) -Recurse -Force
 }
 
-# 兜底清理临时目录子文件夹中的非必要 markdown 和临时文件
+# 兜底清理临时目录子文件夹中的非必要脚本、markdown 和临时文件
 Get-ChildItem -Path $tempDir -Recurse | Where-Object {
-    $name = $_.Name
-    if ($includeLauncherFiles -contains $name) { return $false }
     $_.Extension -in @('.md', '.bat', '.ps1', '.zip', '.apk', '.log')
 } | Remove-Item -Force -ErrorAction SilentlyContinue
 
@@ -360,36 +357,45 @@ $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 
 # --- 外网 CDN 模式下的资源替换处理 ---
 if ($isCdn) {
-    Write-Host "[2/3] 正在将静态资源路径转换为公网 CDN 高速链接并进行完整性自检..." -ForegroundColor Green
+    Write-Host "[2/3] 正在将静态资源路径转换为国内高速 CDN 镜像链接 (cdnjs.loli.net) 并进行完整性自检..." -ForegroundColor Green
 
     # 1. 转换 index.html (采用鲁棒正则，避免属性顺序或微小差异导致漏替)
     $tempIndex = Join-Path $tempDir "index.html"
     if (Test-Path $tempIndex) {
         $idxHtml = [System.IO.File]::ReadAllText($tempIndex, [System.Text.Encoding]::UTF8)
 
-        # 替换 CSS 库
-        $idxHtml = $idxHtml -replace '<link\s+[^>]*href=["''](?:\./)?libs/atom-one-dark\.min\.css[^"'']*["''][^>]*>', '<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css" id="hljs-theme">'
-        $idxHtml = $idxHtml -replace '<link\s+[^>]*href=["''](?:\./)?libs/cropper\.min\.css[^"'']*["''][^>]*>', '<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">'
+        # 替换 CSS 库（使用国内极速镜像 cdnjs.loli.net，杜绝 cdnjs.cloudflare.com 超时抽风）
+        $idxHtml = $idxHtml -replace '<link\s+[^>]*href=["''](?:\./)?libs/atom-one-dark\.min\.css[^"'']*["''][^>]*>', '<link rel="stylesheet" href="https://cdnjs.loli.net/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css" id="hljs-theme">'
+        $idxHtml = $idxHtml -replace '<link\s+[^>]*href=["''](?:\./)?libs/cropper\.min\.css[^"'']*["''][^>]*>', '<link rel="stylesheet" href="https://cdnjs.loli.net/ajax/libs/cropperjs/1.5.13/cropper.min.css">'
 
-        # 替换 JS 库
-        $idxHtml = $idxHtml -replace '<script\s+[^>]*src=["''](?:\./)?libs/cropper\.min\.js[^"'']*["''][^>]*>\s*</script>', '<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>'
-        $idxHtml = $idxHtml -replace '<script\s+[^>]*src=["''](?:\./)?libs/marked\.min\.js[^"'']*["''][^>]*>\s*</script>', '<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.1/marked.min.js" defer></script>'
-        $idxHtml = $idxHtml -replace '<script\s+[^>]*src=["''](?:\./)?libs/highlight\.min\.js[^"'']*["''][^>]*>\s*</script>', '<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" defer></script>'
-        $idxHtml = $idxHtml -replace '<script\s+[^>]*src=["''](?:\./)?draw_css/mermaid\.min\.js[^"'']*["''][^>]*>\s*</script>', '<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.0/mermaid.min.js" defer></script>'
-        $idxHtml = $idxHtml -replace '<script\s+[^>]*src=["''](?:\./)?libs/echarts\.min\.js[^"'']*["''][^>]*>\s*</script>', '<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js" defer></script>'
-        $idxHtml = $idxHtml -replace '<script\s+[^>]*src=["''](?:\./)?libs/mammoth\.browser\.min\.js[^"'']*["''][^>]*>\s*</script>', '<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js" defer></script>'
-        $idxHtml = $idxHtml -replace '<script\s+[^>]*src=["''](?:\./)?libs/xlsx\.full\.min\.js[^"'']*["''][^>]*>\s*</script>', '<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>'
-        $idxHtml = $idxHtml -replace '<script\s+[^>]*src=["''](?:\./)?libs/pdf\.min\.js[^"'']*["''][^>]*>\s*</script>', '<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" defer></script>'
-        $idxHtml = $idxHtml -replace '<script\s+[^>]*src=["''](?:\./)?libs/pdf\.worker\.min\.js[^"'']*["''][^>]*>\s*</script>', '<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js" defer></script>'
-        $idxHtml = $idxHtml -replace '<script\s+[^>]*src=["''](?:\./)?libs/jszip\.min\.js[^"'']*["''][^>]*>\s*</script>', '<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" defer></script>'
+        # 替换 JS 库（统一使用 cdnjs.loli.net 镜像）
+        $idxHtml = $idxHtml -replace '<script\s+[^>]*src=["''](?:\./)?libs/cropper\.min\.js[^"'']*["''][^>]*>\s*</script>', '<script src="https://cdnjs.loli.net/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>'
+        $idxHtml = $idxHtml -replace '<script\s+[^>]*src=["''](?:\./)?libs/marked\.min\.js[^"'']*["''][^>]*>\s*</script>', '<script src="https://cdnjs.loli.net/ajax/libs/marked/12.0.1/marked.min.js" defer></script>'
+        $idxHtml = $idxHtml -replace '<script\s+[^>]*src=["''](?:\./)?libs/highlight\.min\.js[^"'']*["''][^>]*>\s*</script>', '<script src="https://cdnjs.loli.net/ajax/libs/highlight.js/11.9.0/highlight.min.js" defer></script>'
+        $idxHtml = $idxHtml -replace '<script\s+[^>]*src=["''](?:\./)?draw_css/mermaid\.min\.js[^"'']*["''][^>]*>\s*</script>', '<script src="https://cdnjs.loli.net/ajax/libs/mermaid/10.9.0/mermaid.min.js" defer></script>'
+        $idxHtml = $idxHtml -replace '<script\s+[^>]*src=["''](?:\./)?libs/echarts\.min\.js[^"'']*["''][^>]*>\s*</script>', '<script src="https://cdnjs.loli.net/ajax/libs/echarts/5.5.0/echarts.min.js" defer></script>'
+        $idxHtml = $idxHtml -replace '<script\s+[^>]*src=["''](?:\./)?libs/html2canvas\.min\.js[^"'']*["''][^>]*>\s*</script>', '<script src="https://cdnjs.loli.net/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>'
+        $idxHtml = $idxHtml -replace '<script\s+[^>]*src=["''](?:\./)?libs/mammoth\.browser\.min\.js[^"'']*["''][^>]*>\s*</script>', '<script src="https://cdnjs.loli.net/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js" defer></script>'
+        $idxHtml = $idxHtml -replace '<script\s+[^>]*src=["''](?:\./)?libs/xlsx\.full\.min\.js[^"'']*["''][^>]*>\s*</script>', '<script src="https://cdnjs.loli.net/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>'
+        $idxHtml = $idxHtml -replace '<script\s+[^>]*src=["''](?:\./)?libs/pdf\.min\.js[^"'']*["''][^>]*>\s*</script>', '<script src="https://cdnjs.loli.net/ajax/libs/pdf.js/3.11.174/pdf.min.js" defer></script>'
+        $idxHtml = $idxHtml -replace '<script\s+[^>]*src=["''](?:\./)?libs/pdf\.worker\.min\.js[^"'']*["''][^>]*>\s*</script>', '<script src="https://cdnjs.loli.net/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js" defer></script>'
+        $idxHtml = $idxHtml -replace '<script\s+[^>]*src=["''](?:\./)?libs/jszip\.min\.js[^"'']*["''][^>]*>\s*</script>', '<script src="https://cdnjs.loli.net/ajax/libs/jszip/3.10.1/jszip.min.js" defer></script>'
 
         [System.IO.File]::WriteAllText($tempIndex, $idxHtml, $utf8NoBom)
 
-        # 校验 index.html 是否还有残留的本地相对路径 libs/ 引用
-        if ($idxHtml -match 'src=["''](?:\./)?libs/|href=["''](?:\./)?libs/') {
+        # 将轻量级云同步 E2EE 核心纯算法库 (总共仅 25KB) 保留注入到 libs 目录，杜绝 404
+        $tempLibs = Join-Path $tempDir "libs"
+        if (-not (Test-Path $tempLibs)) {
+            New-Item -ItemType Directory -Path $tempLibs | Out-Null
+        }
+        Copy-Item (Join-Path $projectRoot "libs\noble-hashes.min.js") (Join-Path $tempLibs "noble-hashes.min.js") -Force
+        Copy-Item (Join-Path $projectRoot "libs\noble-ciphers.min.js") (Join-Path $tempLibs "noble-ciphers.min.js") -Force
+
+        # 校验 index.html 是否还有除 noble 以外未被替换的本地 libs 引用
+        if ($idxHtml -match 'src=["''](?:\./)?libs/(?!noble-)[^"'']*["'']|href=["''](?:\./)?libs/[^"'']*["'']') {
             Write-Host "      ⚠️ 警告: index.html 中可能存在未被替换的本地 libs 引用!" -ForegroundColor Yellow
         } else {
-            Write-Host "      ✅ index.html 所有第三方库已全部成功转换为 CDN 高速链接 (0 个本地残留)" -ForegroundColor Gray
+            Write-Host "      ✅ index.html 所有第三方库已全部成功转换为国内 CDN 高速链接 (0 个外部大库残留)" -ForegroundColor Gray
         }
     }
 
@@ -399,8 +405,8 @@ if ($isCdn) {
         $drawHtml = [System.IO.File]::ReadAllText($tempDraw, [System.Text.Encoding]::UTF8)
 
         $drawHtml = $drawHtml -replace '<script\s+[^>]*src=["''](?:\./)?draw_css/tailwindcss[^"'']*["''][^>]*>\s*</script>', '<script src="https://cdn.tailwindcss.com/3.4.17"></script>'
-        $drawHtml = $drawHtml -replace '<script\s+[^>]*src=["''](?:\./)?draw_css/vue\.global[^"'']*["''][^>]*>\s*</script>', '<script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.4.21/vue.global.prod.min.js"></script>'
-        $drawHtml = $drawHtml -replace '<script\s+[^>]*src=["''](?:\./)?draw_css/mermaid[^"'']*["''][^>]*>\s*</script>', '<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.0/mermaid.min.js"></script>'
+        $drawHtml = $drawHtml -replace '<script\s+[^>]*src=["''](?:\./)?draw_css/vue\.global[^"'']*["''][^>]*>\s*</script>', '<script src="https://cdnjs.loli.net/ajax/libs/vue/3.4.21/vue.global.prod.min.js"></script>'
+        $drawHtml = $drawHtml -replace '<script\s+[^>]*src=["''](?:\./)?draw_css/mermaid[^"'']*["''][^>]*>\s*</script>', '<script src="https://cdnjs.loli.net/ajax/libs/mermaid/10.9.0/mermaid.min.js"></script>'
 
         # 移除 draw.html 中的本地字体 PingFangSC_0.ttf
         $drawHtml = $drawHtml -replace '(?s)@font-face\s*\{[^}]*PingFangSC_0\.ttf[^}]*\}', ''

@@ -22,6 +22,8 @@ export function renderHistory() {
     
     if (currentView === 'grouped') {
         renderHistoryGrouped();
+    } else if (currentView === 'trash') {
+        renderHistoryTrash();
     } else {
         renderHistorySimple();
     }
@@ -30,8 +32,18 @@ export function renderHistory() {
 function updateConversationCount() {
     const countEl = document.getElementById('conversation-count');
     if (countEl) {
-        const count = Object.keys(state.conversations).length;
-        countEl.textContent = `共 ${count} 个会话`;
+        const convs = state.conversations || {};
+        const activeCount = Object.values(convs).filter(c => c && !c.isDeleted).length;
+        const trashCount = Object.values(convs).filter(c => c && c.isDeleted).length;
+        const currentView = localStorage.getItem('historyViewMode') || 'simple';
+
+        if (currentView === 'trash') {
+            countEl.textContent = `回收站共 ${trashCount} 个会话`;
+        } else if (trashCount > 0) {
+            countEl.textContent = `共 ${activeCount} 个会话 (回收站 ${trashCount})`;
+        } else {
+            countEl.textContent = `共 ${activeCount} 个会话`;
+        }
     }
 }
 
@@ -43,9 +55,9 @@ function renderHistorySimple() {
     const list = dom.historyList;
     list.innerHTML = '';
 
-    // 1. 过滤
+    // 1. 过滤：严格排除已移入回收站的软删除会话
     const keyword = dom.historySearchInput && dom.historySearchInput.value.trim().toLowerCase();
-    let filteredIds = Object.keys(convs);
+    let filteredIds = Object.keys(convs).filter(id => convs[id] && !convs[id].isDeleted);
     if (keyword) {
         // — 为什么这么写 —
         // 侧边栏升级为 Title-only Search（只搜索标题），摆脱对全量消息文本的深度循环，搜索延迟降低 100 倍且便于未来的懒加载架构
@@ -86,9 +98,9 @@ function renderHistoryGrouped() {
     const groupedList = document.getElementById('history-grouped-list');
     groupedList.innerHTML = '';
 
-    // 1. 过滤
+    // 1. 过滤：严格排除已移入回收站的软删除会话
     const keyword = dom.historySearchInput && dom.historySearchInput.value.trim().toLowerCase();
-    let filteredIds = Object.keys(convs);
+    let filteredIds = Object.keys(convs).filter(id => convs[id] && !convs[id].isDeleted);
     if (keyword) {
         filteredIds = filteredIds.filter(convId => {
             const conv = convs[convId];
@@ -251,6 +263,7 @@ function createHistoryItem(convId, conv) {
             <button class="copy-conv-btn" title="复制会话"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></button>
             <button class="set-conv-avatar-btn" title="设置会话头像" data-id="${conv.id}"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg></button>
             <button class="export-conv-btn" title="导出会话"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></button>
+            <button class="sync-conv-btn" title="云同步此会话 (E2EE)" data-id="${convId}"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg></button>
             <button class="delete-btn" title="删除对话"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg></button>
             <button class="more-conv-btn" title="更多操作" aria-label="更多操作"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1.5"></circle><circle cx="19" cy="12" r="1.5"></circle><circle cx="5" cy="12" r="1.5"></circle></svg></button>
         </div>
@@ -459,7 +472,7 @@ export function hidePreviewTooltip() {
 // 移动端点击或触摸屏幕其他区域时自动收起预览卡片
 document.addEventListener('touchstart', (e) => {
     if (previewTooltipEl && previewTooltipEl.classList.contains('visible')) {
-        if (!previewTooltipEl.contains(e.target) && !e.target.closest('.history-item')) {
+        if (!previewTooltipEl.contains(e.target) && !e.target.closest('.history-item') && !e.target.closest('.trash-item')) {
             hidePreviewTooltip();
         }
     }
@@ -472,3 +485,130 @@ document.addEventListener('click', (e) => {
         }
     }
 });
+
+/**
+ * 渲染回收站视图 (已软删除的会话列表)
+ */
+export function renderHistoryTrash() {
+    const trashList = document.getElementById('history-trash-list');
+    if (!trashList) return;
+    trashList.innerHTML = '';
+
+    const convs = state.conversations || {};
+    const keyword = dom.historySearchInput && dom.historySearchInput.value.trim().toLowerCase();
+    let trashConvs = Object.values(convs).filter(c => c && c.isDeleted === true);
+    if (keyword) {
+        trashConvs = trashConvs.filter(c => (c.title || '').toLowerCase().includes(keyword));
+    }
+
+    // 顶部工具栏
+    const toolbar = document.createElement('div');
+    toolbar.className = 'trash-toolbar';
+    toolbar.innerHTML = `
+        <div class="trash-toolbar-info">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            <span>删除满 10 天后自动彻底物理清理</span>
+        </div>
+        ${trashConvs.length > 0 ? `<button type="button" id="empty-trash-btn" class="trash-empty-btn" title="彻底删除回收站内所有会话">清空回收站 (${trashConvs.length})</button>` : ''}
+    `;
+    trashList.appendChild(toolbar);
+
+    const emptyBtn = toolbar.querySelector('#empty-trash-btn');
+    if (emptyBtn) {
+        emptyBtn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const { trashManager } = await import('./services/trash-manager.js?v=temp');
+            await trashManager.emptyTrash();
+        });
+    }
+
+    if (trashConvs.length === 0) {
+        const emptyState = document.createElement('div');
+        emptyState.className = 'trash-empty-state';
+        emptyState.innerHTML = `
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+            <div>${keyword ? '未找到匹配的已删除会话' : '回收站空空如也'}</div>
+            <div style="font-size:11px;opacity:0.7;">${keyword ? '换个关键词搜搜看吧' : '删除或覆盖备份的会话暂存于此，保留 10 天随时可恢复'}</div>
+        `;
+        trashList.appendChild(emptyState);
+        return;
+    }
+
+    // 排序：按 deletedAt 倒序
+    trashConvs.sort((a, b) => {
+        const tA = a.deletedAt || 0;
+        const tB = b.deletedAt || 0;
+        return tB - tA;
+    });
+
+    const now = Date.now();
+    const TEN_DAYS = 10 * 24 * 3600 * 1000;
+
+    trashConvs.forEach(conv => {
+        const item = document.createElement('div');
+        item.className = 'trash-item';
+        item.dataset.id = conv.id;
+
+        const delTime = conv.deletedAt || now;
+        const diff = now - delTime;
+        const remainingMs = Math.max(0, TEN_DAYS - diff);
+        const remainingDays = Math.max(1, Math.ceil(remainingMs / (24 * 3600 * 1000)));
+
+        const branches = Array.isArray(conv.branches) ? conv.branches : [];
+        const floorCount = branches[conv.activeBranchIndex || 0]?.length || 0;
+        const delDateStr = new Date(delTime).toLocaleDateString();
+
+        item.innerHTML = `
+            <div class="trash-item-main">
+                <div class="trash-item-title" title="${escapeHtml(conv.title || '未命名对话')}">${escapeHtml(conv.title || '未命名对话')}</div>
+                <div class="trash-item-meta">
+                    <span>${floorCount} 楼</span>
+                    <span>·</span>
+                    <span>${delDateStr} 删除</span>
+                    <span class="trash-days-badge">剩 ${remainingDays} 天</span>
+                </div>
+            </div>
+            <div class="trash-item-actions">
+                <button type="button" class="trash-action-btn restore" data-id="${conv.id}" title="恢复此会话">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
+                </button>
+                <button type="button" class="trash-action-btn permanent-delete" data-id="${conv.id}" title="彻底删除此会话">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+        `;
+
+        // 绑定悬停展示最后消息预览气泡
+        item.addEventListener('mouseenter', () => showPreviewTooltip(item, conv));
+        item.addEventListener('mouseleave', hidePreviewTooltip);
+
+        // 点击卡片正文给予友好提示引导
+        item.addEventListener('click', async (e) => {
+            if (e.target.closest('button')) return;
+            const { notify } = await import('./ui-updater.js?v=temp');
+            notify.info(`会话「${conv.title || '未命名'}」处于回收站中，如需使用请点击右侧恢复按钮`);
+        });
+
+        // 绑定恢复按钮
+        const restoreBtn = item.querySelector('.restore');
+        restoreBtn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const { trashManager } = await import('./services/trash-manager.js?v=temp');
+            await trashManager.restoreFromTrash(conv.id);
+        });
+
+        // 绑定彻底删除按钮
+        const permBtn = item.querySelector('.permanent-delete');
+        permBtn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            if (!confirm(`确定要彻底删除会话「${conv.title || '未命名'}」吗？此操作无法撤销。`)) return;
+            const { trashManager } = await import('./services/trash-manager.js?v=temp');
+            await trashManager.permanentDelete(conv.id);
+        });
+
+        trashList.appendChild(item);
+    });
+}

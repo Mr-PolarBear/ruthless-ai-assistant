@@ -51,6 +51,9 @@
     transition: background-color 0.2s ease, color 0.2s ease;
     font-size: 0.9rem;
     cursor: pointer;
+    /* 菜单项文字固定一行：长名称（如"DeepSeek 会话导入"）不许折行，
+       容器 shrink-to-fit 会自动撑宽到内容尺寸 */
+    white-space: nowrap;
 }
 
 .tool-item:hover {

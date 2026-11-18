@@ -197,7 +197,7 @@ async function executeStreamedContentSearch(query) {
             if (thisToken !== currentSearchToken) return;
 
             batchConvs.forEach(conv => {
-                if (!conv) return;
+                if (!conv || conv.isDeleted) return;
                 const convId = conv.id;
                 const convTitle = conv.title || '未命名会话';
                 const activeBranchIdx = conv.activeBranchIndex || 0;

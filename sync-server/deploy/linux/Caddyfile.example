@@ -1,0 +1,16 @@
+# 示例：通过 Caddy 自动申请免费 HTTPS 证书并反向代理给 sync-server
+# 将 sync.yourdomain.com 替换为你的真实公网域名
+
+sync.yourdomain.com {
+    reverse_proxy 127.0.0.1:8443 {
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+    }
+
+    # 允许上传大快照文件 (如 100MB)
+    request_body {
+        max_size 100MB
+    }
+}

@@ -258,7 +258,9 @@ async function parsePdf(file) {
         if (workerScript && workerScript.src) {
             pdfjsLib.GlobalWorkerOptions.workerSrc = workerScript.src;
         } else {
-            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+            // — 为什么这么写 —
+            // 使用国内极速镜像 cdnjs.loli.net，防止国内直连 cdnjs.cloudflare.com 超时
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.loli.net/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
         }
     }
 

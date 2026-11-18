@@ -27,6 +27,9 @@ import { toggleConvSelection } from './batch-delete.js?v=temp';
 import { openConvActionsSheet } from './modals/conv-actions-sheet.js?v=temp';
 import { draftManager } from './services/draft-manager.js?v=temp';
 import { initQuoteManager } from './services/quote-manager.js?v=temp';
+import { scrollManager } from './scroll-manager.js?v=temp';
+import { normalizeRealtimeConfig } from './services/realtime-mode.js?v=temp';
+import { isMobileDevice } from './services/viewport-manager.js?v=temp';
 
 /**
  * Sets up chat-related event listeners
@@ -133,7 +136,27 @@ function setupMessageInputEvents() {
                 return;
             }
 
+            // — 为什么这么写 —
+            // 1. 中文或多语言输入法在输入拼音/候选词时（IME 合成态），按回车通常用于确认拼音字母上屏，
+            //    此时 e.isComposing 为 true（或 keyCode 229），必须严格阻断发送，防止误发半截拼音；
+            if (e.isComposing || e.keyCode === 229) {
+                return;
+            }
+
+            // 2. 手机模式检测：手机软键盘上的换行键本质触发的就是 Enter，且手机软键盘无法触发 Shift。
+            //    为了彻底解决手机上按换行导致误发送的痛点，手机模式下一律不拦截 Enter，让其走原生换行，
+            //    用户只有点击发送按钮才能发送；
+            if (isMobileDevice()) {
+                return;
+            }
+
+            // 3. PC 桌面端：按设置的发送快捷键判断
             const sendKey = state.appSettings.sendKey || 'enter';
+            if (sendKey === 'button-only') {
+                // 仅按钮发送模式：回车完全保留原生换行行为，不拦截也不触发发送
+                return;
+            }
+
             if (sendKey === 'enter' && e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 handleSendMessage();
@@ -215,12 +238,55 @@ function handleChatMessageActions(e) {
 
     if (button.classList.contains('toggle-collapse-btn')) {
         handleToggleCollapse(messageBubble, button);
+    } else if (button.classList.contains('scroll-to-msg-top-btn') || button.closest('.scroll-to-msg-top-btn')) {
+        e.stopPropagation();
+        const topBtn = button.classList.contains('scroll-to-msg-top-btn') ? button : button.closest('.scroll-to-msg-top-btn');
+        const bubble = topBtn.closest('.message-bubble');
+        if (bubble) {
+            const wrapper = bubble.closest('.message-wrapper') || bubble;
+
+            // 乌鸦：如果消息正在生成（流式输出），点击“回本条顶部”后必须禁止后续流式渲染自动下拉到底部
+            if (typeof scrollManager !== 'undefined' && scrollManager) {
+                scrollManager.suppressAutoScroll = true;
+                scrollManager.wheelLocked = true;
+                scrollManager.immediateWheelLock = true;
+            }
+
+            // 平滑滚动至该消息开头
+            wrapper.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+            // 柔和高亮反馈
+            wrapper.classList.add('floor-jump-highlight');
+            setTimeout(() => {
+                wrapper.classList.remove('floor-jump-highlight');
+            }, 1200);
+        }
     } else if (button.classList.contains('quick-hide-btn')) {
         e.stopPropagation();
         const floor = parseInt(messageBubble.dataset.index, 10) + 1;
         openQuickHideModal(floor);
     } else if (button.classList.contains('delete-message-btn')) {
         handleDeleteMessage(activeBranch, index);
+    } else if (button.classList.contains('relay-regenerate-btn') || button.closest('.relay-regenerate-btn')) {
+        e.stopPropagation();
+        if (typeof codePreviewManager !== 'undefined') {
+            codePreviewManager.close();
+        }
+        const branchFromIndex = message.role === 'user' ? index : index - 1;
+        if (branchFromIndex >= 0) {
+            handleSendMessage({ isBranching: true, branchFromIndex, skipBranchSummaryConfirm: true });
+        }
+    } else if (button.classList.contains('relay-delete-msg-btn') || button.closest('.relay-delete-msg-btn')) {
+        e.stopPropagation();
+        if (activeBranch && index >= 0) {
+            activeBranch.splice(index, 1);
+            if (conv) {
+                conv.lastModified = new Date().toISOString();
+                saveConversation(conv.id, conv);
+            }
+            renderChatMessages();
+            notify.success('已删除过期消息');
+        }
     } else if (button.classList.contains('toggle-md-btn')) {
         handleToggleMarkdown(messageBubble, button, message);
     } else if (button.classList.contains('branch-btn')) {
@@ -427,6 +493,13 @@ function handleHistoryListActions(e) {
     } else if (button && button.classList.contains('export-conv-btn')) {
         e.stopPropagation();
         openExportConvModal(id);
+    } else if (button && button.classList.contains('sync-conv-btn')) {
+        e.stopPropagation();
+        import('./modals/conv-sync-modal.js?v=temp').then(({ openConvSyncModal }) => {
+            openConvSyncModal(id);
+        }).catch(err => {
+            console.error('打开单会话云同步弹窗异常:', err);
+        });
     } else if (button && button.classList.contains('set-conv-avatar-btn')) {
         const btn = e.target.closest('.set-conv-avatar-btn');
         if (!btn) return;
@@ -641,104 +714,35 @@ export async function handlePinConversation(id) {
 }
 
 /**
- * 复制对话（深拷贝会话数据、克隆隐藏总结与备忘录关联关系）
+ * 复制对话（调用智能分支对比与减负弹窗 Plan B）
  * @param {string} id - 原会话ID
  */
 export async function handleDuplicateConversation(id) {
     if (!id) return;
-    
-    // 1. 获取原会话数据（优先从内存，其次从 IndexedDB）
-    let origConv = state.conversations[id];
-    if (!origConv) {
-        try {
-            origConv = await getConversation(id);
-        } catch (e) {
-            console.error('获取待复制会话失败:', e);
-        }
+    try {
+        const { openCopyConversationModal } = await import('./modals/copy-conv-modal.js?v=temp');
+        await openCopyConversationModal(id);
+    } catch (err) {
+        console.error('[chat-events] 打开复制会话弹窗失败:', err);
     }
-    
-    if (!origConv) {
-        notify.error('原会话不存在或已损坏');
-        return;
-    }
-    
-    // 2. 生成新会话ID与深拷贝对象
-    const newId = `conv_${Date.now()}`;
-    const newConv = JSON.parse(JSON.stringify(origConv));
-    newConv.id = newId;
-    newConv.title = `${origConv.title || '对话'} (副本)`;
-    newConv.pinned = false; // 副本默认不置顶
-    newConv.createdAt = Date.now();
-    newConv.lastModified = new Date().toISOString();
-    
-    // 3. 复制该会话关联的隐藏与总结配置及历史版本（state.hideSummary）
-    if (state.hideSummary && state.hideSummary[id]) {
-        state.hideSummary[newId] = JSON.parse(JSON.stringify(state.hideSummary[id]));
-    }
-    
-    // 4. 复制该会话在备忘录中的局部挂载生效关系（state.worldBook）
-    let hasWorldBookSync = false;
-    if (state.worldBook && typeof state.worldBook === 'object') {
-        Object.values(state.worldBook).forEach(entry => {
-            if (entry && Array.isArray(entry.sessionIds) && entry.sessionIds.includes(id)) {
-                if (!entry.sessionIds.includes(newId)) {
-                    entry.sessionIds.push(newId);
-                    hasWorldBookSync = true;
-                }
-            }
-        });
-    }
-
-    // 4.5 复制该会话绑定的专属正则（深拷贝创建独立副本给新会话）
-    if (state.regexRules && typeof state.regexRules === 'object') {
-        Object.values(state.regexRules).forEach(rule => {
-            if (rule && rule.scope === 'session' && Array.isArray(rule.sessionIds) && rule.sessionIds.includes(id)) {
-                const newRuleId = `regex_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
-                state.regexRules[newRuleId] = {
-                    ...JSON.parse(JSON.stringify(rule)),
-                    id: newRuleId,
-                    sessionIds: [newId]
-                };
-            }
-        });
-    }
-    
-    // 5. 保存到 IndexedDB 与内存
-    state.conversations[newId] = newConv;
-    await saveConversation(newId, newConv);
-    await saveToLocalStorage();
-    
-    // 6. 刷新侧边栏与动态UI
-    renderHistory();
-    if (hasWorldBookSync && window.updateWorldBookButton) {
-        window.updateWorldBookButton();
-    }
-    
-    // 7. 切换到新副本会话
-    switchToConversation(newId);
-    notify.success(`已复制为新会话: "${newConv.title}"`);
 }
 
 /**
  * Handles conversation deletion
  */
-export function handleDeleteConversation(id) {
-    if (!confirm('确定要删除这个对话吗？')) return;
+export async function handleDeleteConversation(id) {
+    if (!confirm('确定要将该会话移入回收站吗？\n（回收站将安全保留 10 天，随时可恢复）')) return;
 
-    delete state.conversations[id];
-    draftManager.onConversationDeleted(id);
-    deleteConversation(id).catch(err => {
-        console.error("从数据库中删除会话失败:", err);
-    });
-
-    if (id === state.currentConversationId) {
-        const firstConvId = Object.keys(state.conversations)[0] || null;
-        switchToConversation(firstConvId);
-    } else {
-        renderHistory();
+    try {
+        const { trashManager } = await import('./services/trash-manager.js?v=temp');
+        const res = await trashManager.moveToTrash(id);
+        if (res) {
+            const { notify } = await import('./ui-updater.js?v=temp');
+            notify.success('会话已移入回收站');
+        }
+    } catch (err) {
+        console.error("移入回收站失败:", err);
     }
-
-    saveToLocalStorage();
 }
 
 /**
@@ -748,6 +752,7 @@ function setupHistoryViewTabs() {
     const tabs = document.querySelectorAll('.history-view-tab[data-view]');
     const simpleView = document.getElementById('history-list');
     const groupedView = document.getElementById('history-grouped-list');
+    const trashView = document.getElementById('history-trash-list');
 
     if (!simpleView || !groupedView) return;
 
@@ -760,38 +765,46 @@ function setupHistoryViewTabs() {
         }
     });
 
+    const updateViewDisplay = (viewMode) => {
+        if (viewMode === 'grouped') {
+            simpleView.style.display = 'none';
+            groupedView.style.display = 'block';
+            if (trashView) trashView.style.display = 'none';
+        } else if (viewMode === 'trash') {
+            simpleView.style.display = 'none';
+            groupedView.style.display = 'none';
+            if (trashView) trashView.style.display = 'flex';
+        } else {
+            simpleView.style.display = 'block';
+            groupedView.style.display = 'none';
+            if (trashView) trashView.style.display = 'none';
+        }
+    };
+
     tabs.forEach(tab => {
         tab.addEventListener('click', (e) => {
             e.stopPropagation();
             const viewMode = tab.dataset.view;
             
             if (tab.classList.contains('active')) return;
+
+            // 切换视图时若处于批量删除模式，主动退出批量模式
+            if (state.batchSelectMode) {
+                import('./batch-delete.js?v=temp').then(({ exitBatchMode }) => {
+                    exitBatchMode();
+                }).catch(() => {});
+            }
             
             tabs.forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
             
             localStorage.setItem('historyViewMode', viewMode);
-            
-            if (viewMode === 'grouped') {
-                simpleView.style.display = 'none';
-                groupedView.style.display = 'block';
-            } else {
-                simpleView.style.display = 'block';
-                groupedView.style.display = 'none';
-            }
-            
+            updateViewDisplay(viewMode);
             renderHistory();
         });
     });
 
-    // 乌鸦：初始化视图位置
-    if (currentView === 'grouped') {
-        simpleView.style.display = 'none';
-        groupedView.style.display = 'block';
-    } else {
-        simpleView.style.display = 'block';
-        groupedView.style.display = 'none';
-    }
+    updateViewDisplay(currentView);
 }
 
 /**

@@ -42,7 +42,7 @@ export let state = {
         streamMode: true, // 乌鸦：流式输出模式，默认开启
         fontSize: 16, // 字体大小，默认16
         autoCollapseLongMessage: true, // 自动收起长消息，默认true
-        sendKey: 'enter', // 发送快捷键，默认enter
+        sendKey: 'enter', // 发送快捷键：'enter' | 'ctrl-enter' | 'button-only'，默认enter
         userMessageDefaultRenderMode: 'md', // 用户消息默认渲染模式
         aiMessageDefaultRenderMode: 'md', // AI消息默认渲染模式
         disableXssProtection: false, // 乌鸦：新增XSS防护开关，默认开启防护
@@ -98,6 +98,18 @@ export const DEFAULT_REGEX_RULES = {
         enabled: true,
         stage: 'pre-markdown',
         sort: 40,
+        minFloor: 0,
+        maxFloor: 0
+    },
+    'regex_default_remove_thinking': {
+        id: 'regex_default_remove_thinking',
+        name: '发送时移除思考内容',
+        find: '/<(?:think|thinking)\\b[^>]*>[\\s\\S]*<\\/(?:think|thinking)>\\s*/gi',
+        replace: '',
+        scopes: ['request-assistant'],
+        enabled: true,
+        stage: 'pre-markdown',
+        sort: 48,
         minFloor: 0,
         maxFloor: 0
     },

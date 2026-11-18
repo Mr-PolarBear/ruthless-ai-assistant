@@ -23,6 +23,8 @@ class MindmapManager {
         this.currentMessage = null;
         this.isAiSummarizing = false;
         this._isInitialized = false;
+        this._hasHistoryState = false;
+        this._popstateHandler = null;
     }
 
     /**
@@ -52,14 +54,22 @@ class MindmapManager {
         modal.innerHTML = `
             <div class="modal-content mindmap-modal-content">
                 <div class="modal-header mindmap-modal-header">
-                    <div class="mindmap-header-title">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <line x1="6" y1="3" x2="6" y2="15"></line>
-                            <circle cx="18" cy="6" r="3"></circle>
-                            <circle cx="6" cy="18" r="3"></circle>
-                            <path d="M18 9a9 9 0 0 1-9 9"></path>
-                        </svg>
-                        <span>交互式思维导图</span>
+                    <div class="mindmap-header-left">
+                        <button type="button" class="mindmap-back-btn" title="返回聊天">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="15 18 9 12 15 6"></polyline>
+                            </svg>
+                            <span>返回</span>
+                        </button>
+                        <div class="mindmap-header-title">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="6" y1="3" x2="6" y2="15"></line>
+                                <circle cx="18" cy="6" r="3"></circle>
+                                <circle cx="6" cy="18" r="3"></circle>
+                                <path d="M18 9a9 9 0 0 1-9 9"></path>
+                            </svg>
+                            <span>交互式思维导图</span>
+                        </div>
                     </div>
                     <div class="mindmap-header-tools">
                         <button type="button" id="mindmap-orient-btn" class="mindmap-tool-btn" title="切换横向/纵向布局">
@@ -78,8 +88,8 @@ class MindmapManager {
                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                             <span>导出图片</span>
                         </button>
-                        <button type="button" class="modal-close-btn mindmap-close-btn" title="关闭">&times;</button>
                     </div>
+                    <button type="button" class="modal-close-btn mindmap-close-btn" title="关闭">&times;</button>
                 </div>
                 <div class="modal-body mindmap-modal-body">
                     <div id="mindmap-chart-container" class="mindmap-chart-container"></div>
@@ -107,9 +117,12 @@ class MindmapManager {
     bindModalEvents() {
         if (!this.modalEl) return;
 
-        // 关闭弹窗
+        // 关闭与返回弹窗
         const closeBtn = this.modalEl.querySelector('.mindmap-close-btn');
         if (closeBtn) closeBtn.onclick = () => this.close();
+
+        const backBtn = this.modalEl.querySelector('.mindmap-back-btn');
+        if (backBtn) backBtn.onclick = () => this.close();
 
         this.modalEl.onclick = (e) => {
             if (e.target === this.modalEl) this.close();
@@ -196,6 +209,26 @@ class MindmapManager {
         this.currentTreeData = this.parseMarkdownToTree(rawContent, rootTitle);
 
         this.modalEl.style.display = 'flex';
+
+        // 乌鸦：移动端物理返回键与滑动手势监听（popstate 无损返回聊天页面）
+        if (!this._hasHistoryState) {
+            try {
+                history.pushState({ modal: 'mindmap' }, '');
+                this._hasHistoryState = true;
+            } catch (e) {
+                console.warn('[Mindmap] pushState failed:', e);
+            }
+        }
+        if (!this._popstateHandler) {
+            this._popstateHandler = () => {
+                if (this.modalEl && this.modalEl.style.display !== 'none') {
+                    this._hasHistoryState = false; // 用户已主动触发浏览器回退
+                    this.close(false); // 不重复调用 history.back()
+                }
+            };
+            window.addEventListener('popstate', this._popstateHandler);
+        }
+
         // 确保 DOM 呈现完成后初始化与渲染 ECharts
         setTimeout(() => {
             this.renderChart();
@@ -204,14 +237,29 @@ class MindmapManager {
 
     /**
      * 关闭弹窗
+     * @param {boolean} triggerBack 是否触发 history.back() 还原路由状态
      */
-    close() {
+    close(triggerBack = true) {
         if (this.modalEl) {
             this.modalEl.style.display = 'none';
         }
         if (this.chartInstance) {
             this.chartInstance.dispose();
             this.chartInstance = null;
+        }
+        if (this._popstateHandler) {
+            window.removeEventListener('popstate', this._popstateHandler);
+            this._popstateHandler = null;
+        }
+        if (triggerBack && this._hasHistoryState) {
+            this._hasHistoryState = false;
+            try {
+                history.back();
+            } catch (e) {
+                // ignore
+            }
+        } else {
+            this._hasHistoryState = false;
         }
     }
 
@@ -735,6 +783,7 @@ class MindmapManager {
                 includeWorldBook: false,
                 includePersona: false,
                 includeMcp: false,
+                includeRealtime: false,
                 applyRegex: false
             });
 

@@ -1,0 +1,621 @@
+/**
+ * conv-sync-modal.css
+ * 单会话专属云同步弹窗样式表 (Plan A 架构)
+ * 严格遵照 AGENTS.md 规范：双主题全面适配，严禁硬编码纯白背景，移动端自适应。
+ */
+
+/* 遮罩层 */
+.conv-sync-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.48);
+    backdrop-filter: blur(2px);
+    z-index: 1050;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    box-sizing: border-box;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.conv-sync-modal-overlay.open {
+    display: flex;
+    opacity: 1;
+}
+
+/* 主容器 */
+.conv-sync-modal-container {
+    width: 500px;
+    max-width: 92vw;
+    max-height: 86vh;
+    background: var(--bg-surface, #ffffff);
+    color: var(--text-color, #1f2937);
+    border-radius: 12px;
+    border: 1px solid var(--border-color, #e2e8f0);
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.16), 0 4px 12px rgba(0, 0, 0, 0.08);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+    animation: convSyncFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+body[data-theme="dark"] .conv-sync-modal-container {
+    background: var(--bg-surface-dark, #191c24);
+    border-color: var(--border-color-dark, #2d3340);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55), 0 4px 14px rgba(0, 0, 0, 0.35);
+    color: var(--text-color-dark, #f3f4f6);
+}
+
+@keyframes convSyncFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.96) translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* 顶部标题栏 */
+.conv-sync-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border-color, #e2e8f0);
+    background: var(--bg-surface-secondary, #f8f9fa);
+}
+
+body[data-theme="dark"] .conv-sync-header {
+    background: var(--bg-surface-dark-secondary, #13161c);
+    border-color: var(--border-color-dark, #2d3340);
+}
+
+.conv-sync-header-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-color, #111827);
+}
+
+body[data-theme="dark"] .conv-sync-header-title {
+    color: var(--text-color-dark, #f9fafb);
+}
+
+.conv-sync-header-icon {
+    color: var(--primary-color, #3b82f6);
+    flex-shrink: 0;
+}
+
+.conv-sync-close-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted, #9ca3af);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+}
+
+.conv-sync-close-btn:hover {
+    background: rgba(0, 0, 0, 0.06);
+    color: var(--text-color, #374151);
+}
+
+body[data-theme="dark"] .conv-sync-close-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-color-dark, #f3f4f6);
+}
+
+/* 主内容滚动区 */
+.conv-sync-body {
+    padding: 16px 18px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    flex: 1;
+    min-height: 0;
+}
+
+/* 会话信息卡片 */
+.conv-sync-meta-card {
+    padding: 12px 14px;
+    background: var(--bg-surface-secondary, #f8f9fa);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+body[data-theme="dark"] .conv-sync-meta-card {
+    background: var(--bg-surface-dark-secondary, #13161c);
+    border-color: var(--border-color-dark, #2d3340);
+}
+
+.conv-sync-meta-title-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.conv-sync-meta-title-text {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-color, #111827);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+}
+
+body[data-theme="dark"] .conv-sync-meta-title-text {
+    color: var(--text-color-dark, #f3f4f6);
+}
+
+.conv-sync-meta-sub-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-muted, #64748b);
+    flex-wrap: wrap;
+}
+
+body[data-theme="dark"] .conv-sync-meta-sub-row {
+    color: var(--text-muted-dark, #8b949e);
+}
+
+.conv-sync-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.conv-sync-badge-floor {
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--primary-color, #3b82f6);
+}
+
+.conv-sync-badge-realtime {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+}
+
+.conv-sync-badge-latest {
+    background: rgba(245, 158, 11, 0.12);
+    color: #d97706;
+    font-weight: 600;
+}
+
+body[data-theme="dark"] .conv-sync-badge-latest {
+    background: rgba(245, 158, 11, 0.18);
+    color: #fbbf24;
+}
+
+.conv-sync-badge-multi {
+    background: rgba(139, 92, 246, 0.12);
+    color: #8b5cf6;
+    font-weight: 500;
+}
+
+body[data-theme="dark"] .conv-sync-badge-multi {
+    background: rgba(139, 92, 246, 0.2);
+    color: #a78bfa;
+}
+
+/* 主操作卡片 (上传) */
+.conv-sync-action-card {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.conv-sync-main-upload-btn {
+    width: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 11px 16px;
+    background: var(--primary-color, #3b82f6);
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(59, 130, 246, 0.28);
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+.conv-sync-main-upload-btn:hover {
+    background: var(--primary-hover, #2563eb);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(59, 130, 246, 0.36);
+}
+
+.conv-sync-main-upload-btn:active {
+    transform: translateY(0);
+}
+
+.conv-sync-main-upload-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.conv-sync-e2ee-hint {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    font-size: 11px;
+    color: var(--text-muted, #64748b);
+}
+
+body[data-theme="dark"] .conv-sync-e2ee-hint {
+    color: var(--text-muted-dark, #8b949e);
+}
+
+/* 状态提醒与解锁卡片 (未配置/未解锁) */
+.conv-sync-state-card {
+    padding: 14px;
+    border-radius: 8px;
+    border: 1px dashed var(--border-color, #cbd5e1);
+    background: var(--bg-surface-secondary, #f8f9fa);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+    text-align: center;
+}
+
+body[data-theme="dark"] .conv-sync-state-card {
+    background: var(--bg-surface-dark-secondary, #13161c);
+    border-color: var(--border-color-dark, #3b4252);
+}
+
+.conv-sync-state-icon {
+    color: var(--primary-color, #3b82f6);
+}
+
+.conv-sync-state-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-color, #1f2937);
+}
+
+body[data-theme="dark"] .conv-sync-state-title {
+    color: var(--text-color-dark, #f3f4f6);
+}
+
+.conv-sync-state-desc {
+    font-size: 12px;
+    color: var(--text-muted, #64748b);
+    line-height: 1.4;
+}
+
+body[data-theme="dark"] .conv-sync-state-desc {
+    color: var(--text-muted-dark, #8b949e);
+}
+
+.conv-sync-inline-form {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+    max-width: 340px;
+}
+
+.conv-sync-inline-input {
+    flex: 1;
+    padding: 7px 10px;
+    font-size: 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color, #cbd5e1);
+    background: var(--bg-surface, #ffffff);
+    color: var(--text-color, #1f2937);
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+body[data-theme="dark"] .conv-sync-inline-input {
+    background: var(--bg-surface-dark, #191c24);
+    border-color: var(--border-color-dark, #374151);
+    color: var(--text-color-dark, #f3f4f6);
+}
+
+.conv-sync-inline-input:focus {
+    border-color: var(--primary-color, #3b82f6);
+}
+
+.conv-sync-btn-sm {
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+}
+
+.conv-sync-btn-primary {
+    background: var(--primary-color, #3b82f6);
+    color: #ffffff;
+}
+
+.conv-sync-btn-primary:hover {
+    background: var(--primary-hover, #2563eb);
+}
+
+.conv-sync-btn-secondary {
+    background: var(--bg-surface-secondary, #f1f5f9);
+    color: var(--text-color, #334155);
+    border-color: var(--border-color, #cbd5e1);
+}
+
+body[data-theme="dark"] .conv-sync-btn-secondary {
+    background: var(--bg-surface-dark-secondary, #212631);
+    color: var(--text-color-dark, #e2e8f0);
+    border-color: var(--border-color-dark, #374151);
+}
+
+.conv-sync-btn-secondary:hover {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+body[data-theme="dark"] .conv-sync-btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.conv-sync-btn-danger {
+    color: var(--danger-color, #ef4444);
+    background: transparent;
+    border-color: rgba(239, 68, 68, 0.35);
+}
+
+.conv-sync-btn-danger:hover {
+    background: rgba(239, 68, 68, 0.08);
+    border-color: var(--danger-color, #ef4444);
+}
+
+/* 时间线分区 */
+.conv-sync-timeline-section {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 4px;
+}
+
+.conv-sync-timeline-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-color, #1f2937);
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--border-color, #e2e8f0);
+}
+
+body[data-theme="dark"] .conv-sync-timeline-header {
+    color: var(--text-color-dark, #f3f4f6);
+    border-color: var(--border-color-dark, #2d3340);
+}
+
+.conv-sync-refresh-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted, #64748b);
+    cursor: pointer;
+    font-size: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: all 0.15s ease;
+}
+
+.conv-sync-refresh-btn:hover {
+    color: var(--primary-color, #3b82f6);
+    background: rgba(59, 130, 246, 0.08);
+}
+
+.conv-sync-spin {
+    animation: convSyncRotate 0.8s linear infinite;
+}
+
+@keyframes convSyncRotate {
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.conv-sync-timeline-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 250px;
+    overflow-y: auto;
+    padding-right: 2px;
+}
+
+/* 快照版本条目行 */
+.conv-sync-version-item {
+    padding: 10px 12px;
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 8px;
+    background: var(--bg-surface, #ffffff);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    transition: border-color 0.15s ease;
+}
+
+body[data-theme="dark"] .conv-sync-version-item {
+    background: var(--bg-surface-dark, #191c24);
+    border-color: var(--border-color-dark, #2d3340);
+}
+
+.conv-sync-version-item:hover {
+    border-color: var(--primary-color, #3b82f6);
+}
+
+.conv-sync-version-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-width: 0;
+}
+
+.conv-sync-version-badges {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.conv-sync-version-date {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-color, #1f2937);
+}
+
+body[data-theme="dark"] .conv-sync-version-date {
+    color: var(--text-color-dark, #f3f4f6);
+}
+
+.conv-sync-version-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 11px;
+    color: var(--text-muted, #64748b);
+    flex-wrap: wrap;
+}
+
+body[data-theme="dark"] .conv-sync-version-bottom {
+    color: var(--text-muted-dark, #8b949e);
+}
+
+.conv-sync-version-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.conv-sync-version-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* 空状态卡片 */
+.conv-sync-empty-card {
+    padding: 24px 16px;
+    text-align: center;
+    color: var(--text-muted, #64748b);
+    font-size: 13px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg-surface-secondary, #f8f9fa);
+    border-radius: 8px;
+    border: 1px dashed var(--border-color, #cbd5e1);
+}
+
+body[data-theme="dark"] .conv-sync-empty-card {
+    background: var(--bg-surface-dark-secondary, #13161c);
+    border-color: var(--border-color-dark, #2d3340);
+    color: var(--text-muted-dark, #8b949e);
+}
+
+/* 局内加载遮罩 */
+.conv-sync-loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.88);
+    backdrop-filter: blur(2px);
+    z-index: 50;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    border-radius: 12px;
+}
+
+body[data-theme="dark"] .conv-sync-loading-overlay {
+    background: rgba(25, 28, 36, 0.9);
+}
+
+.conv-sync-loading-overlay.active {
+    display: flex;
+}
+
+.conv-sync-spinner {
+    width: 28px;
+    height: 28px;
+    border: 3px solid var(--border-color, #cbd5e1);
+    border-top-color: var(--primary-color, #3b82f6);
+    border-radius: 50%;
+    animation: convSyncRotate 0.8s linear infinite;
+}
+
+.conv-sync-loading-text {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-color, #374151);
+}
+
+body[data-theme="dark"] .conv-sync-loading-text {
+    color: var(--text-color-dark, #e5e7eb);
+}
+
+/* 移动端适配 */
+@media (max-width: 640px) {
+    .conv-sync-modal-container {
+        width: 92vw;
+        max-height: 90vh;
+    }
+
+    .conv-sync-body {
+        padding: 12px 14px;
+        gap: 12px;
+    }
+
+    .conv-sync-timeline-list {
+        max-height: 220px;
+    }
+}

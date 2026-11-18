@@ -16,6 +16,8 @@ export function initDom() {
     dom.modelSelector = document.getElementById('model-selector');
     dom.historyList = document.getElementById('history-list');
     dom.historyGroupedList = document.getElementById('history-grouped-list'); // 乌鸦：时间分组列表
+    dom.historyTrashList = document.getElementById('history-trash-list'); // 回收站列表
+    dom.historyViewTrash = document.getElementById('history-view-trash'); // 回收站视图切换标签
     dom.chatMessages = document.getElementById('chat-messages');
     dom.messageInput = document.getElementById('message-input');
     dom.sendButton = document.getElementById('send-button');
@@ -36,6 +38,7 @@ export function initDom() {
     dom.scrollToTopBtn = document.getElementById('scroll-to-top-btn');
     dom.scrollToBottomBtn = document.getElementById('scroll-to-bottom-btn');
     // 乌鸦：楼层快速跳转
+    dom.immersiveModeBtn = document.getElementById('immersive-mode-btn');
     dom.jumpToFloorBtn = document.getElementById('jump-to-floor-btn');
     dom.floorJumpPanel = document.getElementById('floor-jump-panel');
 
@@ -48,6 +51,11 @@ export function initDom() {
     // Settings Modal
     dom.settingsBtn = document.getElementById('settings-btn');
     dom.topSettingsBtn = document.getElementById('top-settings-btn');
+    dom.topSyncBtn = document.getElementById('top-sync-btn');
+    dom.realtimeModeBtn = document.getElementById('realtime-mode-btn');
+    dom.realtimeStatusDot = document.getElementById('realtime-status-dot');
+    dom.syncModal = document.getElementById('sync-modal');
+    dom.syncConflictModal = document.getElementById('sync-conflict-modal');
     dom.settingsModal = document.getElementById('settings-modal');
     dom.settingsTabs = document.querySelectorAll('#settings-modal .modal-tabs .tab-btn');
     dom.settingsTabContents = document.querySelectorAll('#settings-modal .modal-body > .tab-content');
@@ -57,8 +65,14 @@ export function initDom() {
     dom.highlightItalicTextCheckbox = document.getElementById('setting-highlight-italic-text');
     dom.sendKeyEnter = document.getElementById('send-key-enter');
     dom.sendKeyCtrlEnter = document.getElementById('send-key-ctrl-enter');
+    dom.sendKeyButton = document.getElementById('send-key-button');
     dom.recentMessageCountInput = document.getElementById('recent-message-count-input');  // 乌鸦：新增
     dom.loadAllMessagesBtn = document.getElementById('load-all-messages-btn');  // 乌鸦：加载全部消息按钮
+    dom.loadAllConfirmModal = document.getElementById('load-all-confirm-modal'); // 全量渲染确认弹窗
+    dom.loadAllConfirmBtn = document.getElementById('load-all-confirm-btn');
+    dom.loadAllCancelBtn = document.getElementById('load-all-cancel-btn');
+    dom.loadAllConfirmCloseBtn = document.getElementById('load-all-confirm-close-btn');
+    dom.loadAllTotalCount = document.getElementById('load-all-total-count');
 
     // Database Settings
     dom.databaseConnectionList = document.getElementById('database-connection-list');
@@ -138,6 +152,7 @@ export function initDom() {
 
     // Persona Elements
     dom.personaBar = document.getElementById('persona-bar');
+    dom.personaBarScrollHint = document.getElementById('persona-bar-scroll-hint');
     dom.personaSelector = document.getElementById('persona-selector');
     dom.managePersonasBtn = document.getElementById('manage-personas-btn');
     dom.personaModal = document.getElementById('persona-modal');
@@ -236,6 +251,7 @@ export function initDom() {
 
     // World Book Elements 备忘录
     dom.manageWorldBookBtn = document.getElementById('manage-worldbook-btn');
+    dom.worldBookCountBadge = document.getElementById('worldbook-count-badge');
     dom.worldBookModal = document.getElementById('worldbook-modal');
     dom.worldBookList = document.getElementById('worldbook-list');
     dom.worldBookFormTitle = document.getElementById('worldbook-form-title');
@@ -278,11 +294,17 @@ export function initDom() {
 
     // Hide & Summary Elements (会话记忆与智能总结)
     dom.hideSummaryBtn = document.getElementById('hide-summary-btn');
+    dom.hideSummaryCountdownBadge = document.getElementById('hide-summary-countdown-badge');
+    dom.hideSummaryBadgeGroup = document.getElementById('hide-summary-badge-group');
+    dom.autoSummaryPreWarning = document.getElementById('auto-summary-pre-warning');
+    dom.autoSummaryPreWarningText = document.getElementById('auto-summary-pre-warning-text');
+    dom.autoSummaryPreWarningDismiss = document.getElementById('auto-summary-pre-warning-dismiss');
     dom.hideSummaryModal = document.getElementById('hide-summary-modal');
     dom.hideSummaryActualTokens = document.getElementById('hide-summary-actual-tokens');
     dom.hideSummaryHiddenTokens = document.getElementById('hide-summary-hidden-tokens');
     dom.hideSummaryTotalTokens = document.getElementById('hide-summary-total-tokens');
     dom.hideSummaryHiddenFloorsText = document.getElementById('hide-summary-hidden-floors-text');
+    dom.hideSummaryTotalFloorsText = document.getElementById('hide-summary-total-floors-text');
     dom.hideSummaryUnhiddenFloorsRow = document.getElementById('hide-summary-unhidden-floors-row');
     dom.hideSummaryUnhiddenFloorsText = document.getElementById('hide-summary-unhidden-floors-text');
     dom.hideSummaryEnable = document.getElementById('hide-summary-enable');
@@ -293,6 +315,12 @@ export function initDom() {
     dom.hideSummaryPromptLabel = document.getElementById('hide-summary-prompt-label');
     dom.hideSummaryResetPromptBtn = document.getElementById('hide-summary-reset-prompt-btn');
 
+    // 会话记忆弹窗：高级设置折叠与工作台 DOM 引用
+    dom.summaryAdvancedSection = document.getElementById('summary-advanced-section');
+    dom.summaryAdvancedToggleBtn = document.getElementById('summary-advanced-toggle-btn');
+    dom.summaryAdvancedContent = document.getElementById('summary-advanced-content');
+    dom.summaryActiveVersionBadge = document.getElementById('summary-active-version-badge');
+
     // 3 种模式对应的内容视图容器
     dom.summaryModeRecursiveView = document.getElementById('summary-mode-recursive-view');
     dom.summaryModeAppendView = document.getElementById('summary-mode-append-view');
@@ -302,6 +330,15 @@ export function initDom() {
     dom.summaryAppendCardsList = document.getElementById('summary-append-cards-list');
     dom.summaryAppendCount = document.getElementById('summary-append-count');
     dom.summaryAppendAddBtn = document.getElementById('summary-append-add-btn');
+    dom.summaryCardEditModal = document.getElementById('summary-card-edit-modal');
+    dom.summaryCardEditTitle = document.getElementById('summary-card-edit-title');
+    dom.summaryCardEditCloseBtn = document.getElementById('summary-card-edit-close-btn');
+    dom.summaryCardEditRange = document.getElementById('summary-card-edit-range');
+    dom.summaryCardEditTime = document.getElementById('summary-card-edit-time');
+    dom.summaryCardEditContent = document.getElementById('summary-card-edit-content');
+    dom.summaryCardEditCharCounter = document.getElementById('summary-card-edit-char-counter');
+    dom.summaryCardEditCancelBtn = document.getElementById('summary-card-edit-cancel-btn');
+    dom.summaryCardEditSaveBtn = document.getElementById('summary-card-edit-save-btn');
 
     // 模式 3 (双表格) DOM 引用
     dom.summaryTableSubtabs = document.querySelectorAll('.summary-table-subtab');
@@ -323,11 +360,15 @@ export function initDom() {
     dom.autoSummaryTypeTokens = document.getElementById('auto-summary-type-tokens');
     dom.autoSummaryFloorInterval = document.getElementById('auto-summary-floor-interval');
     dom.autoSummaryTokenThreshold = document.getElementById('auto-summary-token-threshold');
+    dom.autoSummaryFloorProgress = document.getElementById('auto-summary-floor-progress');
     dom.autoSummaryTokenProgress = document.getElementById('auto-summary-token-progress');
     dom.autoSummaryDropFloors = document.getElementById('auto-summary-drop-floors');
     dom.autoSummaryKeepRecent = document.getElementById('auto-summary-keep-recent');
     dom.autoSummaryKeepRecentCount = document.getElementById('auto-summary-keep-recent-count');
     dom.autoSummaryKeepRecentHint = document.getElementById('auto-summary-keep-recent-hint');
+    dom.autoSummaryRelayPolicyAsk = document.getElementById('auto-summary-relay-policy-ask');
+    dom.autoSummaryRelayPolicyRelay = document.getElementById('auto-summary-relay-policy-relay');
+    dom.autoSummaryRelayPolicyLocal = document.getElementById('auto-summary-relay-policy-local');
     dom.keepHintCalcText = document.getElementById('keep-hint-calc-text');
     dom.keepHintJumpLimit = document.getElementById('keep-hint-jump-limit');
     dom.messageLimitSlider = document.getElementById('message-limit-slider');
@@ -352,6 +393,26 @@ export function initDom() {
     dom.condenseReductionBadge = document.getElementById('condense-reduction-badge');
     dom.summaryCondenseCancelBtn = document.getElementById('summary-condense-cancel-btn');
     dom.summaryCondenseApplyBtn = document.getElementById('summary-condense-apply-btn');
+    dom.summaryCondenseApplyBtnText = document.getElementById('summary-condense-apply-btn-text');
+    dom.condensePillToTable = document.getElementById('condense-pill-to-table');
+    dom.condensePillToRecursive = document.getElementById('condense-pill-to-recursive');
+    dom.condensePillToAppend = document.getElementById('condense-pill-to-append');
+    dom.summaryCondenseWithRole = document.getElementById('summary-condense-with-role');
+    dom.summaryCondenseWithWorldBook = document.getElementById('summary-condense-with-worldbook');
+    dom.summaryFormatErrorModal = document.getElementById('summary-format-error-modal');
+    dom.summaryFormatErrorCloseBtn = document.getElementById('summary-format-error-close-btn');
+    dom.summaryErrorFloorTag = document.getElementById('summary-error-floor-tag');
+    dom.summaryErrorRawToggle = document.getElementById('summary-error-raw-toggle');
+    dom.summaryErrorRawWrapper = document.getElementById('summary-error-raw-wrapper');
+    dom.summaryErrorRawTextarea = document.getElementById('summary-error-raw-textarea');
+    dom.summaryErrorRawArrow = document.getElementById('summary-error-raw-arrow');
+    dom.summaryErrorIgnoreBtn = document.getElementById('summary-error-ignore-btn');
+    dom.summaryErrorRetryBtn = document.getElementById('summary-error-retry-btn');
+    dom.summaryErrorModalTitle = document.getElementById('summary-error-modal-title');
+    dom.summaryErrorTitleText = document.getElementById('summary-error-title-text');
+    dom.summaryErrorDescText = document.getElementById('summary-error-desc-text');
+    dom.summaryErrorIgnoreBtnText = document.getElementById('summary-error-ignore-btn-text');
+    dom.summaryErrorRetryBtnText = document.getElementById('summary-error-retry-btn-text');
     dom.hideSummaryHistoryBtn = document.getElementById('hide-summary-history-btn');
     dom.hideSummaryHistoryCount = document.getElementById('hide-summary-history-count');
     dom.summaryMemoryTotalBadge = document.getElementById('summary-memory-total-badge');
@@ -368,6 +429,37 @@ export function initDom() {
     dom.summaryHistoryCloseBtn2 = document.getElementById('summary-history-close-btn2');
     dom.summaryHistoryList = document.getElementById('summary-history-list');
     dom.summaryHistoryClearAllBtn = document.getElementById('summary-history-clear-all-btn');
+
+    // 历史总结版本详情查看弹窗
+    dom.summaryHistoryDetailModal = document.getElementById('summary-history-detail-modal');
+    dom.summaryHistoryDetailCloseBtn = document.getElementById('summary-history-detail-close-btn');
+    dom.summaryHistoryDetailCloseBtn2 = document.getElementById('summary-history-detail-close-btn2');
+    dom.summaryHistoryDetailModeBadge = document.getElementById('summary-history-detail-mode-badge');
+    dom.summaryHistoryDetailTime = document.getElementById('summary-history-detail-time');
+    dom.summaryHistoryDetailSource = document.getElementById('summary-history-detail-source');
+    dom.summaryHistoryDetailStats = document.getElementById('summary-history-detail-stats');
+    dom.summaryHistoryDetailFloors = document.getElementById('summary-history-detail-floors');
+    dom.summaryHistoryDetailTableBar = document.getElementById('summary-history-detail-table-bar');
+    dom.detailTableSubtabHistory = document.getElementById('detail-table-subtab-history');
+    dom.detailTableSubtabCharacter = document.getElementById('detail-table-subtab-character');
+    dom.detailTableRawToggleBtn = document.getElementById('detail-table-raw-toggle-btn');
+    dom.summaryHistoryDetailTableContainer = document.getElementById('summary-history-detail-table-container');
+    dom.detailTableHistoryWrapper = document.getElementById('detail-table-history-wrapper');
+    dom.detailTableCharacterWrapper = document.getElementById('detail-table-character-wrapper');
+    dom.detailTableHistoryTbody = document.getElementById('detail-table-history-tbody');
+    dom.detailTableCharacterTbody = document.getElementById('detail-table-character-tbody');
+    dom.summaryHistoryDetailTextWrapper = document.getElementById('summary-history-detail-text-wrapper');
+    dom.summaryHistoryDetailTextarea = document.getElementById('summary-history-detail-textarea');
+    dom.summaryHistoryDetailCopyBtn = document.getElementById('summary-history-detail-copy-btn');
+    dom.summaryHistoryDetailRollbackBtn = document.getElementById('summary-history-detail-rollback-btn');
+    // 历史版本详情弹窗：左右对照视图（对比上版）
+    dom.summaryHistoryDetailViewBar = document.getElementById('summary-history-detail-view-bar');
+    dom.summaryHistoryDetailCompareWrapper = document.getElementById('summary-history-detail-compare-wrapper');
+    dom.detailCompareStats = document.getElementById('detail-compare-stats');
+    dom.detailComparePrevTime = document.getElementById('detail-compare-prev-time');
+    dom.detailCompareCurTime = document.getElementById('detail-compare-cur-time');
+    dom.detailComparePrevTextarea = document.getElementById('detail-compare-prev-textarea');
+    dom.detailCompareCurTextarea = document.getElementById('detail-compare-cur-textarea');
 
     // 回滚历史总结确认弹窗
     dom.summaryRollbackConfirmModal = document.getElementById('summary-rollback-confirm-modal');
@@ -461,8 +553,9 @@ export function initDom() {
     dom.systemPromptWorldbook = document.getElementById('system-prompt-worldbook');
     dom.systemPromptSummary = document.getElementById('system-prompt-summary');
 
-    // 模拟发送与提示词预览弹窗
-    dom.simulateSendBtn = document.getElementById('simulate-send-btn');
+    // 模拟发送与提示词预览弹窗 & 正则表达式快捷按钮
+    dom.quickRegexBtn = document.getElementById('quick-regex-btn') || document.getElementById('simulate-send-btn');
+    dom.simulateSendBtn = dom.quickRegexBtn;
     dom.simulateSendModal = document.getElementById('simulate-send-modal');
     dom.simulateSendCloseBtn = document.getElementById('simulate-send-close-btn');
     dom.simulateSendCloseBtn2 = document.getElementById('simulate-send-close-btn2');

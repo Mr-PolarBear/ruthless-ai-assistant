@@ -1,0 +1,93 @@
+/* ==========================================================================
+   沉浸阅读模式专属样式表 (Immersive Reading Mode Styles)
+   支持深色与浅色双主题无缝适配
+   ========================================================================== */
+
+/* — 为什么这么写 —
+   1. 纯样式级联净化：利用 body.immersive-mode 高优先级选择器，在零 JS 重排代价下隐藏消息修饰性节点；
+   2. 严格保留正文与底部控制行：正文 (.message-content) 与底部折叠栏 (.message-bottom-actions) 绝对可见；
+   3. 思考过程生命周期衔接：通过 :not(.streaming) 伪类选择器，仅在思考进行中允许展开观察，
+      正文生成完毕或查看历史楼层时，思考过程自动收敛退场，保持版面至简。
+*/
+
+/* 1. 消息顶部修饰脱水：隐藏头像、昵称、模型标签、MCP徽标、Token统计指示器 */
+body.immersive-mode .message-bubble .sender-line {
+    display: none !important;
+}
+
+/* 2. 消息操作工具栏脱水：隐藏编辑、复制、删除、思维导图、卡片分享等操作图标 */
+body.immersive-mode .message-bubble .message-header {
+    display: none !important;
+}
+
+/* 3. 消息底部统计脱水：隐藏发送时间戳、字符数统计、Token消耗、生成TPS等元数据 */
+body.immersive-mode .message-bubble .message-footer {
+    display: none !important;
+}
+
+/* 4. 思考过程净化：仅流式进行中保留，一旦正文输出完成（脱离 .streaming）即隐去 */
+body.immersive-mode .message-bubble .reasoning-container:not(.streaming) {
+    display: none !important;
+}
+
+/* 5. 显式保留：底部「收起」与「回本条顶部」操作行绝对保留并维持适宜上边距 */
+body.immersive-mode .message-bubble .message-bottom-actions {
+    display: flex !important;
+    margin-top: 0.65rem !important;
+}
+
+/* 6. 沉浸阅读舒适间距微调：消除头部空白，获得如阅读器般舒适纯粹的阅读体感 */
+body.immersive-mode .message-bubble {
+    padding-top: 0.85rem !important;
+    padding-bottom: 0.85rem !important;
+}
+
+/* ==========================================================================
+   右侧悬浮沉浸模式按钮规范与双主题样式
+   ========================================================================== */
+#immersive-mode-btn {
+    cursor: pointer;
+    transition: opacity 0.25s ease, transform 0.25s ease, background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+/* 激活状态：高亮主题色与微光扩散效果 */
+#immersive-mode-btn.active {
+    background-color: var(--accent-blue, #2563eb) !important;
+    color: #ffffff !important;
+    box-shadow: 0 0 12px rgba(37, 99, 235, 0.45), var(--shadow-md) !important;
+    opacity: 1 !important;
+}
+
+#immersive-mode-btn.active:hover {
+    background-color: var(--accent-blue-hover, #1d4ed8) !important;
+    box-shadow: 0 0 16px rgba(37, 99, 235, 0.65), var(--shadow-lg) !important;
+}
+
+/* 暗色主题深度适配 */
+body[data-theme="dark"] #immersive-mode-btn.active {
+    background-color: #3b82f6 !important;
+    color: #ffffff !important;
+    box-shadow: 0 0 14px rgba(59, 130, 246, 0.55), var(--shadow-md) !important;
+}
+
+body[data-theme="dark"] #immersive-mode-btn.active:hover {
+    background-color: #60a5fa !important;
+    box-shadow: 0 0 18px rgba(96, 165, 250, 0.7), var(--shadow-lg) !important;
+}
+
+/* ==========================================================================
+   移动端与窄屏适配
+   ========================================================================== */
+@media (max-width: 768px) {
+    #immersive-mode-btn {
+        width: 32px !important;
+        height: 32px !important;
+        min-width: 32px !important;
+        min-height: 32px !important;
+    }
+
+    #immersive-mode-btn svg {
+        width: 15px !important;
+        height: 15px !important;
+    }
+}

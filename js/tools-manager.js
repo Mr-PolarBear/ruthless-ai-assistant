@@ -11,6 +11,15 @@ const TOOLS = [
         name: 'AI 绘图',
         icon: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"></path><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path><path d="M2 2l7.586 7.586"></path><circle cx="11" cy="11" r="2"></circle></svg>',
         action: () => window.open('draw.html', '_blank')
+    },
+    {
+        id: 'deepseek-import',
+        name: 'DeepSeek 会话导入',
+        icon: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>',
+        // 懒加载模块：工具箱只是入口，弹窗逻辑首次点击时才下载，不给启动加负担
+        action: () => import('./modals/deepseek-import-modal.js?v=temp')
+            .then(m => m.openDeepseekImportModal())
+            .catch(err => console.error('[工具箱] DeepSeek导入模块加载失败:', err))
     }
     // 未来可以在这里添加更多工具
 ];
@@ -23,12 +32,14 @@ export class ToolsManager {
     }
 
     init() {
+        if (document.getElementById('tool-box-btn')) return;
         // 1. 查找插入点
-        // 我们要把按钮插入到 #hide-summary-btn 之前
-        const hideBtn = document.getElementById('hide-summary-btn');
-        if (!hideBtn) return;
+        // 我们要把按钮插入到侧边栏会话同步按钮 #top-sync-btn 之前
+        // 确保最终 DOM 顺序为：新的对话 -> 工具箱 -> 会话同步 -> 更新日志
+        const targetBtn = document.getElementById('top-sync-btn') || document.getElementById('changelog-btn');
+        if (!targetBtn) return;
 
-        const parent = hideBtn.parentNode; // .sidebar-actions
+        const parent = targetBtn.parentNode; // .sidebar-nav-actions
 
         // 2. 创建按钮
         this.btn = document.createElement('button');
@@ -64,7 +75,7 @@ export class ToolsManager {
         this.btn.appendChild(this.menu);
 
         // 5. 插入到 DOM
-        parent.insertBefore(this.btn, hideBtn);
+        parent.insertBefore(this.btn, targetBtn);
 
         // 6. 绑定事件
         this.btn.addEventListener('click', (e) => {

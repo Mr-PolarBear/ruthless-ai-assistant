@@ -24,6 +24,11 @@ export function setupEventListeners() {
     // Setup new chat button
     if (dom.newChatBtn) {
         dom.newChatBtn.addEventListener('click', async () => {
+            // 若处于回收站视图，新建会话时自动切回常规简洁视图
+            if (localStorage.getItem('historyViewMode') === 'trash') {
+                const simpleTab = document.getElementById('history-view-simple');
+                if (simpleTab) simpleTab.click();
+            }
             await createNewConversation();
             if (window.innerWidth <= 768) {
                 const { closeSidebarMobile } = await import('./ui-events.js?v=temp');

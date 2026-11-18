@@ -1,9 +1,11 @@
 import { resolveDynamicVariables } from './services/dynamic-variable-engine.js?v=temp';
 import { state } from './state.js?v=temp';
 import { getSelectedToolsDescription } from './mcp-tools-selector.js?v=temp';
-import { parseRegex, getActiveRegexRules } from './regex-engine.js?v=temp';
+import { parseRegex, getActiveRegexRules, applyRequestRegex as engineApplyRequestRegex } from './regex-engine.js?v=temp';
 import { isFloorHiddenInConfig, isMessageHidden } from './utils.js?v=temp';
 import { formatMemoryForApi } from './summary-manager.js?v=temp';
+import { calculateVirtualDate, formatVirtualTimestamp, DEFAULT_REALTIME_PROMPT } from './services/realtime-mode.js?v=temp';
+import { regexPatterns } from './regex.js?v=temp';
 
 /**
  * 处理单条消息的内容，包括文本和附件
@@ -150,9 +152,10 @@ export function applyMessageLimit(messages, hideSummaryConfig) {
  * @param {Array} enabledWorldBookEntries - 启用的世界书条目
  * @param {boolean} includePersona - 是否包含角色
  * @param {boolean} includeMcp - 是否包含MCP工具
+ * @param {boolean} [includeRealtime=true] - 是否注入实时模式提示词与用户时间戳
  * @returns {Array} 组装后的消息数组
  */
-export function assembleSystemMessages(chatHistoryMessages, currentConv, apiEndpoint, enabledWorldBookEntries, includePersona, includeMcp) {
+export function assembleSystemMessages(chatHistoryMessages, currentConv, apiEndpoint, enabledWorldBookEntries, includePersona, includeMcp, includeRealtime = true) {
     // 乌鸦：根据 includePersona 标志决定是否获取角色提示
     const personaMessage = (includePersona && apiEndpoint.type === 'openai-compatible' && currentConv.personaId && state.personas[currentConv.personaId])
         ? { role: 'system', content: state.personas[currentConv.personaId].prompt }
@@ -207,6 +210,17 @@ export function assembleSystemMessages(chatHistoryMessages, currentConv, apiEndp
         }
     }
 
+    // 2.6 实时模式系统提示词注入（受 includeRealtime 控制，防止记忆总结/思维导图提炼等辅助任务被污染）
+    if (includeRealtime && currentConv && currentConv.realtimeMode && currentConv.realtimeMode.enabled && currentConv.realtimeMode.promptEnabled !== false) {
+        const realtimePrompt = (currentConv.realtimeMode.prompt || DEFAULT_REALTIME_PROMPT).trim();
+        if (realtimePrompt) {
+            finalMessages.push({
+                role: 'system',
+                content: realtimePrompt
+            });
+        }
+    }
+
     // 3. 动态解析并按注入位置（Anchor）分流备忘录条目
     const dynamicContext = { currentConv, apiEndpoint };
     const resolvedEntries = (enabledWorldBookEntries || []).map(entry => ({
@@ -236,9 +250,15 @@ export function assembleSystemMessages(chatHistoryMessages, currentConv, apiEndp
     // 3.1 注入顶部备忘录 (Top)
     if (topEntries.length > 0) {
         if (state.appSettings.mergeWorldBook) {
+            // — 为什么这么写 —
+            // 1. 备忘录条目合并发送时，采用 Markdown 三级标题 "### 【设定/规则N】" 隔离不同条目，确保大模型具备清晰边界感知；
+            // 2. 不暴露条目内部管理名称（entry.name），防止私有命名干扰 AI 角色理解；
+            // 3. 条目与条目之间使用标准双换行 \n\n 隔离，避免不同规则互相粘连挤在同一行；
+            // 4. 过滤空内容条目，保证规则序号紧凑递增，不会出现空标题。
             const mergedWorldBookContent = topEntries
-                .map(entry => entry.content + '; ')
-                .join('')
+                .filter(entry => entry && typeof entry.content === 'string' && entry.content.trim())
+                .map((entry, index) => `### 【设定/规则${index + 1}】\n${entry.content.trim()}`)
+                .join('\n\n')
                 .trim();
             if (mergedWorldBookContent) {
                 finalMessages.push({ role: 'system', content: mergedWorldBookContent });
@@ -276,7 +296,15 @@ export function assembleSystemMessages(chatHistoryMessages, currentConv, apiEndp
     }
 
     // 4. 组装对话历史流（支持回溯深度插入与跟随发言注入）
-    let chatStream = (chatHistoryMessages || []).map(msg => ({ ...msg }));
+    // — 为什么对多模态附件内容进行防御性深拷贝 —
+    // 避免在此处为消息追加脚标或时间戳时，修改内存中持久化的消息原始对象（state.conversations），
+    // 确保对消息内容的注入仅作用于本次发给大模型的 payload。
+    let chatStream = (chatHistoryMessages || []).map(msg => ({
+        ...msg,
+        content: Array.isArray(msg.content)
+            ? msg.content.map(item => (typeof item === 'object' && item !== null ? { ...item } : item))
+            : msg.content
+    }));
 
 /**
  * 安全追加脚标文本到消息内容中（深度防御：同时支持 string 格式与多模态 array 格式）
@@ -286,12 +314,23 @@ export function assembleSystemMessages(chatHistoryMessages, currentConv, apiEndp
 function appendTextToMessageContent(msg, textToAppend) {
     if (!textToAppend || !msg) return;
     if (typeof msg.content === 'string') {
-        msg.content = msg.content ? `${msg.content}\n${textToAppend}` : textToAppend;
+        let baseText = msg.content;
+        // 如果末尾已存在时间戳后缀，先剔除旧时间戳，防止手动重发或多轮重复追加形成双重时间戳后缀
+        if (regexPatterns && regexPatterns.realtimeTimestampSuffix) {
+            baseText = baseText.replace(regexPatterns.realtimeTimestampSuffix, '');
+        }
+        baseText = baseText.trimEnd();
+        msg.content = baseText ? `${baseText}\n${textToAppend}` : textToAppend;
     } else if (Array.isArray(msg.content)) {
         // 多模态数组格式（例如带图片时）：定位到第一个文本块追加，若无则新增文本块
         const textItem = msg.content.find(item => item && item.type === 'text');
         if (textItem && typeof textItem.text === 'string') {
-            textItem.text = textItem.text ? `${textItem.text}\n${textToAppend}` : textToAppend;
+            let baseText = textItem.text;
+            if (regexPatterns && regexPatterns.realtimeTimestampSuffix) {
+                baseText = baseText.replace(regexPatterns.realtimeTimestampSuffix, '');
+            }
+            baseText = baseText.trimEnd();
+            textItem.text = baseText ? `${baseText}\n${textToAppend}` : textToAppend;
         } else {
             msg.content.push({ type: 'text', text: textToAppend });
         }
@@ -353,6 +392,44 @@ function appendTextToMessageContent(msg, textToAppend) {
         }
     }
 
+    // 4.1.5 实时模式时间戳注入（跟随用户发言追加）
+    // — 为什么这么写 —
+    // 1. 每条追加 (appendAllUser = true): 遍历历史每条用户消息，提取当时真实时间戳动态推算虚拟时间；
+    //    让 AI 阅读多轮上下文时，能感知真实的时间差！
+    // 2. 仅末条追加 (appendAllUser = false): 仅在最新一条用户发言末尾追加时间戳；
+    // 3. 严格采用 calculateVirtualDate 处理 UTC 绝对天数推进与平闰年，时分秒从消息保真继承；
+    // 4. 严格受 includeRealtime 控制：在生成记忆总结、思维导图等任务时严禁执行时间戳追加。
+    if (includeRealtime && currentConv && currentConv.realtimeMode && currentConv.realtimeMode.enabled) {
+        const rtCfg = currentConv.realtimeMode;
+        const appendAll = rtCfg.appendAllUser !== false;
+
+        const userMsgIndices = [];
+        for (let i = 0; i < chatStream.length; i++) {
+            if (chatStream[i].role === 'user') {
+                userMsgIndices.push(i);
+            }
+        }
+
+        if (userMsgIndices.length > 0) {
+            const targetIndices = appendAll ? userMsgIndices : [userMsgIndices[userMsgIndices.length - 1]];
+            for (const idx of targetIndices) {
+                const msg = chatStream[idx];
+                let msgDate = new Date();
+                if (msg.timestamp) {
+                    const parsedD = new Date(msg.timestamp);
+                    if (!isNaN(parsedD.getTime())) {
+                        msgDate = parsedD;
+                    }
+                }
+                const vDate = calculateVirtualDate(rtCfg, msgDate);
+                const tsStr = formatVirtualTimestamp(vDate, rtCfg);
+                if (tsStr) {
+                    appendTextToMessageContent(msg, tsStr);
+                }
+            }
+        }
+    }
+
     // 4.2 对话历史流内深度插入 (chat_end)
     // 深度说明：0 = 插在最后一条之后；1 = 插在倒数第1条（最新消息）之前；2 = 倒数第2条前
     if (chatEndEntries.length > 0) {
@@ -396,65 +473,8 @@ function appendTextToMessageContent(msg, textToAppend) {
  * @returns {Array<object>} The modified messages array.
  */
 export function applyRequestRegex(messages, convId = state.currentConversationId) {
-    // 乌鸦：获取针对当前会话生效的所有启用的规则
-    const activeRules = getActiveRegexRules(convId);
-    if (activeRules.length === 0) {
-        return messages; // 如果没有启用规则，直接返回原消息数组
-    }
-
-    // 乌鸦：对所有规则进行一次排序，数字越小，优先级越高
-    activeRules.sort((a, b) => (a.sort || 0) - (b.sort || 0));
-
-    const totalVisibleMessages = messages.length;
-
-    // 乌鸦：遍历每一条消息，并传入其在可见消息列表中的索引
-    return messages.map((message, messageIndex) => {
-        // 乌鸦：确保message.content存在且为字符串，避免后续操作报错
-        if (typeof message.content !== 'string') {
-            return message;
-        }
-
-        let modifiedContent = message.content;
-        // 乌鸦：确定当前消息需要应用的作用域，例如 'request-user' 或 'request-ai'
-        const scopeToApply = `request-${message.role}`;
-        // 乌鸦：计算当前消息从后往前的索引，这是楼层逻辑的核心
-        const indexFromEnd = totalVisibleMessages - 1 - messageIndex;
-
-        // 乌鸦：遍历所有已排序的规则
-        for (const rule of activeRules) {
-            // 乌鸦：检查规则的作用域是否匹配当前消息
-            if (rule.scopes.includes(scopeToApply)) {
-
-                // --- 乌鸦：在这里注入楼层限制检查逻辑 ---
-                const minFloor = parseInt(rule.minFloor, 10) || 0;
-                const maxFloor = parseInt(rule.maxFloor, 10) || 0;
-
-                if (minFloor > 0) { // 数量限制：影响最新的 minFloor 条
-                    if (indexFromEnd >= minFloor) continue; // 如果当前消息的倒序索引超出了范围，则跳过此规则
-                } else if (maxFloor > 0) { // 起始点限制：从倒数 maxFloor+1 条开始
-                    if (indexFromEnd < maxFloor) continue; // 如果当前消息的倒序索引未达到起始点，则跳过此规则
-                }
-                // --- 楼层检查逻辑结束 ---
-
-                try {
-                    // 乌鸦：使用与渲染引擎相同的智能解析器来解析正则表达式
-                    const { pattern, flags } = parseRegex(rule.find);
-                    const finalFlags = flags !== undefined ? flags : (rule.flags || 'g');
-                    const regex = new RegExp(pattern, finalFlags);
-                    // 乌鸦：执行替换
-                    modifiedContent = modifiedContent.replace(regex, rule.replace);
-                } catch (e) {
-                    // 乌鸦：如果正则表达式有误，忽略该规则以避免整个程序崩溃
-                    console.error(`乌鸦：正则表达式规则"${rule.name}"解析失败:`, e);
-                }
-            }
-        }
-
-        // 乌鸦：如果内容有修改，则返回新消息对象，否则返回原对象
-        return modifiedContent !== message.content
-            ? { ...message, content: modifiedContent }
-            : message;
-    });
+    // 乌鸦：统一委托给 regex-engine.js 处理，保持全系统一致与向前兼容
+    return engineApplyRequestRegex(messages, convId);
 }
 
 /**
@@ -659,6 +679,7 @@ export function getWorldBookContent(options = {}) {
  * @param {boolean} options.includeWorldBook - 是否包含世界书
  * @param {boolean} options.includePersona - 是否包含角色
  * @param {boolean} options.includeMcp - 是否包含MCP工具
+ * @param {boolean} [options.includeRealtime=true] - 是否注入实时模式提示词与用户时间戳
  * @param {boolean} options.applyRegex - 是否应用正则替换规则
  * @returns {Object} API请求配置
  */
@@ -669,6 +690,7 @@ export function buildApiRequest(options = {}) {
         includeWorldBook = true, // 乌鸦：默认包含世界书
         includePersona = true, // 乌鸦：默认包含角色
         includeMcp = true, // 乌鸦：默认包含MCP
+        includeRealtime = true, // 实时模式提示词与时间戳注入控制
         applyRegex = true
     } = options;
 
@@ -683,8 +705,8 @@ export function buildApiRequest(options = {}) {
         ? getWorldBookContent({enabledOnly: true, convId})
         : [];
 
-    // 组装系统消息，传入includePersona和includeMcp标志
-    const finalMessages = assembleSystemMessages(messages, currentConv, apiEndpoint, enabledWorldBookEntries, includePersona, includeMcp);
+    // 组装系统消息，传入 includePersona、includeMcp 与 includeRealtime 标志
+    const finalMessages = assembleSystemMessages(messages, currentConv, apiEndpoint, enabledWorldBookEntries, includePersona, includeMcp, includeRealtime);
 
     // 处理正则替换规则
     const processedMessages = applyRegex ? applyRequestRegex(finalMessages) : finalMessages;

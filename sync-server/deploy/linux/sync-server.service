@@ -1,0 +1,15 @@
+[Unit]
+Description=Ruthless AI Assistant Sync Server
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/sync-server
+ExecStart=/opt/sync-server/sync-server serve -config=/opt/sync-server/config.json
+Restart=always
+RestartSec=5s
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

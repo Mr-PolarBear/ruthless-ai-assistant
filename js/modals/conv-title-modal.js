@@ -102,9 +102,11 @@ export function setupConvTitleModalEvents() {
         });
     }
     if (dom.editConvTitleModal) {
-        // 点击背景遮罩或右上角叉号关闭
+        // — 为什么这么写 —
+        // 1. 改为点击外部阴影遮罩不关闭，防止大爷输入长标题时误触空白处导致内容意外丢失
+        // 2. 仅响应右上角关闭按钮（.modal-close-btn）的显式关闭操作
         dom.editConvTitleModal.addEventListener('click', (e) => {
-            if (e.target === dom.editConvTitleModal || e.target.classList.contains('modal-close-btn')) {
+            if (e.target.closest && e.target.closest('.modal-close-btn')) {
                 closeConvTitleModal();
             }
         });

@@ -1,0 +1,400 @@
+/* ==========================================================================
+   复制会话智能减负对比弹窗样式 (双主题与响应式完整适配)
+   ========================================================================== */
+
+/* 模态框全屏遮罩 */
+.copy-conv-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10005;
+    padding: 16px;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+.copy-conv-modal-overlay.open {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* 模态框主体卡片 */
+.copy-conv-modal {
+    background: var(--bg-surface, #ffffff);
+    color: var(--text-color, #1e293b);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 12px;
+    width: 100%;
+    max-width: 480px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    transform: scale(0.96) translateY(8px);
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.copy-conv-modal-overlay.open .copy-conv-modal {
+    transform: scale(1) translateY(0);
+}
+
+/* 深色模式主体 */
+body[data-theme="dark"] .copy-conv-modal {
+    background: var(--bg-surface-dark, #1e2430);
+    color: var(--text-color-dark, #f1f5f9);
+    border-color: var(--border-color-dark, #334155);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.4);
+}
+
+/* 顶部标题栏 */
+.copy-conv-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border-color, #e2e8f0);
+}
+
+body[data-theme="dark"] .copy-conv-modal-header {
+    border-bottom-color: var(--border-color-dark, #334155);
+}
+
+.copy-conv-modal-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-color, #1e293b);
+}
+
+body[data-theme="dark"] .copy-conv-modal-title {
+    color: var(--text-color-dark, #f1f5f9);
+}
+
+.copy-conv-modal-title .copy-conv-icon {
+    color: var(--primary-color, #3b82f6);
+}
+
+.copy-conv-modal-close {
+    background: transparent;
+    border: none;
+    color: var(--text-muted, #64748b);
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 6px;
+    transition: background 0.15s, color 0.15s;
+}
+
+.copy-conv-modal-close:hover {
+    background: var(--bg-hover, rgba(0, 0, 0, 0.05));
+    color: var(--text-color, #1e293b);
+}
+
+body[data-theme="dark"] .copy-conv-modal-close:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+}
+
+/* 内容区域 */
+.copy-conv-modal-body {
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.copy-conv-desc {
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text-secondary, #475569);
+}
+
+body[data-theme="dark"] .copy-conv-desc {
+    color: var(--text-secondary-dark, #94a3b8);
+}
+
+.copy-conv-desc strong {
+    color: var(--text-color, #0f172a);
+    font-weight: 600;
+}
+
+body[data-theme="dark"] .copy-conv-desc strong {
+    color: #ffffff;
+}
+
+/* 选项卡片容器 */
+.copy-conv-options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 4px;
+}
+
+/* 单个选项卡片 */
+.copy-conv-card {
+    position: relative;
+    padding: 12px 14px;
+    background: var(--bg-surface-secondary, #f8fafc);
+    border: 1px solid var(--border-color, #cbd5e1);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: border-color 0.18s, background 0.18s, box-shadow 0.18s, transform 0.15s;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    user-select: none;
+}
+
+body[data-theme="dark"] .copy-conv-card {
+    background: var(--bg-deep, rgba(255, 255, 255, 0.03));
+    border-color: var(--border-color-dark, #334155);
+}
+
+.copy-conv-card:hover {
+    border-color: var(--primary-color, #3b82f6);
+    background: var(--bg-hover, #f1f5f9);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.08);
+    transform: translateY(-1px);
+}
+
+body[data-theme="dark"] .copy-conv-card:hover {
+    border-color: var(--primary-color, #3b82f6);
+    background: rgba(59, 130, 246, 0.08);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* 减负推荐高亮卡片 */
+.copy-conv-card.copy-conv-card-recommended {
+    border-color: rgba(59, 130, 246, 0.45);
+    background: rgba(59, 130, 246, 0.03);
+}
+
+body[data-theme="dark"] .copy-conv-card.copy-conv-card-recommended {
+    border-color: rgba(59, 130, 246, 0.4);
+    background: rgba(59, 130, 246, 0.06);
+}
+
+.copy-conv-card.copy-conv-card-recommended:hover {
+    border-color: var(--primary-color, #3b82f6);
+    background: rgba(59, 130, 246, 0.08);
+}
+
+body[data-theme="dark"] .copy-conv-card.copy-conv-card-recommended:hover {
+    background: rgba(59, 130, 246, 0.12);
+}
+
+/* 推荐徽章 */
+.copy-conv-badge {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    font-size: 10px;
+    font-weight: 600;
+    color: #ffffff;
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    padding: 2px 7px;
+    border-radius: 10px;
+    letter-spacing: 0.3px;
+    box-shadow: 0 2px 5px rgba(37, 99, 235, 0.25);
+}
+
+/* 卡片头部 */
+.copy-conv-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.copy-conv-card-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.copy-conv-icon-full {
+    background: rgba(100, 116, 139, 0.12);
+    color: var(--text-secondary, #475569);
+}
+
+body[data-theme="dark"] .copy-conv-icon-full {
+    background: rgba(148, 163, 184, 0.15);
+    color: var(--text-secondary-dark, #cbd5e1);
+}
+
+.copy-conv-icon-slim {
+    background: rgba(59, 130, 246, 0.12);
+    color: var(--primary-color, #3b82f6);
+}
+
+body[data-theme="dark"] .copy-conv-icon-slim {
+    background: rgba(59, 130, 246, 0.2);
+    color: #60a5fa;
+}
+
+.copy-conv-card-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.copy-conv-card-title {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text-color, #0f172a);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+body[data-theme="dark"] .copy-conv-card-title {
+    color: var(--text-color-dark, #f8fafc);
+}
+
+.copy-conv-card-meta {
+    font-size: 11px;
+    color: var(--text-muted, #64748b);
+    margin-top: 1px;
+}
+
+body[data-theme="dark"] .copy-conv-card-meta {
+    color: var(--text-muted-dark, #94a3b8);
+}
+
+/* 卡片描述 */
+.copy-conv-card-desc {
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--text-secondary, #475569);
+    padding-left: 44px;
+}
+
+body[data-theme="dark"] .copy-conv-card-desc {
+    color: var(--text-secondary-dark, #94a3b8);
+}
+
+.copy-conv-card-desc strong {
+    color: var(--primary-color, #2563eb);
+}
+
+body[data-theme="dark"] .copy-conv-card-desc strong {
+    color: #60a5fa;
+}
+
+/* 操作按钮 */
+.copy-conv-action-btn {
+    align-self: flex-end;
+    margin-top: 2px;
+    padding: 5px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    border-radius: 6px;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.copy-btn-primary {
+    background: var(--primary-color, #3b82f6);
+    color: #ffffff;
+}
+
+.copy-btn-primary:hover {
+    background: var(--primary-hover, #2563eb);
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
+}
+
+.copy-btn-secondary {
+    background: var(--bg-hover, rgba(0, 0, 0, 0.05));
+    color: var(--text-color, #1e293b);
+    border: 1px solid var(--border-color, #cbd5e1);
+}
+
+body[data-theme="dark"] .copy-btn-secondary {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-color-dark, #f1f5f9);
+    border-color: var(--border-color-dark, #475569);
+}
+
+.copy-btn-secondary:hover {
+    background: var(--bg-hover-active, rgba(0, 0, 0, 0.08));
+    border-color: var(--text-muted, #94a3b8);
+}
+
+body[data-theme="dark"] .copy-btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.12);
+}
+
+/* 底部取消按钮 */
+.copy-conv-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    padding: 10px 18px 14px;
+    border-top: 1px solid var(--border-color, #e2e8f0);
+}
+
+body[data-theme="dark"] .copy-conv-modal-footer {
+    border-top-color: var(--border-color-dark, #334155);
+}
+
+.copy-conv-cancel-btn {
+    padding: 6px 14px;
+    font-size: 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    background: transparent;
+    border: 1px solid var(--border-color, #cbd5e1);
+    color: var(--text-muted, #64748b);
+    transition: all 0.15s ease;
+}
+
+body[data-theme="dark"] .copy-conv-cancel-btn {
+    border-color: var(--border-color-dark, #475569);
+    color: var(--text-muted-dark, #94a3b8);
+}
+
+.copy-conv-cancel-btn:hover {
+    background: var(--bg-hover, rgba(0, 0, 0, 0.05));
+    color: var(--text-color, #1e293b);
+}
+
+body[data-theme="dark"] .copy-conv-cancel-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+}
+
+/* 移动端小屏适配 */
+@media (max-width: 640px) {
+    .copy-conv-modal {
+        max-width: 100%;
+        border-radius: 12px;
+    }
+
+    .copy-conv-card-desc {
+        padding-left: 0;
+    }
+
+    .copy-conv-action-btn {
+        width: 100%;
+        justify-content: center;
+        padding: 8px 12px;
+        font-size: 13px;
+    }
+}

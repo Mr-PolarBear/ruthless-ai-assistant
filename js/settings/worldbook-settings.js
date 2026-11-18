@@ -50,6 +50,7 @@ function hideWbTooltip() {
  */
 
 import { dom } from '../dom.js?v=temp';
+import { regexPatterns } from '../regex.js?v=temp';
 import { state } from '../state.js?v=temp';
 import { saveToLocalStorage, saveAppSettings, escapeHtml } from '../utils.js?v=temp';
 import { 
@@ -220,6 +221,9 @@ function ensureWorldBookAllTabActive() {
 
 let lastLoadedFormSnapshot = null;
 
+// — 为什么这么写 —
+// 1. 采用 regexPatterns.crlfGlobal 将所有换行符统一归一化为 LF (\n)，并执行 .trim()，杜绝因末尾换行/首尾空白引起的脏检查假阳性误判；
+// 2. 只有在 position === 'append_to_user' 时才考核 appendAllUser，避免隐藏开关的历史 checked 残留干扰对比。
 export function updateFormSnapshotAfterLoadOrSave(entry = null) {
     if (!entry) {
         lastLoadedFormSnapshot = null;
@@ -228,12 +232,16 @@ export function updateFormSnapshotAfterLoadOrSave(entry = null) {
     const currentConvId = (typeof getSafeActiveConversationId === 'function') ? getSafeActiveConversationId() : state.currentConversationId;
     const sessionChecked = Boolean(entry.enabled || (currentConvId && Array.isArray(entry.sessionIds) && entry.sessionIds.includes(currentConvId)));
     const tagsSorted = Array.isArray(entry.tags) ? [...entry.tags].sort().join(',') : '';
+    const position = entry.position || 'top';
+    const appendAllUser = (position === 'append_to_user') ? Boolean(entry.appendAllUser) : false;
+    const normalizedContent = (entry.content || '').replace(regexPatterns.crlfGlobal, '\n').trim();
+
     lastLoadedFormSnapshot = {
         id: entry.id || '',
         name: (entry.name || '').trim(),
-        content: entry.content || '',
-        position: entry.position || 'top',
-        appendAllUser: Boolean(entry.appendAllUser),
+        content: normalizedContent,
+        position: position,
+        appendAllUser: appendAllUser,
         depth: typeof entry.depth === 'number' ? entry.depth : 10,
         role: entry.role || 'system',
         enabled: Boolean(entry.enabled),
@@ -242,14 +250,25 @@ export function updateFormSnapshotAfterLoadOrSave(entry = null) {
     };
 }
 
+// — 为什么这么写 —
+// 1. 取值时对 content 同样执行 CRLF 换行符归一化与 .trim()，与 updateFormSnapshotAfterLoadOrSave 形成严格对称；
+// 2. 仅在 position === 'append_to_user' 时提取 appendAllUser，与保存逻辑保持一致；
+// 3. depth 进行 NaN 防御，防止非法输入引起 NaN !== NaN 永真脏检查。
 function getFormValuesSnapshot() {
+    const position = dom.worldBookPositionSelector?.value || 'top';
+    const appendAllUser = (position === 'append_to_user') ? Boolean(dom.worldBookAppendAllToggle?.checked) : false;
+    const rawContent = dom.worldBookContentInput?.value || '';
+    const normalizedContent = rawContent.replace(regexPatterns.crlfGlobal, '\n').trim();
+    const rawDepth = dom.worldBookDepthInput ? parseInt(dom.worldBookDepthInput.value, 10) : 10;
+    const safeDepth = isNaN(rawDepth) ? 10 : rawDepth;
+
     return {
         id: dom.worldBookIdInput?.value || '',
         name: (dom.worldBookNameInput?.value || '').trim(),
-        content: dom.worldBookContentInput?.value || '',
-        position: dom.worldBookPositionSelector?.value || 'top',
-        appendAllUser: Boolean(dom.worldBookAppendAllToggle?.checked),
-        depth: dom.worldBookDepthInput ? parseInt(dom.worldBookDepthInput.value, 10) : 10,
+        content: normalizedContent,
+        position: position,
+        appendAllUser: appendAllUser,
+        depth: safeDepth,
         role: dom.worldBookRoleSelector?.value || 'system',
         enabled: Boolean(dom.worldBookEnabledToggle?.checked),
         sessionChecked: Boolean(dom.worldBookSessionToggleInput?.checked),
@@ -273,6 +292,10 @@ export function isWorldBookFormDirty() {
     if (current.id && state.worldBook[current.id]) {
         const orig = lastLoadedFormSnapshot;
         if (!orig) return false;
+        // — 为什么这么写 —
+        // 当开启全局生效时，局部会话开关已置灰禁用并自动覆盖所有会话，此时局部开关勾选态不作为脏检查判据，彻底根除开关状态刷新延迟导致的假阳性误报
+        const sessionDirty = (!current.enabled) ? (current.sessionChecked !== orig.sessionChecked) : false;
+
         return (
             current.name !== orig.name ||
             current.content !== orig.content ||
@@ -281,7 +304,7 @@ export function isWorldBookFormDirty() {
             current.depth !== orig.depth ||
             current.role !== orig.role ||
             current.enabled !== orig.enabled ||
-            current.sessionChecked !== orig.sessionChecked ||
+            sessionDirty ||
             current.tags !== orig.tags
         );
     }
@@ -520,8 +543,6 @@ export function setupWorldBookEvents() {
         const newClickListener = (e) => {
             const tagItem = e.target.closest('.tag-item');
             if (tagItem && !e.target.classList.contains('tag-checkbox')) {
-                // 智能自愈：若当前在“已选中”视图，自动切回“全部”并激活标签筛选
-                ensureWorldBookAllTabActive();
                 
                 const checkbox = tagItem.querySelector('.tag-checkbox');
                 if (checkbox) {
@@ -539,8 +560,6 @@ export function setupWorldBookEvents() {
         
         const newCheckboxListener = (e) => {
             if (e.target.classList.contains('tag-checkbox')) {
-                // 智能自愈：若当前在“已选中”视图，自动切回“全部”并激活标签筛选
-                ensureWorldBookAllTabActive();
                 
                 const isSingleMode = state.worldBookFilter.mode === 'single';
                 const tagItem = e.target.closest('.tag-item');
@@ -657,10 +676,8 @@ export function setupWorldBookEvents() {
                 // 依大爷要求：切换 Tab 时始终保持拖拽实例启用（“已选中”和“全部”均支持拖拽）
                 initWorldBookDragInstance(true);
                 
-                // 根据标签页启用/禁用标签列表
-                if (dom.worldBookTagList) {
-                    dom.worldBookTagList.classList.toggle('disabled', tab === 'selected');
-                }
+                // 依大爷要求：切换 Tab 时基于当前视图的条目重新渲染标签面板，并重置为“全部”勾选
+                renderWorldBookTagsPanel(true);
                 
                 // 重新渲染列表
                 filterWorldBookByTags();
@@ -870,13 +887,17 @@ async function saveWorldBookEntry() {
 
     // — 为什么这么写 —
     // 依大爷要求：保存后不直接清空，而是停留在当前条目继续编辑状态
-    // 1. 将表单 id 设置为当前条目 ID，标题切换为编辑状态
-    // 2. 显示取消编辑按钮，方便用户随时切换新建
-    // 3. 弹出成功 Toast，保持流程连续性
+    // 1. 同步回写 trim 后的名称与正文到输入框 DOM，保证输入框视图、数据库、快照 100% 绝对一致，杜绝末尾回车/空格造成的脏检查假阳性拦截；
+    // 2. 将表单 id 设置为当前条目 ID，标题切换为编辑状态；
+    // 3. 显示取消编辑按钮，方便用户随时切换新建；
+    // 4. 同步刷新字数统计与局部生效开关。
+    if (dom.worldBookNameInput) dom.worldBookNameInput.value = name;
+    if (dom.worldBookContentInput) dom.worldBookContentInput.value = content;
     dom.worldBookIdInput.value = entryId;
     dom.worldBookFormTitle.textContent = '编辑条目';
     if (dom.wbMobileFormTabText) dom.wbMobileFormTabText.textContent = '编辑条目';
     if (dom.worldBookCancelBtn) dom.worldBookCancelBtn.style.display = 'inline-flex';
+    if (typeof updateCharCounter === 'function') updateCharCounter();
 
     // 保存后，立即同步刷新表单内局部生效开关的最新状态与可用性，以及注入位置与每条合并联动
     updateFormSessionToggleState(enabled, Boolean(currentConvId && sessionIds.includes(currentConvId)));

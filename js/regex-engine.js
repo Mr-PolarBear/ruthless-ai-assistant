@@ -43,8 +43,8 @@ export function getActiveRegexRules(currentConvId = state.currentConversationId)
  * 2. pattern (纯字符串格式)
  */
 export function parseRegex(findString) {
-    // 匹配 /pattern/flags 格式
-    const literalRegex = /^\/(.*)\/([gimy]*)$/;
+    // 匹配 /pattern/flags 格式（全面支持 g, i, m, y, s, u, v, d 等现代 JS 正则标志）
+    const literalRegex = /^\/(.*)\/([gimysuvd]*)$/;
     const match = findString.match(literalRegex);
 
     if (match) {
@@ -55,6 +55,67 @@ export function parseRegex(findString) {
     // 未匹配，说明是纯字符串格式，直接返回
     return { pattern: findString, flags: undefined };
 }
+
+/**
+ * 应用“请求时”正则表达式规则（作用域为 request-user 或 request-assistant）
+ * 并在消息发生变更时打标 regexModified 与记录原内容
+ * 
+ * — 为什么这么写 —
+ * 1. 真实 API 发送与 Token 统计共用此函数，确保 100% 同构一致；
+ * 2. 遍历生效的 request-* 规则，严格支持倒数楼层 (minFloor 限制最新N条 / maxFloor 跳过最新N条)；
+ * 3. 发生文本替换时，挂载 regexModified: true 与 beforeRegexContent，便于 Token 统计和模拟发送透视削减量。
+ * 
+ * @param {Array<object>} messages - 消息对象数组，每条需包含 role 与 content 字段
+ * @param {string} [convId] - 会话ID（默认读取当前活跃会话）
+ * @returns {Array<object>} 替换后的消息数组副本
+ */
+export function applyRequestRegex(messages, convId = state.currentConversationId) {
+    const activeRules = getActiveRegexRules(convId);
+    if (!activeRules || activeRules.length === 0 || !Array.isArray(messages) || messages.length === 0) {
+        return messages;
+    }
+
+    // 优先级排序：数字越小越先执行
+    activeRules.sort((a, b) => (a.sort || 0) - (b.sort || 0));
+    const totalVisibleMessages = messages.length;
+
+    return messages.map((message, messageIndex) => {
+        if (!message || typeof message.content !== 'string') {
+            return message;
+        }
+
+        let modifiedContent = message.content;
+        const scopeToApply = `request-${message.role}`;
+        const indexFromEnd = totalVisibleMessages - 1 - messageIndex;
+
+        for (const rule of activeRules) {
+            if (rule.scopes && rule.scopes.includes(scopeToApply)) {
+                const minFloor = parseInt(rule.minFloor, 10) || 0;
+                const maxFloor = parseInt(rule.maxFloor, 10) || 0;
+
+                if (minFloor > 0) {
+                    if (indexFromEnd >= minFloor) continue;
+                } else if (maxFloor > 0) {
+                    if (indexFromEnd < maxFloor) continue;
+                }
+
+                try {
+                    const { pattern, flags } = parseRegex(rule.find);
+                    const finalFlags = flags !== undefined ? flags : (rule.flags || 'g');
+                    const regex = new RegExp(pattern, finalFlags);
+                    modifiedContent = modifiedContent.replace(regex, rule.replace !== undefined ? rule.replace : '');
+                } catch (e) {
+                    console.error(`[Regex Engine - Request] 正则规则 "${rule.name}" 解析或执行失败:`, e);
+                }
+            }
+        }
+
+        return modifiedContent !== message.content
+            ? { ...message, content: modifiedContent, regexModified: true, beforeRegexContent: message.content }
+            : message;
+    });
+}
+
 
 
 function createNodeFromHTML(htmlString) {

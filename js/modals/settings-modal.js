@@ -11,15 +11,17 @@ import { updateBubbleSettingsUI } from '../settings/bubble-settings.js?v=temp';
 import { updateStoragePersistenceUI } from '../services/storage-persistence.js?v=temp';
 import { updateVersionCardUI } from '../services/version-checker.js?v=temp';
 
-export async function openSettingsModal() {
+export async function openSettingsModal(targetTabName = null) {
     dom.autoRenderCheckbox.checked = state.appSettings.autoRenderTable;
     if (dom.autoExpandCodeCheckbox) {
         dom.autoExpandCodeCheckbox.checked = state.appSettings.autoExpandCode !== false; // 默认true
     }
     if (state.appSettings.sendKey === 'ctrl-enter') {
-        dom.sendKeyCtrlEnter.checked = true;
+        if (dom.sendKeyCtrlEnter) dom.sendKeyCtrlEnter.checked = true;
+    } else if (state.appSettings.sendKey === 'button-only') {
+        if (dom.sendKeyButton) dom.sendKeyButton.checked = true;
     } else {
-        dom.sendKeyEnter.checked = true;
+        if (dom.sendKeyEnter) dom.sendKeyEnter.checked = true;
     }
     const params = state.appSettings.modelParams;
     dom.paramTempInput.value = params.temperature;
@@ -71,18 +73,31 @@ export async function openSettingsModal() {
         }, 1000);
     }
 
-    // 确保设置弹窗始终有激活的标签页与对应内容区，杜绝任何情况下出现空白无内容
-    const activeTabBtn = dom.settingsModal.querySelector('.modal-tabs .tab-btn.active');
-    const activeTabContent = dom.settingsModal.querySelector('.modal-body > .tab-content.active');
-    if (!activeTabBtn || !activeTabContent) {
-        const firstTab = dom.settingsModal.querySelector('.modal-tabs .tab-btn');
-        if (firstTab) {
+    // — 为什么这么写 —
+    // 1. 若外部指定了目标页签 (如 targetTabName = 'regex-settings')，直接精准激活该页签，实现外部快捷键/按钮秒级直达；
+    // 2. 若未指定，则保持用户当前已有活跃页签；若均未激活，兜底激活首个页签。
+    if (targetTabName) {
+        const targetBtn = dom.settingsModal.querySelector(`.modal-tabs .tab-btn[data-tab="${targetTabName}"]`);
+        if (targetBtn) {
             dom.settingsModal.querySelectorAll('.modal-tabs .tab-btn').forEach(t => t.classList.remove('active'));
-            firstTab.classList.add('active');
-            const targetContentId = firstTab.dataset.tab;
+            targetBtn.classList.add('active');
             dom.settingsModal.querySelectorAll('.modal-body > .tab-content').forEach(c => {
-                c.classList.toggle('active', c.id === targetContentId);
+                c.classList.toggle('active', c.id === targetTabName);
             });
+        }
+    } else {
+        const activeTabBtn = dom.settingsModal.querySelector('.modal-tabs .tab-btn.active');
+        const activeTabContent = dom.settingsModal.querySelector('.modal-body > .tab-content.active');
+        if (!activeTabBtn || !activeTabContent) {
+            const firstTab = dom.settingsModal.querySelector('.modal-tabs .tab-btn');
+            if (firstTab) {
+                dom.settingsModal.querySelectorAll('.modal-tabs .tab-btn').forEach(t => t.classList.remove('active'));
+                firstTab.classList.add('active');
+                const targetContentId = firstTab.dataset.tab;
+                dom.settingsModal.querySelectorAll('.modal-body > .tab-content').forEach(c => {
+                    c.classList.toggle('active', c.id === targetContentId);
+                });
+            }
         }
     }
 

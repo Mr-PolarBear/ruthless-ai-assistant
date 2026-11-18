@@ -44,7 +44,8 @@ import { initFloatingCollapseButton } from './floating-button.js?v=temp';
 import { initializeAppearanceSettings } from './appearance.js?v=temp';
 import { initializeQuickPrompts } from './quick-prompts.js?v=temp';
 import { regexPatterns } from './regex.js?v=temp';
-import { setupUserAvatarUI } from './modals.js?v=temp';
+import { setupUserAvatarUI, closeSummaryCondenseModal } from './modals.js?v=temp';
+import { closeRealtimeModal } from './modals/realtime-modal.js?v=temp';
 import { MCPToolsRegistry, DEFAULT_TOOLS } from './mcp-tools-registry.js?v=temp';
 import { initMCPToolsSelector, syncMcpToolsForConversation } from './mcp-tools-selector.js?v=temp';
 import { initMcpErrorModal } from './modals/mcp-error-modal.js?v=temp';
@@ -58,12 +59,14 @@ import { scrollManager } from './scroll-manager.js?v=temp';
 import { mcpSessionManager } from './mcp-session-manager.js?v=temp';
 // 乌鸦：导入楼层快速跳转模块
 import { initFloorJump, closeFloorJumpPanel } from './floor-jump.js?v=temp';
+import { immersiveModeManager } from './services/immersive-mode.js?v=temp';
 
 // 挂载 DEFAULT_TOOLS 到 window，供其他模块访问
 window.DEFAULT_TOOLS = DEFAULT_TOOLS;
 
 // Flag to track if we are saving to avoid multiple concurrent saves
 import { initContentSearchModule } from './content-search.js?v=temp';
+import { initGlobalFloatingTooltip } from './services/floating-tooltip.js?v=temp';
 
 let isSaving = false;
 
@@ -71,6 +74,7 @@ let isSaving = false;
 document.addEventListener('DOMContentLoaded', () => {
     setupChatSearch();
     initContentSearchModule();
+    initGlobalFloatingTooltip();
 
     // 乌鸦：360浏览器等旧 Chromium 内核布局偏移自动修复
     // 原理：检测 #app 实际位置偏移，用 transform 补偿，不影响元素尺寸
@@ -116,20 +120,28 @@ export async function handleSendMessage(options = {}) {
         codePreviewManager.close();
     }
 
-    let currentConv = state.conversations[state.currentConversationId];
     // — 为什么这么写 —
-    // 首次使用系统的用户或清除缓存后，系统没有活动会话 (state.currentConversationId 为 null)。
-    // 此处如果直接 return，会导致首次导入 API 设置后点击发送消息静默失败无响应。
-    // 规避技巧：如果当前没有任何活动会话，自动自动创建一个新会话，确保后续逻辑正常发出消息。
-    if (!currentConv) {
-        currentConv = await createNewConversation();
-        if (!currentConv) return;
-    }
-    let activeBranch = currentConv.branches[currentConv.activeBranchIndex];
-
+    // 1. 必须在任何异步操作（如创建新会话）前立即同步提取用户输入与附件；
+    // 2. 空输入直接拦截，杜绝误触发送键时在后台生成无意义的空白会话；
+    // 3. 避免后续创建会话时因 DOM 或草稿变动导致文本丢失。
     const text = dom.messageInput.value.trim();
     const userMessageText = text;
     const userAttachments = Array.isArray(state.attachedFiles) ? state.attachedFiles.slice() : [];
+
+    if (!isBranching && !userMessageText && userAttachments.length === 0) {
+        return;
+    }
+
+    let currentConv = state.conversations[state.currentConversationId];
+    // — 为什么这么写 —
+    // 首次使用系统的用户或刷新页面后，系统没有活动会话 (state.currentConversationId 为 null)。
+    // 此处使用 switchView: false 静默创建并激活新会话，绝不触发全屏加载遮罩 (showLoadingOverlay)，
+    // 也绝不触发 restoreDraftToInput 清空输入框，实现首发消息 100% 丝滑无损直达。
+    if (!currentConv) {
+        currentConv = await createNewConversation({ switchView: false });
+        if (!currentConv) return;
+    }
+    let activeBranch = currentConv.branches[currentConv.activeBranchIndex];
 
     // — 为什么这么写 —
     // 当后台正在进行自动总结时，若用户发出新消息，会产生并发竞态（旧上下文未压缩即被发送）。
@@ -170,6 +182,9 @@ export async function handleSendMessage(options = {}) {
             end: hiddenFloors.length > 0 ? Math.max(...hiddenFloors) : 1
         });
         renderChatMessages();
+        import('./summary-manager.js?v=temp').then(({ clearSkippedAutoSummaryRound }) => {
+            clearSkippedAutoSummaryRound(currentConv.id);
+        }).catch(() => {});
     } else {
         // 乌鸦：修复图片发送问题 - 允许只有图片附件而没有文本的消息
         if (!userMessageText && userAttachments.length === 0) return;
@@ -255,28 +270,51 @@ export async function handleSendMessage(options = {}) {
             throw new Error(`当前选择的API端点无效，请检查设置。`);
         }
 
-        const response = await fetch(requestData.url, {
-            method: requestData.method || 'POST',
-            headers: requestData.headers,
-            body: requestData.body ? JSON.stringify(requestData.body) : null,
-            signal: state.abortControllers[requestConvId]?.signal
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            let errorData;
-            try { errorData = JSON.parse(errorText); } catch (e) { errorData = { error: { message: errorText } }; }
-            throw new Error(`API错误: ${response.status} - ${errorData.error?.message || errorText}`);
-        }
-
         // 乌鸦：获取当前API端点配置，以正确判断处理方式
         const apiEndpoint = state.apiEndpoints[currentConv.apiEndpointId] || API_PRESETS[currentConv.apiEndpointId];
 
-        // 乌鸦：根据流式模式设置或API类型选择不同的处理函数
-        if ((state.appSettings.streamMode !== false && requestData.body && requestData.body.stream) || (apiEndpoint && apiEndpoint.type === 'sse')) {
-            await handleStream(response, aiMessage.id, requestConvId, requestBranchIndex, requestAiMsgIndex);
+        // — 为什么这么写 —
+        // 1. 优先判断是否开启了 AI 后台任务中转 (防断网/切后台) 并且连接了云端服务；
+        // 2. 若已启用，将请求投递至云服务 /v1/openai/tasks，由服务端独立后台长跑，
+        //    秒级取得 taskId 并存库，由客户端增量定时轮询，彻底防范手机切后台、息屏与断网长连接重置；
+        // 3. 若未启用，平滑回退走传统的浏览器直接长连接请求。
+        const { isRelayAvailable, executeRelayMessage } = await import('./services/ai-task-relay.js?v=temp');
+        const relayInfo = await isRelayAvailable();
+
+        if (relayInfo.available) {
+            await executeRelayMessage({
+                requestData,
+                apiEndpoint,
+                currentConv,
+                aiMessage,
+                aiMessageBubble,
+                aiMessageContent,
+                aiMessageIndex,
+                token: relayInfo.token,
+                serverUrl: relayInfo.serverUrl,
+                abortSignal: state.abortControllers[requestConvId]?.signal
+            });
         } else {
-            await handleNonStreamResponse(response, aiMessage.id, requestConvId, requestBranchIndex, requestAiMsgIndex);
+            const response = await fetch(requestData.url, {
+                method: requestData.method || 'POST',
+                headers: requestData.headers,
+                body: requestData.body ? JSON.stringify(requestData.body) : null,
+                signal: state.abortControllers[requestConvId]?.signal
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                let errorData;
+                try { errorData = JSON.parse(errorText); } catch (e) { errorData = { error: { message: errorText } }; }
+                throw new Error(`API错误: ${response.status} - ${errorData.error?.message || errorText}`);
+            }
+
+            // 乌鸦：根据流式模式设置或API类型选择不同的处理函数
+            if ((state.appSettings.streamMode !== false && requestData.body && requestData.body.stream) || (apiEndpoint && apiEndpoint.type === 'sse')) {
+                await handleStream(response, aiMessage.id, requestConvId, requestBranchIndex, requestAiMsgIndex);
+            } else {
+                await handleNonStreamResponse(response, aiMessage.id, requestConvId, requestBranchIndex, requestAiMsgIndex);
+            }
         }
 
     } catch (error) {
@@ -312,6 +350,9 @@ export async function handleSendMessage(options = {}) {
         // Final render of the message content and its footer/actions
         // A small delay can prevent weird rendering artifacts if things happen too fast
         setTimeout(async () => {
+            if (aiMessage.relayStatus === 'expired') {
+                return;
+            }
             const formattedHtml = await formatMessagePipeline(aiMessage.content, 'assistant');
             renderFormattedContent(aiMessageContent, formattedHtml);
             addOrUpdateMessageFooter(aiMessageBubble, aiMessage);
@@ -343,14 +384,18 @@ export async function handleSendMessage(options = {}) {
  * Creates a new conversation object and switches to it.
  * @returns {object} The newly created conversation object.
  */
-export async function createNewConversation() {
+export async function createNewConversation(options = {}) {
+    const { switchView = true } = options;
+
     if (shouldBlockConversationSwitch()) {
         const { notify } = await import('./ui-updater.js?v=temp');
         notify.warning('当前会话正在进行包含MCP工具的对话，请等待回复结束后，再新建会话。');
-        return;
+        return null;
     }
 
-    codePreviewManager.close();
+    if (typeof codePreviewManager !== 'undefined') {
+        codePreviewManager.close();
+    }
 
     const newId = `conv_${Date.now()}`;
     const newConv = {
@@ -361,7 +406,7 @@ export async function createNewConversation() {
         model: (dom.modelSelector && dom.modelSelector.value && !dom.modelSelector.value.startsWith('__')) ? dom.modelSelector.value : '',
         branches: [[]],
         activeBranchIndex: 0,
-        personaId: null,
+        personaId: dom.personaSelector?.value !== 'default' ? dom.personaSelector.value : null,
         selectedMcpTools: [], // 乌鸦：新建会话默认不勾选任何MCP工具，严格会话隔离
         pinned: false // 乌鸦：新增置顶属性
     };
@@ -376,7 +421,25 @@ export async function createNewConversation() {
         console.error("保存新会话失败:", e);
     }
 
-    await switchToConversation(newId); // 等待切换完成
+    if (switchView) {
+        await switchToConversation(newId); // 等待切换完成
+    } else {
+        // — 为什么这么写 —
+        // 发送消息自动创建会话等场景：静默激活新会话，禁止触发全屏加载遮罩 (showLoadingOverlay)
+        // 与草稿覆盖清空 (restoreDraftToInput)，防止用户刚输入的文本被粗暴冲掉、页面闪屏与双重渲染竞态
+        state.currentConversationId = newId;
+        syncMcpToolsForConversation(newId);
+        if (typeof window.mcpSessionManager !== 'undefined' && window.mcpSessionManager) {
+            try {
+                window.mcpSessionManager.onConversationSwitch(newId, null);
+            } catch (err) {
+                console.warn('通知MCP会话管理器失败:', err);
+            }
+        }
+        renderHistory();
+        updateAllDynamicUI();
+    }
+
     return newConv;
 }
 
@@ -425,6 +488,10 @@ export function switchToConversation(convId) {
             dom.quickHideModal.classList.remove('visible');
             dom.quickHideModal.style.display = 'none';
         }
+        if (dom.summaryCondenseModal && dom.summaryCondenseModal.classList.contains('visible')) {
+            closeSummaryCondenseModal();
+        }
+        closeRealtimeModal();
 
         // 乌鸦：仅在切换到有效会话时才显示加载动画，首次进入或无会话时不显示
         if (convId) {
@@ -522,6 +589,14 @@ export function switchToConversation(convId) {
                 }
             });
             updateAllDynamicUI(); // 乌鸦：总指挥在这里发号施令！
+            if (convId && window.checkAndOpenSummaryErrorModal) {
+                window.checkAndOpenSummaryErrorModal(convId);
+            }
+            if (convId) {
+                import('./services/ai-task-relay.js?v=temp').then(({ recoverRelayTaskForConversation }) => {
+                    recoverRelayTaskForConversation(convId);
+                }).catch(err => console.warn('[AIRelay] 自愈检测调度警告:', err));
+            }
 
         }, 50); // 50毫秒的延迟，用于视觉过渡
     });
@@ -646,10 +721,13 @@ export async function initialize() {
     });
 
     initDom();
+    // 确保滚动管理器在 DOM 节点建立后立即初始化并绑定触控/滚轮事件
+    scrollManager.init();
 
     // 初始化智能悬浮按钮、楼层跳转、回底感知胶囊与移动端视口自适应
     initFloatingCollapseButton();
     initFloorJump();
+    immersiveModeManager.init();
     scrollPillManager.init();
     viewportManager.init();
 
@@ -761,6 +839,13 @@ export async function initialize() {
     // 从 IndexedDB 和 localStorage 加载所有数据
     await loadFromLocalStorage();
 
+    // 自动扫描并物理清理超过 10 天的回收站废弃会话
+    import('./services/trash-manager.js?v=temp').then(({ trashManager }) => {
+        trashManager.autoCleanExpiredTrash();
+    }).catch(err => {
+        console.warn('自动清理回收站异常:', err);
+    });
+
     initializeQuickPrompts();
 
     // 乌鸦：初始化MCP工具注册表
@@ -814,6 +899,11 @@ export async function initialize() {
     // 需求：系统刚进入时不自动加载最后一个会话，保持未选中状态，由用户自行去点击加载。
     // 如果用户直接在输入框发送消息，handleSendMessage 内置机制会自动创建新会话，确保交互顺畅。
     await switchToConversation(null);
+
+    // 初始化切后台与断网恢复的全局自愈监听
+    import('./services/ai-task-relay.js?v=temp').then(({ initVisibilityAndOnlineWatcher }) => {
+        initVisibilityAndOnlineWatcher();
+    }).catch(e => console.warn('[AIRelay] 初始化前后台自愈监听失败:', e));
 
     initDatabaseSettings();
 

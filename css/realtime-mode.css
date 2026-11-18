@@ -1,0 +1,677 @@
+/**
+ * @file realtime-mode.css
+ * @description 实时模式与虚拟历法弹窗及顶部按钮样式表
+ * 严格遵循主题双模适配（浅色模式与 body[data-theme="dark"] 深色模式），
+ * 禁止硬编码纯白背景，统一使用 CSS 变量与高质感圆角边框。
+ */
+
+/* ==========================================================================
+   1. 顶部操作栏实时模式按钮与绿点指示灯
+   ========================================================================== */
+#realtime-mode-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    margin: 0;
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-md, 8px);
+    color: var(--text-secondary, #64748b);
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-sizing: border-box;
+    flex-shrink: 0;
+}
+
+#realtime-mode-btn:hover {
+    background-color: var(--bg-hover, rgba(0, 0, 0, 0.05));
+    color: var(--text-primary, #0f172a);
+}
+
+/* 激活状态：图标微高亮 */
+#realtime-mode-btn.active {
+    color: #10b981;
+}
+
+#realtime-mode-btn.active:hover {
+    background-color: rgba(16, 185, 129, 0.1);
+}
+
+/* 绿点状态灯：实时模式开启时在右上角发光闪耀 */
+.realtime-status-dot {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: #10b981;
+    opacity: 0;
+    transform: scale(0);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+    box-shadow: 0 0 6px rgba(16, 185, 129, 0.8);
+}
+
+#realtime-mode-btn.active .realtime-status-dot {
+    opacity: 1;
+    transform: scale(1);
+}
+
+/* ==========================================================================
+   2. 实时模式配置弹窗外层与容器结构
+   ========================================================================== */
+#realtime-modal.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(15, 23, 42, 0.55);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+#realtime-modal.modal-overlay.visible {
+    display: flex;
+    opacity: 1;
+}
+
+.realtime-modal-content {
+    background-color: var(--bg-main, #ffffff);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: var(--radius-lg, 14px);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    max-width: 640px;
+    width: 92vw;
+    max-height: 88vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: rtModalSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes rtModalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(16px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* 弹窗头部 */
+.realtime-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-color, #e2e8f0);
+    background-color: var(--bg-card, #f8fafc);
+}
+
+.realtime-header-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary, #0f172a);
+}
+
+.realtime-header-title svg {
+    color: #10b981;
+}
+
+.realtime-modal-close-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary, #64748b);
+    cursor: pointer;
+    padding: 6px;
+    border-radius: var(--radius-md, 6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+}
+
+.realtime-modal-close-btn:hover {
+    background-color: var(--bg-hover, rgba(0, 0, 0, 0.06));
+    color: var(--text-primary, #0f172a);
+}
+
+/* 弹窗滚动主体 */
+.realtime-modal-body {
+    padding: 18px 20px;
+    overflow-y: auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* 配置卡片容器 */
+.rt-card {
+    background-color: var(--bg-card, #f8fafc);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: var(--radius-md, 10px);
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.rt-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.rt-card-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary, #475569);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* ==========================================================================
+   3. 总开关与实时预览区
+   ========================================================================== */
+.rt-switch-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.rt-switch-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.rt-switch-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary, #0f172a);
+}
+
+.rt-switch-desc {
+    font-size: 12px;
+    color: var(--text-secondary, #64748b);
+}
+
+/* 仿 iOS/现代风格滑块开关 */
+.rt-toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 24px;
+    flex-shrink: 0;
+}
+
+.rt-toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.rt-toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--border-color, #cbd5e1);
+    transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 24px;
+}
+
+.rt-toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: #ffffff;
+    transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.rt-toggle-switch input:checked + .rt-toggle-slider {
+    background-color: #10b981;
+}
+
+.rt-toggle-switch input:checked + .rt-toggle-slider:before {
+    transform: translateX(20px);
+}
+
+/* 实时效果预览条 */
+.rt-preview-container {
+    background-color: rgba(16, 185, 129, 0.08);
+    border: 1px dashed rgba(16, 185, 129, 0.35);
+    border-radius: var(--radius-md, 8px);
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.rt-preview-label {
+    font-size: 12px;
+    color: var(--text-secondary, #475569);
+    font-weight: 500;
+}
+
+.rt-preview-badge {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: #059669;
+    background-color: rgba(16, 185, 129, 0.15);
+    padding: 3px 8px;
+    border-radius: 6px;
+    letter-spacing: 0.2px;
+}
+
+/* ==========================================================================
+   4. 分段选择与自定义虚拟日期录入
+   ========================================================================== */
+.rt-segmented-control {
+    display: flex;
+    background-color: var(--bg-main, #ffffff);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: var(--radius-md, 8px);
+    padding: 3px;
+    gap: 4px;
+}
+
+.rt-seg-btn {
+    flex: 1;
+    border: none;
+    background: transparent;
+    padding: 7px 12px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary, #64748b);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-align: center;
+}
+
+.rt-seg-btn.active {
+    background-color: var(--accent-blue, #3b82f6);
+    color: #ffffff;
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgba(59, 130, 246, 0.3);
+}
+
+/* 自定义日期网格 */
+.rt-date-grid {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr 1fr 1.2fr;
+    gap: 10px;
+    align-items: end;
+}
+
+.rt-date-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.rt-date-label {
+    font-size: 12px;
+    color: var(--text-secondary, #64748b);
+}
+
+.rt-input-field {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 7px 10px;
+    font-size: 13px;
+    font-family: inherit;
+    border: 1px solid var(--border-color, #cbd5e1);
+    border-radius: 6px;
+    background-color: var(--bg-main, #ffffff);
+    color: var(--text-primary, #0f172a);
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.rt-input-field:focus {
+    border-color: var(--accent-blue, #3b82f6);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.rt-weekday-pill {
+    padding: 7px 10px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent-blue, #3b82f6);
+    background-color: var(--bg-hover, rgba(59, 130, 246, 0.08));
+    border: 1px solid var(--border-color, #cbd5e1);
+    border-radius: 6px;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+/* 勾选选项项 */
+.rt-check-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text-primary, #0f172a);
+    cursor: pointer;
+    user-select: none;
+}
+
+.rt-check-row input[type="checkbox"],
+.rt-check-row input[type="radio"] {
+    margin-top: 2px;
+    accent-color: var(--accent-blue, #3b82f6);
+    cursor: pointer;
+}
+
+.rt-check-label {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.rt-check-title {
+    font-weight: 500;
+    color: var(--text-primary, #0f172a);
+}
+
+.rt-check-hint {
+    font-size: 12px;
+    color: var(--text-secondary, #64748b);
+    line-height: 1.4;
+}
+
+/* 时间粒度选择行 */
+.rt-granularity-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding-top: 4px;
+}
+
+.rt-granularity-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--text-primary, #0f172a);
+    cursor: pointer;
+}
+
+.rt-granularity-item input {
+    accent-color: var(--accent-blue, #3b82f6);
+}
+
+/* ==========================================================================
+   5. 系统提示词配置区
+   ========================================================================== */
+.rt-prompt-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.rt-prompt-textarea {
+    width: 100%;
+    min-height: 110px;
+    max-height: 200px;
+    box-sizing: border-box;
+    padding: 10px 12px;
+    font-size: 12px;
+    line-height: 1.5;
+    font-family: inherit;
+    border: 1px solid var(--border-color, #cbd5e1);
+    border-radius: 6px;
+    background-color: var(--bg-main, #ffffff);
+    color: var(--text-primary, #0f172a);
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.15s ease;
+}
+
+.rt-prompt-textarea:focus {
+    border-color: var(--accent-blue, #3b82f6);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.rt-prompt-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.rt-prompt-tip {
+    font-size: 11px;
+    color: var(--text-secondary, #64748b);
+}
+
+.rt-btn-subtle {
+    background: transparent;
+    border: 1px solid var(--border-color, #cbd5e1);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 12px;
+    color: var(--text-secondary, #475569);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.rt-btn-subtle:hover {
+    background-color: var(--bg-hover, rgba(0, 0, 0, 0.05));
+    color: var(--text-primary, #0f172a);
+}
+
+/* ==========================================================================
+   6. 弹窗底部操作条
+   ========================================================================== */
+.realtime-modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 14px 20px;
+    border-top: 1px solid var(--border-color, #e2e8f0);
+    background-color: var(--bg-card, #f8fafc);
+}
+
+.rt-btn {
+    padding: 8px 18px;
+    font-size: 13px;
+    font-weight: 500;
+    border-radius: var(--radius-md, 8px);
+    cursor: pointer;
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid transparent;
+}
+
+.rt-btn-secondary {
+    background-color: var(--bg-main, #ffffff);
+    border-color: var(--border-color, #cbd5e1);
+    color: var(--text-primary, #0f172a);
+}
+
+.rt-btn-secondary:hover {
+    background-color: var(--bg-hover, rgba(0, 0, 0, 0.05));
+}
+
+.rt-btn-primary {
+    background-color: var(--accent-blue, #3b82f6);
+    color: #ffffff;
+    font-weight: 600;
+}
+
+.rt-btn-primary:hover {
+    background-color: var(--accent-blue-hover, #2563eb);
+    box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3);
+}
+
+/* ==========================================================================
+   7. 深色模式主题适配 (body[data-theme="dark"])
+   ========================================================================== */
+body[data-theme="dark"] #realtime-mode-btn:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+    color: #f1f5f9;
+}
+
+body[data-theme="dark"] #realtime-mode-btn.active:hover {
+    background-color: rgba(16, 185, 129, 0.15);
+}
+
+body[data-theme="dark"] .realtime-modal-content {
+    background-color: #1e293b;
+    border-color: #334155;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.3);
+}
+
+body[data-theme="dark"] .realtime-modal-header,
+body[data-theme="dark"] .realtime-modal-footer {
+    background-color: #0f172a;
+    border-color: #334155;
+}
+
+body[data-theme="dark"] .rt-card {
+    background-color: #0f172a;
+    border-color: #334155;
+}
+
+body[data-theme="dark"] .rt-card-title {
+    color: #94a3b8;
+}
+
+body[data-theme="dark"] .rt-switch-label,
+body[data-theme="dark"] .rt-check-title {
+    color: #f1f5f9;
+}
+
+body[data-theme="dark"] .rt-switch-desc,
+body[data-theme="dark"] .rt-check-hint,
+body[data-theme="dark"] .rt-date-label,
+body[data-theme="dark"] .rt-prompt-tip {
+    color: #94a3b8;
+}
+
+body[data-theme="dark"] .rt-toggle-slider {
+    background-color: #475569;
+}
+
+body[data-theme="dark"] .rt-preview-container {
+    background-color: rgba(16, 185, 129, 0.12);
+    border-color: rgba(16, 185, 129, 0.4);
+}
+
+body[data-theme="dark"] .rt-preview-label {
+    color: #cbd5e1;
+}
+
+body[data-theme="dark"] .rt-preview-badge {
+    color: #34d399;
+    background-color: rgba(16, 185, 129, 0.25);
+}
+
+body[data-theme="dark"] .rt-segmented-control {
+    background-color: #1e293b;
+    border-color: #334155;
+}
+
+body[data-theme="dark"] .rt-seg-btn {
+    color: #94a3b8;
+}
+
+body[data-theme="dark"] .rt-input-field,
+body[data-theme="dark"] .rt-prompt-textarea {
+    background-color: #1e293b;
+    border-color: #475569;
+    color: #f1f5f9;
+}
+
+body[data-theme="dark"] .rt-input-field:focus,
+body[data-theme="dark"] .rt-prompt-textarea:focus {
+    border-color: #60a5fa;
+    box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.25);
+}
+
+body[data-theme="dark"] .rt-weekday-pill {
+    background-color: rgba(96, 165, 250, 0.15);
+    border-color: #475569;
+    color: #93c5fd;
+}
+
+body[data-theme="dark"] .rt-granularity-item,
+body[data-theme="dark"] .rt-check-row {
+    color: #e2e8f0;
+}
+
+body[data-theme="dark"] .rt-btn-subtle {
+    border-color: #475569;
+    color: #cbd5e1;
+}
+
+body[data-theme="dark"] .rt-btn-subtle:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+    color: #f8fafc;
+}
+
+body[data-theme="dark"] .rt-btn-secondary {
+    background-color: #1e293b;
+    border-color: #475569;
+    color: #e2e8f0;
+}
+
+body[data-theme="dark"] .rt-btn-secondary:hover {
+    background-color: #334155;
+}
+
+/* ==========================================================================
+   8. 响应式布局优化 (<=640px 手机与平板)
+   ========================================================================== */
+@media (max-width: 640px) {
+    .realtime-modal-content {
+        width: 95vw;
+        max-height: 92vh;
+    }
+    
+    .rt-date-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+    
+    .rt-granularity-row {
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+    
+    .rt-preview-container {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+    }
+}

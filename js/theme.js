@@ -15,8 +15,11 @@ function setTheme(theme) {
         const isCdn = currentHref.startsWith('http://') || currentHref.startsWith('https://') || currentHref.startsWith('//');
 
         if (isCdn) {
-            const cdnLight = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-light.min.css';
-            const cdnDark = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css';
+            // — 为什么这么写 —
+            // 使用国内极速镜像 cdnjs.loli.net 替代海外的 cdnjs.cloudflare.com
+            // 解决国内网络直连 Cloudflare 容易超时 (ERR_CONNECTION_TIMED_OUT) 导致样式或库加载失败的问题
+            const cdnLight = 'https://cdnjs.loli.net/ajax/libs/highlight.js/11.9.0/styles/atom-one-light.min.css';
+            const cdnDark = 'https://cdnjs.loli.net/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css';
             hljsTheme.setAttribute('href', isLight ? cdnLight : cdnDark);
         } else {
             hljsTheme.setAttribute('href', isLight ? './libs/atom-one-light.min.css' : './libs/atom-one-dark.min.css');

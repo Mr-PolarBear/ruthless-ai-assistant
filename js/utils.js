@@ -14,8 +14,11 @@ import { saveConversation, getConversation, getAllConversationIds, deleteConvers
 import { formatMemoryForApi, normalizeHideSummaryConfig } from './summary-manager.js?v=temp';
 import { showBatchConflictResolutionDialog } from './modals/import-conflict-modal.js?v=temp';
 import { initDefaultPersonasIfEmpty } from './preset-personas.js?v=temp';
+import { DEFAULT_REALTIME_PROMPT, calculateVirtualDate, formatVirtualTimestamp, normalizeRealtimeConfig } from './services/realtime-mode.js?v=temp';
 import { resolveDynamicVariables } from './services/dynamic-variable-engine.js?v=temp';
 import { DEFAULT_TOOLS } from './mcp-tools-registry.js?v=temp';
+import { buildSingleConversationData, buildConversationBundle } from './services/sync-bundle.js?v=temp';
+import { applyRequestRegex } from './regex-engine.js?v=temp';
 
 // --- Utility Functions ---
 
@@ -522,68 +525,18 @@ export function exportConfig() {
  * @param {string} conversationId - 要导出的会话ID
  */
 export async function exportConversation(conversationId) {
-    let conversation;
-
-    // 首先尝试从内存中获取会话数据
-    if (state.conversations[conversationId]) {
-        conversation = state.conversations[conversationId];
-    } else {
-        // 如果内存中没有，尝试从 IndexedDB 中获取
-        try {
-            conversation = await getConversation(conversationId);
-        } catch (err) {
-            console.error('从 IndexedDB 获取会话失败:', err);
-        }
-    }
-
-    if (!conversation) {
+    const convToExport = await buildSingleConversationData(conversationId);
+    if (!convToExport) {
         alert('会话不存在或已被删除');
         return;
     }
-
-    // 创建一个深拷贝以避免引用问题
-    const convToExport = JSON.parse(JSON.stringify(conversation));
-
-    // 添加导出时间戳，方便标识
-    convToExport.exportedAt = new Date().toISOString();
-
-    // 打包关联备忘录 (Smart Bundle 机制：包含全局生效和针对当前会话局部生效的条目)
-    const relatedWb = [];
-    if (state.worldBook && typeof state.worldBook === 'object') {
-        Object.values(state.worldBook).forEach(entry => {
-            if (!entry) return;
-            const isGloballyEnabled = entry.enabled === true;
-            const isLocallyLinked = Array.isArray(entry.sessionIds) && entry.sessionIds.includes(conversationId);
-            if (isGloballyEnabled || isLocallyLinked) {
-                relatedWb.push(JSON.parse(JSON.stringify(entry)));
-            }
-        });
-    }
-    convToExport.relatedWorldBook = relatedWb;
-
-    // 打包隐藏与总结配置及历史版本 (hideSummary 机制)
-    if (state.hideSummary && state.hideSummary[conversationId]) {
-        convToExport.hideSummary = JSON.parse(JSON.stringify(state.hideSummary[conversationId]));
-    }
-
-    // 打包该会话绑定的专属正则 (sessionRegexRules 机制)
-    const sessionRegex = [];
-    if (state.regexRules && typeof state.regexRules === 'object') {
-        Object.values(state.regexRules).forEach(rule => {
-            if (!rule) return;
-            if (rule.scope === 'session' && Array.isArray(rule.sessionIds) && rule.sessionIds.map(String).includes(String(conversationId))) {
-                sessionRegex.push(JSON.parse(JSON.stringify(rule)));
-            }
-        });
-    }
-    convToExport.sessionRegexRules = sessionRegex;
 
     const configString = JSON.stringify(convToExport, null, 2);
     const blob = new Blob([configString], { type: "application/json;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    const sanitizedTitle = conversation.title.replace(/[\/:*?"<>|]/g, '_').substring(0, 50);
+    const sanitizedTitle = (convToExport.title || '对话').replace(/[\/:*?"<>|]/g, '_').substring(0, 50);
     const now = new Date();
     const date = now.toISOString().slice(0, 10);
     const time = now.toTimeString().slice(0, 8).replace(regexPatterns.timestampFormat, '-');
@@ -598,45 +551,19 @@ export async function exportConversation(conversationId) {
  * 导出所有会话到单个JSON文件（完整打包所有会话、备忘录与隐藏总结及会话专属正则）
  */
 export async function exportAllConversations() {
-    let conversations = {};
+    let conversationsToExport;
     try {
-        // 乌鸦：改造 - 使用新的分账模式读取所有会话
-        const ids = await getAllConversationIds();
-        for (const id of ids) {
-            const conv = await getConversation(id);
-            if (conv) {
-                conversations[id] = conv;
-            }
-        }
+        conversationsToExport = await buildConversationBundle();
     } catch (err) {
-        console.error('从 IndexedDB 获取所有会话失败:', err);
+        console.error('打包所有会话失败:', err);
         alert('获取会话数据失败！');
         return;
     }
 
-    if (Object.keys(conversations).length === 0) {
+    if (!conversationsToExport || Object.keys(conversationsToExport.conversations).length === 0) {
         alert('没有会话可导出');
         return;
     }
-
-    // 提取所有会话级专属正则并打包
-    const sessionRegex = {};
-    if (state.regexRules && typeof state.regexRules === 'object') {
-        Object.entries(state.regexRules).forEach(([id, rule]) => {
-            if (rule && rule.scope === 'session') {
-                sessionRegex[id] = JSON.parse(JSON.stringify(rule));
-            }
-        });
-    }
-
-    const conversationsToExport = {
-        version: '1.0',
-        exportedAt: new Date().toISOString(),
-        conversations: conversations,
-        worldBook: state.worldBook ? JSON.parse(JSON.stringify(state.worldBook)) : {},
-        hideSummary: state.hideSummary ? JSON.parse(JSON.stringify(state.hideSummary)) : {},
-        sessionRegexRules: sessionRegex
-    };
 
     // 记录最新全量备份时间戳
     try {
@@ -873,18 +800,146 @@ export async function importConfig(jsonString) {
  * @param {object} [bundleMetadata={}] - 包含顶级 worldBook 和 hideSummary 的元数据字典
  * @returns {Promise<string|null>} - 返回最后一个导入的会话ID或null
  */
-export async function importConversations(conversationsToImport, bundleMetadata = {}) {
-    if (!Array.isArray(conversationsToImport) || conversationsToImport.length === 0) {
-        alert('没有选择要导入的会话。');
-        return null;
+/**
+ * 智能比对两个备忘录/世界书条目的实质内容是否完全一致
+ *
+ * — 为什么这么设计 —
+ * 1. 严格遵循大爷指示：如果 ID 一样且各项内容完全一样就不打扰用户，静默通过；有一点不一样才弹窗让用户负责抉择。
+ * 2. 核心排除 sessionIds：sessionIds 是运行时关联的会话列表，各端或多次导入必然不同，绝不能作为内容冲突的依据。
+ * 3. 规范化比对：文本去前后空格，数组排序去重后比对，避免格式微小差异导致虚假冲突。
+ *
+ * @param {object} localWb - 本地现有备忘录条目
+ * @param {object} incomingWb - 待导入的备忘录条目
+ * @returns {boolean} 是否 100% 内容一致
+ */
+export function isWorldBookContentIdentical(localWb, incomingWb) {
+    if (!localWb || !incomingWb) return false;
+
+    // 1. 核心属性与文本比对
+    if (String(localWb.name || '').trim() !== String(incomingWb.name || '').trim()) return false;
+    if (String(localWb.content || '').trim() !== String(incomingWb.content || '').trim()) return false;
+    if (String(localWb.position || '') !== String(incomingWb.position || '')) return false;
+    if (String(localWb.role || '') !== String(incomingWb.role || '')) return false;
+    if (Boolean(localWb.enabled) !== Boolean(incomingWb.enabled)) return false;
+    if (Number(localWb.depth || 0) !== Number(incomingWb.depth || 0)) return false;
+
+    // 2. 触发关键词 (keys) 数组比对 (排序后比对，忽略顺序差异)
+    const keys1 = Array.isArray(localWb.keys)
+        ? localWb.keys.map(k => String(k).trim()).filter(Boolean).sort()
+        : (localWb.keys ? [String(localWb.keys).trim()] : []);
+    const keys2 = Array.isArray(incomingWb.keys)
+        ? incomingWb.keys.map(k => String(k).trim()).filter(Boolean).sort()
+        : (incomingWb.keys ? [String(incomingWb.keys).trim()] : []);
+    if (keys1.length !== keys2.length) return false;
+    for (let i = 0; i < keys1.length; i++) {
+        if (keys1[i] !== keys2[i]) return false;
     }
 
-    let importedCount = 0;
-    let lastImportedId = null;
-    let hasWorldBookUpdated = false;
-    let hasRegexUpdated = false;
-    const timestamp = new Date().toISOString();
-    const batchSize = 10;
+    // 3. 标签 (tags) 数组比对
+    const tags1 = Array.isArray(localWb.tags)
+        ? localWb.tags.map(t => String(t).trim()).filter(Boolean).sort()
+        : (localWb.tags ? [String(localWb.tags).trim()] : []);
+    const tags2 = Array.isArray(incomingWb.tags)
+        ? incomingWb.tags.map(t => String(t).trim()).filter(Boolean).sort()
+        : (incomingWb.tags ? [String(incomingWb.tags).trim()] : []);
+    if (tags1.length !== tags2.length) return false;
+    for (let i = 0; i < tags1.length; i++) {
+        if (tags1[i] !== tags2[i]) return false;
+    }
+
+    return true;
+}
+
+/**
+ * 智能比对两个正则规则实质内容是否 100% 一致（排除运行时生成的临时 ID 与关联会话）
+ * @param {object} local - 本地规则
+ * @param {object} incoming - 待导入规则
+ * @returns {boolean}
+ */
+export function isRegexContentIdentical(local, incoming) {
+    if (!local || !incoming) return false;
+    // 1. 查找式与替换式
+    if (String(local.find ?? '') !== String(incoming.find ?? '')) return false;
+    if (String(local.replace ?? '') !== String(incoming.replace ?? '')) return false;
+    // 2. 规则名称
+    if (String(local.name ?? '').trim() !== String(incoming.name ?? '').trim()) return false;
+    // 3. 开关状态
+    const e1 = local.enabled !== false && !local.disabled;
+    const e2 = incoming.enabled !== false && !incoming.disabled;
+    if (e1 !== e2) return false;
+    // 4. 作用域 (排序比对，忽略顺序差异)
+    const s1 = Array.isArray(local.scopes) ? [...local.scopes].sort().join(',') : '';
+    const s2 = Array.isArray(incoming.scopes) ? [...incoming.scopes].sort().join(',') : '';
+    if (s1 !== s2) return false;
+    // 5. 执行阶段
+    const stage1 = local.stage || 'post-markdown';
+    const stage2 = incoming.stage || 'post-markdown';
+    if (stage1 !== stage2) return false;
+    // 6. 排序与生效楼层
+    if (Number(local.sort || 0) !== Number(incoming.sort || 0)) return false;
+    if (Number(local.minFloor || 0) !== Number(incoming.minFloor || 0)) return false;
+    if (Number(local.maxFloor || 0) !== Number(incoming.maxFloor || 0)) return false;
+    return true;
+}
+
+/**
+ * 严格比对两个会话的实质聊天记录与核心配置是否 100% 一致（用于导入与云同步冲突探测）
+ * @param {object} local - 本地会话对象
+ * @param {object} incoming - 待导入/云端会话对象
+ * @returns {boolean} true: 完全相同 (无冲突)；false: 存在实质差异 (需调起决策面板)
+ */
+export function isConversationContentIdentical(local, incoming) {
+    if (!local || !incoming) return false;
+
+    // 1. 比对标题
+    if ((local.title || '').trim() !== (incoming.title || '').trim()) return false;
+
+    // 2. 比对置顶与系统提示词
+    if (!!local.pinned !== !!incoming.pinned) return false;
+    if ((local.systemPrompt || '') !== (incoming.systemPrompt || '')) return false;
+
+    // 3. 比对活动分支索引与分支总数
+    const localBranches = Array.isArray(local.branches) ? local.branches : [];
+    const incomingBranches = Array.isArray(incoming.branches) ? incoming.branches : [];
+    if (localBranches.length !== incomingBranches.length) return false;
+
+    const localActiveIdx = (typeof local.activeBranchIndex === 'number') ? local.activeBranchIndex : 0;
+    const incomingActiveIdx = (typeof incoming.activeBranchIndex === 'number') ? incoming.activeBranchIndex : 0;
+    if (localActiveIdx !== incomingActiveIdx) return false;
+
+    // 4. 比对活动分支消息
+    const localActive = Array.isArray(localBranches[localActiveIdx]) ? localBranches[localActiveIdx] : (localBranches[0] || []);
+    const incomingActive = Array.isArray(incomingBranches[incomingActiveIdx]) ? incomingBranches[incomingActiveIdx] : (incomingBranches[0] || []);
+    if (localActive.length !== incomingActive.length) return false;
+
+    // 逐条比对消息角色与文本正文
+    for (let i = 0; i < localActive.length; i++) {
+        const a = localActive[i];
+        const b = incomingActive[i];
+        if (!a || !b) {
+            if (a !== b) return false;
+            continue;
+        }
+        if (a.role !== b.role) return false;
+        if (String(a.content || '') !== String(b.content || '')) return false;
+    }
+
+    return true;
+}
+
+export async function importConversations(conversationsToImport, bundleMetadata = {}, options = {}) {
+    const {
+        titleSuffix = ' (已导入)',
+        silent = false,
+        syncOrigin = null,
+        checkWbConflicts = true,
+        checkConvConflicts = true
+    } = options;
+
+    if (!Array.isArray(conversationsToImport) || conversationsToImport.length === 0) {
+        if (!silent) alert('没有选择要导入的会话。');
+        return null;
+    }
 
     if (!state.worldBook || typeof state.worldBook !== 'object') {
         state.worldBook = {};
@@ -893,16 +948,282 @@ export async function importConversations(conversationsToImport, bundleMetadata 
         state.hideSummary = {};
     }
 
-    // 1. 如果 bundleMetadata 包含顶级全量 worldBook，先增量合并入本地
+    // =========================================================================
+    // 阶段 1：前置收集所有待导入备忘录，并执行智能差分检查 (手机/桌面双模弹窗)
+    // =========================================================================
+    const incomingWbMap = new Map();
     if (bundleMetadata.worldBook && typeof bundleMetadata.worldBook === 'object') {
-        Object.entries(bundleMetadata.worldBook).forEach(([wbId, wbEntry]) => {
-            if (!wbEntry) return;
-            if (!state.worldBook[wbId]) {
-                state.worldBook[wbId] = JSON.parse(JSON.stringify(wbEntry));
-                hasWorldBookUpdated = true;
+        Object.entries(bundleMetadata.worldBook).forEach(([id, item]) => {
+            if (item && id) incomingWbMap.set(id, { ...item, id });
+        });
+    }
+    conversationsToImport.forEach(conv => {
+        if (conv && Array.isArray(conv.relatedWorldBook)) {
+            conv.relatedWorldBook.forEach(item => {
+                if (item && item.id) incomingWbMap.set(item.id, item);
+            });
+        }
+    });
+
+    // 收集待导入的正则规则（包含全局与专属）
+    const incomingRegexMap = new Map();
+    if (bundleMetadata.regexRules && typeof bundleMetadata.regexRules === 'object') {
+        Object.entries(bundleMetadata.regexRules).forEach(([id, item]) => {
+            if (item && id) incomingRegexMap.set(id, { ...item, id });
+        });
+    }
+    if (bundleMetadata.sessionRegexRules && typeof bundleMetadata.sessionRegexRules === 'object') {
+        Object.entries(bundleMetadata.sessionRegexRules).forEach(([id, item]) => {
+            if (item && id && !incomingRegexMap.has(id)) incomingRegexMap.set(id, { ...item, id });
+        });
+    }
+    conversationsToImport.forEach(conv => {
+        if (conv && Array.isArray(conv.relatedRegexRules)) {
+            conv.relatedRegexRules.forEach(item => {
+                if (item && item.id && !incomingRegexMap.has(item.id)) incomingRegexMap.set(item.id, item);
+            });
+        }
+        if (conv && Array.isArray(conv.sessionRegexRules)) {
+            conv.sessionRegexRules.forEach(item => {
+                if (item && item.id && !incomingRegexMap.has(item.id)) incomingRegexMap.set(item.id, item);
+            });
+        }
+    });
+
+    const conflicts = [];
+    const wbIdRedirectMap = new Map(); // 用于 keep_both 时重定向旧 ID -> 新副本 ID
+    const regexIdRedirectMap = new Map(); // 用于 keep_both 时重定向旧正则 ID -> 新副本 ID
+    let conflictDecisions = {};
+
+    // 1. 比对备忘录冲突
+    if (checkWbConflicts && incomingWbMap.size > 0) {
+        incomingWbMap.forEach((incomingWb, wbId) => {
+            const localWb = state.worldBook[wbId];
+            if (!localWb) return;
+
+            // 本地存在：比对实质内容（严格排除 sessionIds）
+            if (!isWorldBookContentIdentical(localWb, incomingWb)) {
+                conflicts.push({
+                    key: wbId,
+                    category: 'worldBook',
+                    name: incomingWb.name || localWb.name || wbId,
+                    id: wbId,
+                    item: incomingWb,
+                    target: state.worldBook,
+                    prefix: ''
+                });
             }
         });
     }
+
+    // 2. 比对正则规则冲突
+    if (checkWbConflicts && incomingRegexMap.size > 0 && state.regexRules) {
+        const defaultRuleKeys = Object.keys(DEFAULT_REGEX_RULES || {});
+        incomingRegexMap.forEach((incomingRule, rId) => {
+            // 乌鸦：如果待导入的是系统内置默认规则，直接跳过，绝不与本地冲突
+            if (defaultRuleKeys.includes(rId) || incomingRule.isDefault) return;
+
+            // 乌鸦：寻找本地对应自定义规则
+            // — 为什么这么写 —
+            // 1. 绝对隔离系统默认规则：本地任何默认规则神圣不可侵犯，绝不可作为冲突目标被覆盖。
+            // 2. 匹配本地已有规则的依据必须精准：
+            //    - 优先：本地存在相同且非默认规则的 key (state.regexRules[rId])；
+            //    - 次选：本地存在名称完全相同 (name 相同) 且同属自定义规则的条目。
+            //    - 严禁使用 r.find === incomingRule.find 作为判定同一规则的依据！
+            //      因为不同阶段/不同作用域下使用相同正则匹配处理文本是标准模式（例如展示时渲染成卡片，发送时剔除标签）。
+            let localTarget = null;
+            let matchedLocalKey = null;
+
+            if (state.regexRules[rId] && !defaultRuleKeys.includes(rId) && !state.regexRules[rId].isDefault) {
+                localTarget = state.regexRules[rId];
+                matchedLocalKey = rId;
+            } else {
+                // 次选：仅按规则名称精准匹配非默认的自定义规则
+                const found = Object.entries(state.regexRules).find(([k, r]) => {
+                    if (!r || defaultRuleKeys.includes(k) || r.isDefault) return false;
+                    return r.name && incomingRule.name && r.name.trim() === incomingRule.name.trim();
+                });
+                if (found) {
+                    matchedLocalKey = found[0];
+                    localTarget = found[1];
+                }
+            }
+
+            if (!localTarget) return; // 本地无此自定义规则，后续安全新增，不报冲突
+
+            // 实质内容比对：若内容不同则提示冲突
+            if (!isRegexContentIdentical(localTarget, incomingRule)) {
+                conflicts.push({
+                    key: matchedLocalKey,
+                    category: 'regex',
+                    name: incomingRule.name || localTarget.name || matchedLocalKey,
+                    id: matchedLocalKey,
+                    item: incomingRule,
+                    target: state.regexRules,
+                    prefix: ''
+                });
+            }
+        });
+    }
+
+    if (conflicts.length > 0) {
+        try {
+            const { showBatchConflictResolutionDialog } = await import('./modals/import-conflict-modal.js?v=temp');
+            conflictDecisions = await showBatchConflictResolutionDialog(conflicts);
+            if (!conflictDecisions) {
+                // 用户在弹窗中点击了【取消】
+                return silent ? { success: false, count: 0, cancelled: true } : null;
+            }
+        } catch (err) {
+            console.error('[importConversations] 调起冲突决策弹窗异常:', err);
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // 会话覆盖冲突检查 (当本地存在同 ID 且非删除态的不同版本会话时触发)
+    // -------------------------------------------------------------------------
+    const convConflicts = [];
+    if (checkConvConflicts) {
+        conversationsToImport.forEach(conv => {
+            if (!conv || !conv.id) return;
+            const localConv = state.conversations[conv.id];
+            // 只有当本地存在且未被移入回收站，且实质内容存在差异时才触发覆盖冲突
+            if (localConv && !localConv.isDeleted && !isConversationContentIdentical(localConv, conv)) {
+                convConflicts.push({
+                    convId: conv.id,
+                    title: conv.title || localConv.title || '未命名对话',
+                    localConv,
+                    incomingConv: conv
+                });
+            }
+        });
+    }
+
+    let convConflictDecisions = options.convConflictDecisions || null;
+    if (!convConflictDecisions && convConflicts.length > 0) {
+        try {
+            const { showConversationConflictDialog } = await import('./modals/sync-conflict-modal.js?v=temp');
+            convConflictDecisions = await showConversationConflictDialog(convConflicts);
+            if (!convConflictDecisions) {
+                // 用户在冲突决策面板点击了【取消】
+                return silent ? { success: false, count: 0, cancelled: true } : null;
+            }
+        } catch (err) {
+            console.error('[importConversations] 调起会话冲突决策弹窗异常:', err);
+        }
+    }
+
+    if (!convConflictDecisions) convConflictDecisions = {};
+    let importedCount = 0;
+    let identicalCount = 0; // 记录本地已有且内容 100% 完全一致的跳过会话数
+    let lastImportedId = null;
+    let hasWorldBookUpdated = false;
+    let hasRegexUpdated = false;
+    const timestamp = new Date().toISOString();
+    const batchSize = 10;
+
+    // 统一将决定的备忘录预处理入库
+    incomingWbMap.forEach((incomingWb, wbId) => {
+        const localWb = state.worldBook[wbId];
+        if (!localWb) {
+            // 本地完全无此条目，直接安全新增
+            state.worldBook[wbId] = JSON.parse(JSON.stringify(incomingWb));
+            if (!Array.isArray(state.worldBook[wbId].sessionIds)) {
+                state.worldBook[wbId].sessionIds = [];
+            }
+            hasWorldBookUpdated = true;
+            return;
+        }
+
+        const decision = conflictDecisions[wbId] || 'keep_both';
+        if (decision === 'overwrite') {
+            // 覆盖：更新内容，合并两端的关联 sessionIds
+            const existingSessions = Array.isArray(localWb.sessionIds) ? [...localWb.sessionIds] : [];
+            state.worldBook[wbId] = {
+                ...JSON.parse(JSON.stringify(incomingWb)),
+                sessionIds: existingSessions
+            };
+            hasWorldBookUpdated = true;
+        } else if (decision === 'keep_both' && conflicts.some(c => c.id === wbId)) {
+            // 保留两者：生成全新的副本 ID 与副本条目
+            const copyId = `wb_sync_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+            const copyItem = JSON.parse(JSON.stringify(incomingWb));
+            copyItem.id = copyId;
+            copyItem.name = `${incomingWb.name || '备忘录'} (同步副本)`;
+            copyItem.sessionIds = [];
+            state.worldBook[copyId] = copyItem;
+            wbIdRedirectMap.set(wbId, copyId);
+            hasWorldBookUpdated = true;
+        }
+        // 若为 skip，本地保持原样，无需写入
+    });
+
+    // 统一将决定的正则规则预处理入库
+    incomingRegexMap.forEach((incomingRule, origRuleId) => {
+        // 乌鸦：如果待导入项是系统内置默认规则，直接跳过，保持本地默认规则原汁原味
+        const defaultRuleKeys = Object.keys(DEFAULT_REGEX_RULES || {});
+        if (defaultRuleKeys.includes(origRuleId) || incomingRule.isDefault) return;
+
+        let localKey = origRuleId;
+        let localRule = null;
+        if (state.regexRules[localKey] && !defaultRuleKeys.includes(localKey) && !state.regexRules[localKey].isDefault) {
+            localRule = state.regexRules[localKey];
+        } else {
+            // 次选：仅按规则名称精准匹配非默认的自定义规则
+            const found = Object.entries(state.regexRules).find(([k, r]) => {
+                if (!r || defaultRuleKeys.includes(k) || r.isDefault) return false;
+                return r.name && incomingRule.name && r.name.trim() === incomingRule.name.trim();
+            });
+            if (found) {
+                localKey = found[0];
+                localRule = found[1];
+            }
+        }
+
+        if (!localRule) {
+            // 本地无此自定义规则：直接安全新增入库
+            // — 为什么这么写 —
+            // 若导入的规则 ID 碰巧与本地内置默认规则撞名（例如旧版本或测试环境导出的命名冲突），
+            // 必须动态分配全新 safeRuleId，绝不覆写或污染本地系统默认规则！
+            const isCollidingWithDefault = defaultRuleKeys.includes(origRuleId) || (state.regexRules[origRuleId] && state.regexRules[origRuleId].isDefault);
+            const safeRuleId = isCollidingWithDefault
+                ? ('regex_custom_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7))
+                : origRuleId;
+            const newRule = JSON.parse(JSON.stringify(incomingRule));
+            newRule.id = safeRuleId;
+            state.regexRules[safeRuleId] = newRule;
+            if (safeRuleId !== origRuleId) {
+                regexIdRedirectMap.set(origRuleId, safeRuleId);
+            }
+            hasRegexUpdated = true;
+            return;
+        }
+
+        const decision = conflictDecisions[localKey] || 'keep_both';
+        if (decision === 'overwrite') {
+            const existingSessions = Array.isArray(localRule.sessionIds) ? [...localRule.sessionIds] : [];
+            state.regexRules[localKey] = {
+                ...JSON.parse(JSON.stringify(incomingRule)),
+                id: localKey,
+                sessionIds: incomingRule.scope === 'session' ? existingSessions : (incomingRule.sessionIds || [])
+            };
+            hasRegexUpdated = true;
+        } else if (decision === 'keep_both' && conflicts.some(c => c.key === localKey || c.id === localKey)) {
+            // 都保留：新建 (同步副本) 规则
+            const copyId = 'regex_sync_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+            const copyRule = JSON.parse(JSON.stringify(incomingRule));
+            copyRule.id = copyId;
+            copyRule.name = (incomingRule.name || '正则规则') + ' (同步副本)';
+            if (copyRule.scope === 'session') {
+                copyRule.sessionIds = [];
+            }
+            state.regexRules[copyId] = copyRule;
+            regexIdRedirectMap.set(origRuleId, copyId);
+            regexIdRedirectMap.set(localKey, copyId);
+            hasRegexUpdated = true;
+        }
+        // 若为 skip，保持本地修改，无需写入
+    });
 
     for (let i = 0; i < conversationsToImport.length; i++) {
         const conv = conversationsToImport[i];
@@ -913,54 +1234,114 @@ export async function importConversations(conversationsToImport, bundleMetadata 
         }
 
         const oldConvId = conv.id;
-        const newId = `conv_import_${Date.now()}_${importedCount}`;
+        const isConflict = convConflicts.some(c => c.convId === oldConvId);
+        const decision = isConflict ? (convConflictDecisions[oldConvId] || 'keep_both') : null;
+
+        if (decision === 'skip') {
+            continue;
+        }
+
+        let newId = oldConvId;
+        let formattedTitle = conv.title || '对话';
+
+        if (decision === 'overwrite') {
+            // 覆盖策略：原本地版本作为备份软删除移入回收站（保留10天）
+            const localConv = state.conversations[oldConvId];
+            if (localConv) {
+                try {
+                    const { trashManager } = await import('./services/trash-manager.js?v=temp');
+                    await trashManager.moveToTrash(localConv, { isBackup: true, silent: true });
+                } catch (trashErr) {
+                    console.warn('[importConversations] 备份旧会话至回收站失败:', trashErr);
+                }
+            }
+            newId = oldConvId;
+            formattedTitle = conv.title || '对话';
+        } else if (decision === 'keep_both') {
+            // 保留两者策略：生成全新独立 ID 并附加 (同步副本) 后缀
+            newId = `conv_import_${Date.now()}_${importedCount}`;
+            const baseTitle = conv.title || '对话';
+            formattedTitle = `${baseTitle} (同步副本)`;
+        } else {
+            // 无冲突分支：若本地已存在（且未删除）
+            if (state.conversations[oldConvId] && !state.conversations[oldConvId].isDeleted) {
+                // — 为什么这么写 —
+                // 1. 若来源于云同步快照恢复 (syncOrigin 存在)，且实质聊天内容与本地完全一致 (isConversationContentIdentical 为 true)：
+                //    说明本地已经是最新状态，直接跳过此会话，绝不制造带 (同步 YYYY/MM/DD) 后缀的垃圾重复副本！
+                // 2. 若来源于常规外部文件导入（如导入备份 JSON），则保留另存为新副本的逻辑以防覆盖。
+                if (syncOrigin && isConversationContentIdentical(state.conversations[oldConvId], conv)) {
+                    identicalCount++;
+                    continue;
+                }
+
+                newId = `conv_import_${Date.now()}_${importedCount}`;
+                const suffix = typeof titleSuffix === 'string' ? titleSuffix : '';
+                formattedTitle = suffix ? `${conv.title || '对话'}${suffix}` : (conv.title || '对话');
+            } else {
+                newId = oldConvId;
+                formattedTitle = conv.title || '对话';
+            }
+        }
+
         const newConversation = {
             ...conv,
             id: newId,
-            title: conv.title ? `${conv.title} (已导入)` : `对话 (已导入)`,
+            title: formattedTitle,
             selectedMcpTools: Array.isArray(conv.selectedMcpTools) ? [...conv.selectedMcpTools] : [],
             lastModified: timestamp,
             importedAt: timestamp
         };
+
+        // 恢复并完整规范化实时模式与虚拟历法时间配置 (conv.realtimeMode)
+        // — 为什么这么写 —
+        // 保证导入/云端同步落地的会话对象中完整包含 enabled、历法年月日、星期开关、时间粒度、提示词及模板，
+        // 无论源端导出是全量还是旧版缺损字段，经 normalizeRealtimeConfig 规范化后均处于安全完备状态。
+        if (conv.realtimeMode && (typeof conv.realtimeMode === 'object' || typeof conv.realtimeMode === 'string')) {
+            newConversation.realtimeMode = normalizeRealtimeConfig(conv.realtimeMode);
+        }
+
+        if (syncOrigin) {
+            newConversation.syncOrigin = syncOrigin;
+        }
 
         // 清理会话中挂载的临时附属属性，保持数据纯净
         delete newConversation.relatedWorldBook;
         delete newConversation.hideSummary;
         delete newConversation.sessionRegexRules;
 
-        // 2. 恢复并映射局部关联的备忘录 (Smart Bundle 联动)
-        // A. 从单会话携带的 relatedWorldBook 恢复
+        // 2. 恢复并映射局部关联的备忘录 (Smart Bundle 联动，考虑副本重定向)
         if (Array.isArray(conv.relatedWorldBook) && conv.relatedWorldBook.length > 0) {
             conv.relatedWorldBook.forEach(wbEntry => {
                 if (!wbEntry || !wbEntry.id) return;
-                if (!state.worldBook[wbEntry.id]) {
-                    state.worldBook[wbEntry.id] = {
-                        ...wbEntry,
-                        sessionIds: [newId]
-                    };
-                } else {
-                    if (!Array.isArray(state.worldBook[wbEntry.id].sessionIds)) {
-                        state.worldBook[wbEntry.id].sessionIds = [];
+                const targetWbId = wbIdRedirectMap.get(wbEntry.id) || wbEntry.id;
+                const targetWb = state.worldBook[targetWbId];
+                if (targetWb) {
+                    if (!Array.isArray(targetWb.sessionIds)) {
+                        targetWb.sessionIds = [];
                     }
-                    if (!state.worldBook[wbEntry.id].sessionIds.includes(newId)) {
-                        state.worldBook[wbEntry.id].sessionIds.push(newId);
+                    if (!targetWb.sessionIds.includes(newId)) {
+                        targetWb.sessionIds.push(newId);
+                        hasWorldBookUpdated = true;
                     }
                 }
-                hasWorldBookUpdated = true;
             });
         }
 
-        // B. 从全量 bundleMetadata.worldBook 中映射旧 ID 到新 ID
+        // B. 从全量 bundleMetadata.worldBook 中映射旧 ID 到新 ID (严格支持 keep_both 副本重定向)
         if (bundleMetadata.worldBook && typeof bundleMetadata.worldBook === 'object') {
-            Object.values(state.worldBook).forEach(localEntry => {
-                const origEntry = bundleMetadata.worldBook[localEntry.id];
+            Object.entries(bundleMetadata.worldBook).forEach(([origWbId, origEntry]) => {
                 if (origEntry && Array.isArray(origEntry.sessionIds) && origEntry.sessionIds.includes(oldConvId)) {
-                    if (!Array.isArray(localEntry.sessionIds)) {
-                        localEntry.sessionIds = [];
-                    }
-                    if (!localEntry.sessionIds.includes(newId)) {
-                        localEntry.sessionIds.push(newId);
-                        hasWorldBookUpdated = true;
+                    // 若存在冲突且选择「都保留」，新会话应绑定到副本条目，而非污染原条目
+                    const effectiveWbId = wbIdRedirectMap.get(origWbId) || origWbId;
+                    const targetEntry = state.worldBook[effectiveWbId];
+                    if (targetEntry) {
+                        if (!Array.isArray(targetEntry.sessionIds)) {
+                            targetEntry.sessionIds = [];
+                        }
+                        if (!targetEntry.sessionIds.includes(newId)) {
+                            targetEntry.sessionIds.push(newId);
+                            hasWorldBookUpdated = true;
+                        }
                     }
                 }
             });
@@ -973,42 +1354,32 @@ export async function importConversations(conversationsToImport, bundleMetadata 
             state.hideSummary[newId] = normalizeHideSummaryConfig(bundleMetadata.hideSummary[oldConvId]);
         }
 
-        // 4. 恢复并映射该会话绑定的专属正则 (sessionRegexRules 联动)
-        const importedRuleSignatures = new Set();
-        // A. 从单会话携带的 sessionRegexRules 恢复
-        if (Array.isArray(conv.sessionRegexRules) && conv.sessionRegexRules.length > 0) {
-            conv.sessionRegexRules.forEach(rule => {
-                if (!rule || !rule.name) return;
-                const sig = `${rule.name}__${rule.find}`;
-                importedRuleSignatures.add(sig);
-                const newRuleId = `regex_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
-                state.regexRules[newRuleId] = {
-                    ...JSON.parse(JSON.stringify(rule)),
-                    id: newRuleId,
-                    scope: 'session',
-                    sessionIds: [newId]
-                };
-                hasRegexUpdated = true;
-            });
-        }
-        // B. 从全量 bundleMetadata.sessionRegexRules 中映射旧 ID 到新 ID
+        // 4. 恢复并映射该会话绑定的专属正则 (严格支持 keep_both 副本映射与去重)
+        const candidateRules = [];
+        if (Array.isArray(conv.sessionRegexRules)) candidateRules.push(...conv.sessionRegexRules);
+        if (Array.isArray(conv.relatedRegexRules)) candidateRules.push(...conv.relatedRegexRules);
         if (bundleMetadata.sessionRegexRules && typeof bundleMetadata.sessionRegexRules === 'object') {
-            Object.values(bundleMetadata.sessionRegexRules).forEach(rule => {
-                if (rule && Array.isArray(rule.sessionIds) && rule.sessionIds.includes(oldConvId)) {
-                    const sig = `${rule.name}__${rule.find}`;
-                    if (importedRuleSignatures.has(sig)) return; // 避免重复导入
-                    importedRuleSignatures.add(sig);
-                    const newRuleId = `regex_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
-                    state.regexRules[newRuleId] = {
-                        ...JSON.parse(JSON.stringify(rule)),
-                        id: newRuleId,
-                        scope: 'session',
-                        sessionIds: [newId]
-                    };
-                    hasRegexUpdated = true;
+            Object.values(bundleMetadata.sessionRegexRules).forEach(r => {
+                if (r && Array.isArray(r.sessionIds) && r.sessionIds.includes(oldConvId)) {
+                    candidateRules.push(r);
                 }
             });
         }
+
+        candidateRules.forEach(rule => {
+            if (!rule || !rule.id) return;
+            if (rule.scope !== 'session') return; // 全局规则自然生效，无需记录 sessionId
+
+            const effectiveRuleId = regexIdRedirectMap.get(rule.id) || rule.id;
+            const targetRule = state.regexRules[effectiveRuleId];
+            if (targetRule) {
+                if (!Array.isArray(targetRule.sessionIds)) targetRule.sessionIds = [];
+                if (!targetRule.sessionIds.includes(newId)) {
+                    targetRule.sessionIds.push(newId);
+                    hasRegexUpdated = true;
+                }
+            }
+        });
 
         state.conversations[newId] = newConversation;
         await saveConversation(newId, newConversation);
@@ -1032,12 +1403,50 @@ export async function importConversations(conversationsToImport, bundleMetadata 
 
     await saveToLocalStorage();
 
+    // 统一自动无感刷新侧边栏历史会话列表（全入口公用：系统设置/云同步等）
+    try {
+        const { renderHistory } = await import('./sidebar.js?v=temp');
+        if (typeof renderHistory === 'function') {
+            renderHistory();
+        }
+    } catch (e) {
+        console.warn('[importConversations] 刷新侧边栏异常:', e);
+    }
+
+    // 统一触发全动态 UI 更新（包含顶部实时模式按钮高亮、会话Token徽章等）
+    try {
+        const { updateAllDynamicUI } = await import('./ui-updater.js?v=temp');
+        if (typeof updateAllDynamicUI === 'function') {
+            updateAllDynamicUI();
+        }
+    } catch (e) {
+        console.warn('[importConversations] 刷新动态UI异常:', e);
+    }
+
+    // 如果当前活动会话在本次导入中被覆盖或更新，即时重新渲染主聊天消息
+    if (state.currentConversationId && state.conversations[state.currentConversationId]) {
+        try {
+            const { renderChatMessages } = await import('./renderer.js?v=temp');
+            if (typeof renderChatMessages === 'function') {
+                renderChatMessages();
+            }
+        } catch (_) {}
+    }
+
     if (importedCount > 0) {
-        alert(`成功导入 ${importedCount} 个会话！${hasWorldBookUpdated ? '（关联备忘录已同步恢复）' : ''}`);
-        return lastImportedId;
+        if (!silent) {
+            alert(`成功导入 ${importedCount} 个会话！${hasWorldBookUpdated ? '（关联备忘录已同步恢复）' : ''}`);
+        }
+        return silent ? { success: true, count: importedCount, lastImportedId, identicalCount } : lastImportedId;
     } else {
-        alert('未导入任何有效的会话。');
-        return null;
+        if (!silent) {
+            if (identicalCount > 0) {
+                alert('本地已有完全一致的会话记录，无需重复导入。');
+            } else {
+                alert('未导入任何有效的会话。');
+            }
+        }
+        return (silent && identicalCount > 0) ? { success: true, count: 0, identicalCount, allIdentical: true } : null;
     }
 }
 
@@ -1187,7 +1596,8 @@ export function calculateConversationStats(conversation, hideSummaryConfig) {
             dbContextTokens: 0, dbContextCharacters: 0,
             mcpToolsTokens: 0, mcpToolsCharacters: 0,
             mcpAnalysisCharacters: 0, mcpAnalysisTokens: 0, mcpToolDataCharacters: 0, mcpToolDataTokens: 0, totalToolCalls: 0,
-            attachmentsCharacters: 0, attachmentsTokens: 0
+            attachmentsCharacters: 0, attachmentsTokens: 0,
+            regexExcludedTokens: 0, regexExcludedCharacters: 0
         };
     }
 
@@ -1336,7 +1746,14 @@ export function calculateConversationStats(conversation, hideSummaryConfig) {
             hiddenEstimatedTokens += msgTokenCount;
         }
 
+        // 组装用于实际发送与正则过滤的纯正文 (剥离思考标签，含文本附件)
+        const pureMainText = (message.role === 'assistant'
+            ? rawContent.replace(/<(?:thinking|think)>[\s\S]*?<\/(?:thinking|think)>/gi, '')
+            : rawContent) + (attachmentTextFull || '');
+
         branchMessageStats.push({
+            role: message.role || 'user',
+            mainText: pureMainText,
             charCount: msgCharCount,
             tokenCount: msgTokenCount,
             mainChars: msgMainChars,
@@ -1360,12 +1777,38 @@ export function calculateConversationStats(conversation, hideSummaryConfig) {
         ? visibleStats.slice(-messageLimit)
         : visibleStats;
 
+    // — 为什么这么写 —
+    // 实际发送 Token 统计接入正则表达式排除过滤 (Plan A 核心演进)：
+    // 真实 API 发送前会调用 applyRequestRegex 剔除匹配到的正文内容（如剔除 options 标签、移除历史正文）。
+    // 若不排除正则过滤，Token 统计将脱离实际发送严重虚高。
+    // 此处严格对齐 API 真实链路：对待发送的可见正文列表应用 request 正则过滤，
+    // 精确重算实际发送正文 Tokens 与字符数，并统计正则排除削减的差额 (regexExcludedTokens / regexExcludedCharacters)。
+    const convId = conversation.id || state.currentConversationId;
+    const messagesToFilter = actualSentList.map(item => ({
+        role: item.role,
+        content: item.mainText
+    }));
+
+    const filteredMessages = applyRequestRegex(messagesToFilter, convId);
+
     let actualSentMainCharacters = 0;
     let actualSentMainTokens = 0;
+    let regexExcludedTokens = 0;
+    let regexExcludedCharacters = 0;
 
-    actualSentList.forEach(item => {
-        actualSentMainCharacters += item.mainChars;
-        actualSentMainTokens += item.mainTokens;
+    actualSentList.forEach((item, idx) => {
+        const filteredItem = filteredMessages[idx];
+        if (filteredItem && filteredItem.regexModified && filteredItem.content !== item.mainText) {
+            const filteredChars = filteredItem.content.length;
+            const filteredTokens = countTokens(filteredItem.content);
+            actualSentMainCharacters += filteredChars;
+            actualSentMainTokens += filteredTokens;
+            regexExcludedCharacters += Math.max(0, item.mainChars - filteredChars);
+            regexExcludedTokens += Math.max(0, item.mainTokens - filteredTokens);
+        } else {
+            actualSentMainCharacters += item.mainChars;
+            actualSentMainTokens += item.mainTokens;
+        }
     });
 
     // 1. 统计角色提示词 (Persona)
@@ -1382,7 +1825,6 @@ export function calculateConversationStats(conversation, hideSummaryConfig) {
     // 2. 统计启用的备忘录 (WorldBook，支持宏解析求值)
     let worldBookCharacters = 0;
     let worldBookTokens = 0;
-    const convId = conversation.id || state.currentConversationId;
     const enabledWorldBookEntries = Object.values(state.worldBook || {}).filter(entry => {
         if (!entry) return false;
         if (entry.enabled) return true;
@@ -1470,9 +1912,45 @@ export function calculateConversationStats(conversation, hideSummaryConfig) {
         }
     }
 
+    // 6. 统计实时模式提示词 (Realtime Mode Prompt) 与跟随追加的虚拟时间戳
+    let realtimeModeCharacters = 0;
+    let realtimeModeTokens = 0;
+    if (conversation.realtimeMode && conversation.realtimeMode.enabled) {
+        if (conversation.realtimeMode.promptEnabled !== false) {
+            const rtPrompt = (conversation.realtimeMode.prompt || DEFAULT_REALTIME_PROMPT).trim();
+            if (rtPrompt) {
+                realtimeModeCharacters += rtPrompt.length;
+                realtimeModeTokens += countTokens(rtPrompt);
+            }
+        }
+
+        // 统计追加到用户消息末尾的时间戳
+        const rtCfg = conversation.realtimeMode;
+        const appendAll = rtCfg.appendAllUser !== false;
+        const userMessages = activeBranch.filter((m, idx) => m.role === 'user' && !isFloorHiddenInConfig(idx + 1, hideSummaryConfig));
+        if (userMessages.length > 0) {
+            const targets = appendAll ? userMessages : [userMessages[userMessages.length - 1]];
+            for (const msg of targets) {
+                let msgDate = new Date();
+                if (msg.timestamp) {
+                    const parsedD = new Date(msg.timestamp);
+                    if (!isNaN(parsedD.getTime())) {
+                        msgDate = parsedD;
+                    }
+                }
+                const vDate = calculateVirtualDate(rtCfg, msgDate);
+                const tsStr = formatVirtualTimestamp(vDate, rtCfg);
+                if (tsStr) {
+                    realtimeModeCharacters += tsStr.length + 1; // 包含换行符 \n
+                    realtimeModeTokens += countTokens(tsStr);
+                }
+            }
+        }
+    }
+
     // 汇总系统级上下文
-    const actualSentSystemCharacters = personaCharacters + worldBookCharacters + summaryCharacters + dbContextCharacters + mcpToolsCharacters;
-    const actualSentSystemTokens = personaTokens + worldBookTokens + summaryTokens + dbContextTokens + mcpToolsTokens;
+    const actualSentSystemCharacters = personaCharacters + worldBookCharacters + summaryCharacters + dbContextCharacters + mcpToolsCharacters + realtimeModeCharacters;
+    const actualSentSystemTokens = personaTokens + worldBookTokens + summaryTokens + dbContextTokens + mcpToolsTokens + realtimeModeTokens;
 
     // 实际发送总计
     const actualSentCharacters = actualSentMainCharacters + actualSentSystemCharacters;
@@ -1486,13 +1964,15 @@ export function calculateConversationStats(conversation, hideSummaryConfig) {
         actualSentCharacters, actualSentEstimatedTokens,
         actualSentMainTokens, actualSentMainCharacters,
         actualSentSystemTokens, actualSentSystemCharacters,
+        regexExcludedTokens, regexExcludedCharacters,
         personaTokens, personaCharacters,
         worldBookTokens, worldBookCharacters,
         summaryTokens, summaryCharacters,
         dbContextTokens, dbContextCharacters,
         mcpToolsTokens, mcpToolsCharacters,
         mcpAnalysisCharacters, mcpAnalysisTokens, mcpToolDataCharacters, mcpToolDataTokens, totalToolCalls,
-        attachmentsCharacters, attachmentsTokens
+        attachmentsCharacters, attachmentsTokens,
+        realtimeModeCharacters, realtimeModeTokens
     };
 }
 

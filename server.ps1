@@ -160,14 +160,11 @@ try {
                     $bytes = [System.IO.File]::ReadAllBytes($filePath)
 
                     # — 为什么这么写 —
-                    # 1. 针对入口 HTML (index.html, sidebar.html 等) 及版本描述文件 version.json，必须强制下发严格防缓存头，
-                    #    防止手机浏览器将其固化在本地 Disk Cache 中导致发版后刷新无效；
-                    # 2. 普通静态资源 (JS/CSS/图片) 由于带有 ?v=版本号 query 参数，使用普通 no-cache 即可兼顾极速加载与版本穿透。
-                    $cacheHeader = if ($ext -in @('.html', '.htm') -or $cleanPath.ToLower().EndsWith('version.json')) {
-                        "Cache-Control: no-cache, no-store, must-revalidate, max-age=0`r`nPragma: no-cache`r`nExpires: 0`r`n"
-                    } else {
-                        "Cache-Control: no-cache`r`n"
-                    }
+                    # 1. 针对本地开发调试服务，所有静态资源（HTML/JS/CSS）均强制下发 no-cache, no-store, must-revalidate，
+                    #    杜绝手机浏览器（Chrome/Safari）由于 ?v=temp 占位符而强行固化在本地内存/磁盘缓存中，
+                    #    确保大爷手机每次下拉刷新都能 100% 立即命中最新样式与脚本改动；
+                    # 2. 生产正式打包环境由 release.ps1 动态注入时间戳版本号并下发对应的长效缓存策略。
+                    $cacheHeader = "Cache-Control: no-cache, no-store, must-revalidate, max-age=0`r`nPragma: no-cache`r`nExpires: 0`r`n"
 
                     $header = "HTTP/1.1 200 OK`r`n" +
                               "Content-Type: $mime`r`n" +

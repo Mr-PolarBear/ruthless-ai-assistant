@@ -32,3 +32,12 @@ android/capacitor-cordova-android-plugins/build/
 .DS_Store
 Thumbs.db
 /www/
+/android/
+
+# Local Server Data & Config (sync-server runtime)
+/data/
+/config.json
+*.db
+*.db-*
+*.secret
+ruthless-ai-assistant_*/

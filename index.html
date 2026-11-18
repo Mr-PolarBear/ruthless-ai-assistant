@@ -26,11 +26,18 @@
     <link rel="stylesheet" href="css/appearance.css?v=temp">
     <link rel="stylesheet" href="css/code-preview.css?v=temp">
     <link rel="stylesheet" href="css/tools-menu.css?v=temp">
+    <link rel="stylesheet" href="css/deepseek-import.css?v=temp">
     <link rel="stylesheet" href="css/responsive.css?v=temp">
     <link rel="stylesheet" href="css/conv-actions-sheet.css?v=temp">
     <link rel="stylesheet" href="css/version-update.css?v=temp">
     <link rel="stylesheet" href="css/mindmap.css?v=temp">
     <link rel="stylesheet" href="css/share-card.css?v=temp">
+    <link rel="stylesheet" href="css/sync.css?v=temp">
+    <link rel="stylesheet" href="css/conv-sync-modal.css?v=temp">
+    <link rel="stylesheet" href="css/realtime-mode.css?v=temp">
+    <link rel="stylesheet" href="css/trash.css?v=temp">
+    <link rel="stylesheet" href="css/copy-conv-modal.css?v=temp">
+    <link rel="stylesheet" href="css/immersive-mode.css?v=temp">
 </head>
 
 <body data-theme="light">
@@ -80,15 +87,18 @@
                 <div class="spinner"></div>
             </div>
             <div id="persona-bar" class="persona-bar">
-                <!-- 乌鸦：更新日志按钮，放在角色选择器左边 -->
-                <button id="changelog-btn" title="更新日志">
+                <!-- 隐藏与总结按钮（带限制条数上标与距离总结倒计时下标） -->
+                <button id="hide-summary-btn" title="隐藏与总结" style="position: relative;">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
-                        <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
-                        <line x1="12" y1="11" x2="12" y2="17"></line>
-                        <line x1="9" y1="14" x2="15" y2="14"></line>
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
                     </svg>
+                    <!-- Plan B: 右上角合体拼色微胶囊容器 (左蓝倒计时 | 右橙限制数) -->
+                    <div id="hide-summary-badge-group" class="hide-summary-badge-group">
+                        <span id="hide-summary-countdown-badge" class="hide-summary-countdown-badge"></span>
+                        <span id="hide-summary-limit-badge" class="hide-summary-limit-badge"></span>
+                    </div>
                 </button>
                 <!-- 乌鸦：角色选框 + 角色管理按钮合并为一体 -->
                 <div class="persona-combo">
@@ -97,9 +107,14 @@
                     </select>
                     <button id="manage-personas-btn" title="管理角色"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></button>
                 </div>
-                <button id="manage-worldbook-btn" title="备忘录">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+                <button id="manage-worldbook-btn" title="备忘录" style="position: relative;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                        <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+                    </svg>
                     <span class="btn-text">备忘录</span>
+                    <span id="worldbook-count-badge" class="worldbook-count-badge"></span>
                 </button>
                 <!-- 乌鸦：分支导航器内嵌到 persona-bar，节省一行空间 -->
                 <div id="branch-navigator" class="branch-navigator">
@@ -163,14 +178,14 @@
                     </div>
                 </div>
                 <div class="system-prompt-btn-wrapper" style="display: inline-flex; align-items: center; gap: 6px;">
-                    <button id="simulate-send-btn" class="simulate-send-btn" title="模拟发送 (查看实际发送给大模型的完整提示词与预估Token)">
+                    <button id="quick-regex-btn" class="quick-regex-btn" title="正则表达式 (快捷管理规则与速查指南)">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
                             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                            <circle cx="12" cy="12" r="3"></circle>
+                            <polyline points="4 17 10 11 4 5"></polyline>
+                            <line x1="12" y1="19" x2="20" y2="19"></line>
                         </svg>
                     </button>
-                    <button id="session-token-badge" class="session-token-badge-btn" title="点击查看会话数据详情 (当前实际发送预估 Token)">
+                    <button id="session-token-badge" class="session-token-badge-btn" title="点击查看模拟发送与提示词预览 (实际发送预估 Token)">
                         <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
                             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="12" cy="12" r="10"></circle>
@@ -189,7 +204,15 @@
                         <line x1="3" y1="21" x2="10" y2="14"></line>
                     </svg>
                 </button>
-                <button id="top-settings-btn" title="系统设置中心">
+                <button id="realtime-mode-btn" class="realtime-mode-btn" title="实时模式配置 (时间与虚拟历法)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    <span class="realtime-status-dot" id="realtime-status-dot"></span>
+                </button>
+                <button id="top-settings-btn" title="系统设置中心" style="display: none;">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="12" cy="12" r="3"></circle>
@@ -197,15 +220,32 @@
                     </svg>
                 </button>
             </div>
+            <!-- 移动端顶栏横向滚动右侧引导指示器 (Plan A: 渐隐 + 动态向右微标) -->
+            <div id="persona-bar-scroll-hint" class="persona-bar-scroll-hint" title="向右滑动查看更多" aria-label="向右滑动查看更多">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+            </div>
 
             <div id="load-all-messages-btn" style="display:none;">
-                <button class="load-all-pill-btn">
+                <button class="load-all-pill-btn" title="加载全部消息" aria-label="加载全部消息">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px;"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
-                    加载全部消息
+                    <span class="load-all-text">加载全部消息</span>
                 </button>
             </div>
             <div id="chat-messages"></div>
             <div class="scroll-nav-buttons">
+                <!-- 沉浸模式切换按钮，位于楼层快速跳转按钮上方 -->
+                <button id="immersive-mode-btn" title="开启沉浸阅读模式">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M3 7V5a2 2 0 0 1 2-2h2"></path>
+                        <path d="M17 3h2a2 2 0 0 1 2 2v2"></path>
+                        <path d="M21 17v2a2 2 0 0 1-2 2h-2"></path>
+                        <path d="M7 21H5a2 2 0 0 1-2-2v-2"></path>
+                    </svg>
+                </button>
                 <!-- 乌鸦：楼层快速跳转按钮，移至顶部滚动按钮上方 -->
                 <button id="jump-to-floor-btn" title="快速跳转到指定楼层">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
@@ -236,6 +276,24 @@
                 <div class="floor-jump-list"></div>
             </div>
             <div class="input-area">
+                <!-- 自动总结前瞻醒目预警横条 (Plan A) -->
+                <div id="auto-summary-pre-warning" class="auto-summary-pre-warning hidden">
+                    <div class="pre-warning-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                        </svg>
+                    </div>
+                    <div class="pre-warning-text" id="auto-summary-pre-warning-text">
+                        💡 提示：下一轮对话完成后将自动触发记忆总结
+                    </div>
+                    <button id="auto-summary-pre-warning-dismiss" class="pre-warning-close-btn" title="我知道了">
+                        <span>我知道了</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
                 <div class="input-wrapper">
                     <div id="attachment-preview" class="attachment-preview"></div>
                     <div class="input-controls" id="input-controls-primary">
@@ -276,7 +334,7 @@
                                 <span id="mcp-selected-count" class="badge" style="display: none;">0</span>
                             </button>
                         </div>
-                        <textarea id="message-input" placeholder="输入消息... (Shift+Enter 换行)" rows="1"></textarea>
+                        <textarea id="message-input" placeholder="输入消息..." rows="1"></textarea>
                         <button id="clear-input-btn" class="input-area-btn hidden" title="清空输入">
                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
                                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -356,6 +414,8 @@
     <script src="./libs/pdf.min.js?v=temp" defer></script>
     <script src="./libs/pdf.worker.min.js?v=temp" defer></script>
     <script src="./libs/jszip.min.js?v=temp" defer></script>
+    <script src="./libs/noble-hashes.min.js?v=temp" defer></script>
+    <script src="./libs/noble-ciphers.min.js?v=temp" defer></script>
     <!-- 协议安全检测：直接双击 file:/// 协议打开时给出清晰启动指引 -->
     <script>
         if (window.location.protocol === 'file:') {

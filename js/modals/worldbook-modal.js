@@ -119,6 +119,10 @@ export function toggleWorldBookContentExpand(forceState) {
     }
     
     if (dom.worldBookContentExpandBtn) {
+        // — 为什么这么写 —
+        // 1. 同时联动 active 状态类与内联 display 切换，由 CSS 统领多主题高对比度样式，内联兜底兼容
+        // 2. 避免单一样式在部分移动端 WebView 切换时丢失高亮与图标状态
+        dom.worldBookContentExpandBtn.classList.toggle('active', shouldBeExpanded);
         const iconExpand = dom.worldBookContentExpandBtn.querySelector('.icon-expand');
         const iconCompress = dom.worldBookContentExpandBtn.querySelector('.icon-compress');
         if (iconExpand && iconCompress) {
@@ -126,6 +130,16 @@ export function toggleWorldBookContentExpand(forceState) {
             iconCompress.style.display = shouldBeExpanded ? 'block' : 'none';
         }
         dom.worldBookContentExpandBtn.title = shouldBeExpanded ? '还原 (ESC退出)' : '放大编辑 (ESC退出)';
+    }
+
+    // 重置表单面板与主体滚动位置，确保移动端展开时顶栏工具区 100% 完整可见，杜绝纵向偏移滚走按钮
+    const formPanel = dom.worldBookModal.querySelector('.worldbook-form-panel');
+    if (formPanel) {
+        formPanel.scrollTop = 0;
+    }
+    const formBody = dom.worldBookModal.querySelector('.worldbook-form-body');
+    if (formBody) {
+        formBody.scrollTop = 0;
     }
     
     if (shouldBeExpanded && dom.worldBookContentInput) {
@@ -138,7 +152,7 @@ export function openWorldBookModal() {
     
     // — 为什么这么写 —
     // 每次打开弹窗时，必须强制重置为“全部”标签页与“全部”标签勾选，绝不继承上次关闭弹窗前的临时筛选状态
-    state.worldBookFilter.activeTab = 'all';
+    state.worldBookFilter.activeTab = 'selected';
     state.worldBookFilter.mode = 'single';
     
     if (dom.worldBookTagsPanel) {
@@ -148,7 +162,7 @@ export function openWorldBookModal() {
     
     if (dom.worldBookListTabs) {
         dom.worldBookListTabs.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.tab === 'all');
+            btn.classList.toggle('active', btn.dataset.tab === 'selected');
         });
     }
     if (dom.worldBookTagSearchInput) {
@@ -157,7 +171,7 @@ export function openWorldBookModal() {
     
     // 强制重置标签筛选为“全部”勾选
     renderWorldBookTagsPanel(true);
-    renderWorldBookList();
+    filterWorldBookByTags();
     resetWorldBookForm();
     setWorldBookMobileView('list');
     toggleWorldBookContentExpand(false);
@@ -243,9 +257,14 @@ function renderWorldBookCardHTML(entry, currentConvId, allowDrag = true) {
     const sessionChecked = (entry.enabled || (currentConvId && entry.sessionIds.includes(currentConvId))) ? 'checked' : '';
     const sessionDisabled = entry.enabled ? 'disabled' : '';
 
-    const tagsHTML = Array.isArray(entry.tags) && entry.tags.length > 0 ? `
+    let rawTags = entry.tags;
+    if (typeof rawTags === 'string') {
+        rawTags = rawTags.split(/[,，]/).map(t => t.trim()).filter(Boolean);
+    }
+    const tags = Array.isArray(rawTags) ? rawTags : [];
+    const tagsHTML = tags.length > 0 ? `
         <div class="worldbook-item-tags">
-            ${entry.tags.map(tag => `<span class="tag-badge">${escapeHtml(tag)}</span>`).join('')}
+            ${tags.map(tag => `<span class="tag-badge">${escapeHtml(tag)}</span>`).join('')}
         </div>
     ` : '';
 
@@ -348,10 +367,27 @@ export function renderWorldBookTagsPanel(forceResetToAll = false) {
     
     dom.worldBookTagList.innerHTML = '';
     
+    // 依大爷要求：根据当前 Tab（'all' 或 'selected'）动态选取统计源，使已选中视图下的标签完整展示，绝不残缺
+    const activeTab = state.worldBookFilter.activeTab;
+    const currentConvId = (typeof getSafeActiveConversationId === 'function') ? getSafeActiveConversationId() : state.currentConversationId;
+    
+    const sourceEntries = activeTab === 'selected'
+        ? Object.values(state.worldBook).filter(entry => {
+            if (!entry) return false;
+            if (entry.enabled) return true;
+            if (currentConvId && Array.isArray(entry.sessionIds) && entry.sessionIds.includes(currentConvId)) return true;
+            return false;
+        })
+        : Object.values(state.worldBook);
+
     const tagStats = new Map();
-    Object.values(state.worldBook).forEach(entry => {
-        if (Array.isArray(entry.tags)) {
-            entry.tags.forEach(tag => {
+    sourceEntries.forEach(entry => {
+        let entryTags = entry.tags;
+        if (typeof entryTags === 'string') {
+            entryTags = entryTags.split(/[,，]/).map(t => t.trim()).filter(Boolean);
+        }
+        if (Array.isArray(entryTags)) {
+            entryTags.forEach(tag => {
                 tagStats.set(tag, (tagStats.get(tag) || 0) + 1);
             });
         }
@@ -367,7 +403,7 @@ export function renderWorldBookTagsPanel(forceResetToAll = false) {
         <div class="tag-item ${allActiveClass}" data-tag="全部">
             <input type="checkbox" ${allCheckedAttr} class="tag-checkbox">
             <span class="tag-name">全部</span>
-            <span class="tag-count">(${Object.keys(state.worldBook).length})</span>
+            <span class="tag-count">(${sourceEntries.length})</span>
         </div>
     `;
     dom.worldBookTagList.innerHTML = allItemHTML;
@@ -400,46 +436,39 @@ export function renderWorldBookTagsPanel(forceResetToAll = false) {
         });
     }
 
-    // 确保 disabled 类与当前的 activeTab 保持严格一致
-    dom.worldBookTagList.classList.toggle('disabled', state.worldBookFilter.activeTab === 'selected');
+    // 依大爷要求：绝不给标签列表加 disabled，两端视图均可顺畅使用标签筛选
+    dom.worldBookTagList.classList.remove('disabled');
 }
 
 export function filterWorldBookByTags() {
     const activeTab = state.worldBookFilter.activeTab;
+    const currentConvId = (typeof getSafeActiveConversationId === 'function') ? getSafeActiveConversationId() : state.currentConversationId;
+
     if (dom.worldBookTagList) {
-        dom.worldBookTagList.classList.toggle('disabled', activeTab === 'selected');
+        dom.worldBookTagList.classList.remove('disabled');
     }
     
-    // 如果当前是"已选中"标签页，显示所有启用的条目（包括全局生效和会话生效）
+    // 1. 获取当前 Tab 范围的基础条目集
+    let baseEntries = Object.values(state.worldBook);
     if (activeTab === 'selected') {
-        const currentConvId = state.currentConversationId;
-        let entries = Object.values(state.worldBook)
-            .filter(entry => {
-                // 全局生效 或 当前会话生效
-                if (entry.enabled) return true;
-                if (currentConvId && Array.isArray(entry.sessionIds) && entry.sessionIds.includes(currentConvId)) return true;
-                return false;
-            });
-        entries = sortWorldBookEntries(entries);
-        
-        // 更新已选中数量
-        updateSelectedCount(entries.length);
-        
-        // 依大爷要求：放开已选中列表的拖拽排序
-        renderFilteredWorldBookList(entries, true);
-        return;
+        baseEntries = baseEntries.filter(entry => {
+            if (!entry) return false;
+            if (entry.enabled) return true;
+            if (currentConvId && Array.isArray(entry.sessionIds) && entry.sessionIds.includes(currentConvId)) return true;
+            return false;
+        });
     }
-    
-    // "全部"标签页的逻辑
-    // 计算并更新已选中数量（在全部标签页也需要显示）
-    const currentConvId = state.currentConversationId;
-    const selectedEntries = Object.values(state.worldBook).filter(entry => {
+
+    // 2. 实时更新“已选中”Tab 的数量徽章
+    const selectedCount = Object.values(state.worldBook).filter(entry => {
+        if (!entry) return false;
         if (entry.enabled) return true;
         if (currentConvId && Array.isArray(entry.sessionIds) && entry.sessionIds.includes(currentConvId)) return true;
         return false;
-    });
-    updateSelectedCount(selectedEntries.length);
-    
+    }).length;
+    updateSelectedCount(selectedCount);
+
+    // 3. 读取当前勾选的标签
     const selectedCheckboxes = dom.worldBookTagList ? Array.from(
         dom.worldBookTagList.querySelectorAll('.tag-checkbox:checked')
     ) : [];
@@ -459,8 +488,9 @@ export function filterWorldBookByTags() {
         dom.worldBookOpenTagsBadge.style.display = hasSpecific ? 'inline-flex' : 'none';
     }
     
-    // — 为什么这么写 —
-    // 若没有选中任何具体标签，或者勾选了“全部”，强制保证“全部”处于选中与高亮状态，展示全部条目
+    const sortedEntries = sortWorldBookEntries(baseEntries);
+
+    // 4. 若没有选中任何具体标签，或者勾选了“全部”，展示当前 Tab 下的全部基础条目
     if (selectedTags.length === 0 || selectedTags.includes('全部')) {
         if (dom.worldBookTagList) {
             const allItem = dom.worldBookTagList.querySelector('.tag-item[data-tag="全部"]');
@@ -476,18 +506,18 @@ export function filterWorldBookByTags() {
                 if (cb) cb.checked = false;
             });
         }
-        renderWorldBookList();
+        renderFilteredWorldBookList(sortedEntries, true);
         return;
     }
     
-    const filterMode = state.worldBookFilter.mode;
-    const entries = sortWorldBookEntries(Object.values(state.worldBook));
-    
-    const filtered = entries.filter(entry => {
-        if (!Array.isArray(entry.tags) || entry.tags.length === 0) return false;
-        
-        // 单选或多选模式都使用 OR 逻辑（匹配任一标签）
-        return selectedTags.some(tag => entry.tags.includes(tag));
+    // 5. 按具体标签进一步过滤当前 Tab 下的条目
+    const filtered = sortedEntries.filter(entry => {
+        let entryTags = entry.tags;
+        if (typeof entryTags === 'string') {
+            entryTags = entryTags.split(/[,，]/).map(t => t.trim()).filter(Boolean);
+        }
+        if (!Array.isArray(entryTags) || entryTags.length === 0) return false;
+        return selectedTags.some(tag => entryTags.includes(tag));
     });
     
     renderFilteredWorldBookList(filtered, true);

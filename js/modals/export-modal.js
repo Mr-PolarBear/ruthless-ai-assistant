@@ -10,6 +10,8 @@ import { getConversation } from '../db.js?v=temp';
 import { regexPatterns } from '../regex.js?v=temp';
 import { notify } from '../ui-updater.js?v=temp';
 import { extractThinkingFromContent } from '../utils.js?v=temp';
+import { normalizeRealtimeConfig, calculateVirtualDate, formatVirtualTimestamp } from '../services/realtime-mode.js?v=temp';
+import { buildSingleConversationData } from '../services/sync-bundle.js?v=temp';
 
 /** 当前正在准备导出的会话ID */
 let currentExportConvId = null;
@@ -151,7 +153,7 @@ function extractMessageThinkingAndContent(msg) {
  * @param {{ start: number, end: number, isCustom: boolean }} range - 楼层切片范围
  * @returns {string} 组合后的 TXT 文本内容
  */
-function formatBranchMessagesToText(messages, formatType, includeThink, convTitle, branchIndex, range) {
+export function formatBranchMessagesToText(messages, formatType, includeThink, convTitle, branchIndex, range, convSource = null) {
     // 1. 过滤符合楼层切片范围和角色的消息
     const indexedMessages = [];
     messages.forEach((msg, idx) => {
@@ -179,6 +181,33 @@ function formatBranchMessagesToText(messages, formatType, includeThink, convTitl
     const rangeDesc = range.isCustom ? `第 ${range.start} ~ ${range.end} 楼 (切片范围)` : `全部楼层 (共 ${messages.length} 楼)`;
     const { textDesc: wbDesc } = getEffectiveWorldBookInfo(currentExportConvId);
 
+    // 提取实时模式与历法时间配置（支持显式传入 convSource 或自动兜底取当前导出源会话）
+    const targetConvId = currentExportConvId || state.currentConversationId;
+    const effectiveConv = convSource || currentExportConvData || (targetConvId && state.conversations && state.conversations[targetConvId]);
+    let rtDesc = '';
+    let rtPromptText = '';
+    let rtConfig = null;
+    if (effectiveConv && effectiveConv.realtimeMode) {
+        const parsedRt = normalizeRealtimeConfig(effectiveConv.realtimeMode);
+        if (parsedRt.enabled) {
+            rtConfig = parsedRt;
+            const modeDesc = rtConfig.dateMode === 'custom'
+                ? `自定义历法 (${rtConfig.customYear}年${rtConfig.customMonth}月${rtConfig.customDay}日${rtConfig.linkDateChange ? '，随现实推进' : '，固定'}${rtConfig.baseRealDate ? `，基准:${rtConfig.baseRealDate}` : ''})`
+                : '跟随现实系统时间';
+            const granularityDesc = [
+                rtConfig.timeGranularity?.hour ? '时' : '',
+                rtConfig.timeGranularity?.minute ? '分' : '',
+                rtConfig.timeGranularity?.second ? '秒' : ''
+            ].filter(Boolean).join('/');
+            const appendDesc = rtConfig.appendAllUser !== false ? '每条用户消息' : '仅最新一条';
+            const promptStateDesc = rtConfig.promptEnabled !== false ? '已启用' : '已关闭';
+            rtDesc = `已启用 [基准: ${modeDesc} | 粒度: ${granularityDesc || '时/分'} | 包含星期: ${rtConfig.includeWeekday ? '是' : '否'} | 注入策略: ${appendDesc} | 提示词注入: ${promptStateDesc}]`;
+            if (rtConfig.promptEnabled !== false && rtConfig.prompt) {
+                rtPromptText = rtConfig.prompt.trim();
+            }
+        }
+    }
+
     // 2. 组装文件头部元信息
     let output = [
         `================================================================================`,
@@ -188,13 +217,28 @@ function formatBranchMessagesToText(messages, formatType, includeThink, convTitl
         ` 楼层范围：${rangeDesc}`,
         ` 导出记录：共 ${indexedMessages.length} 条`,
         ` 生效备忘：${wbDesc}`,
+        rtDesc ? ` 实时模式：${rtDesc}` : null,
+        rtPromptText ? ` 实时提示词：\n${rtPromptText}` : null,
         ` 导出时间：${exportTimeStr}`,
         `================================================================================\n`
-    ].join('\n');
+    ].filter(Boolean).join('\n');
 
     if (indexedMessages.length === 0) {
         output += `\n（在第 ${range.start} ~ ${range.end} 楼范围内未找到符合【${formatNameMap[formatType]}】条件的消息记录）\n`;
         return output;
+    }
+
+    // 统计需要注入时间戳的用户消息楼层集合（保持与实际发给 AI 时的时序规则 100% 相同）
+    const targetUserFloors = new Set();
+    if (rtConfig) {
+        const userItems = indexedMessages.filter(item => item.msg && item.msg.role === 'user');
+        if (userItems.length > 0) {
+            if (rtConfig.appendAllUser !== false) {
+                userItems.forEach(item => targetUserFloors.add(item.floor));
+            } else {
+                targetUserFloors.add(userItems[userItems.length - 1].floor);
+            }
+        }
     }
 
     // 3. 逐条渲染消息楼层与内容
@@ -209,6 +253,23 @@ function formatBranchMessagesToText(messages, formatType, includeThink, convTitl
         }
 
         const msgTime = formatReadableTime(msg.timestamp);
+        let floorTimeStr = msgTime;
+
+        // 如果开启实时模式且为自定义历法，楼层头部呈现虚拟历法时间与现实时间双重对照
+        if (rtConfig) {
+            let msgDate = new Date();
+            if (msg.timestamp) {
+                const parsedD = new Date(msg.timestamp);
+                if (!isNaN(parsedD.getTime())) {
+                    msgDate = parsedD;
+                }
+            }
+            if (rtConfig.dateMode === 'custom') {
+                const vDate = calculateVirtualDate(rtConfig, msgDate);
+                const vTimeStr = formatVirtualTimestamp(vDate, rtConfig).replace(/^--/, '');
+                floorTimeStr = `虚拟时间: ${vTimeStr} (现实: ${msgTime})`;
+            }
+        }
 
         // 处理正文内容与思考过程
         let content = '';
@@ -229,6 +290,31 @@ function formatBranchMessagesToText(messages, formatType, includeThink, convTitl
             content = typeof rawContent === 'string' ? rawContent.trim() : JSON.stringify(rawContent, null, 2);
         }
 
+        // 真实注入跟随用户发言的时间戳变量（确保导出记录与实际发送给大模型上下文完全保真）
+        if (msg.role === 'user' && rtConfig) {
+            if (targetUserFloors.has(floor)) {
+                let msgDate = new Date();
+                if (msg.timestamp) {
+                    const parsedD = new Date(msg.timestamp);
+                    if (!isNaN(parsedD.getTime())) {
+                        msgDate = parsedD;
+                    }
+                }
+                const vDate = calculateVirtualDate(rtConfig, msgDate);
+                const tsStr = formatVirtualTimestamp(vDate, rtConfig);
+                if (tsStr) {
+                    if (regexPatterns && regexPatterns.realtimeTimestampSuffix) {
+                        content = content.replace(regexPatterns.realtimeTimestampSuffix, '').trimEnd();
+                    }
+                    if (!content.includes(tsStr.trim())) {
+                        content = content ? `${content}\n\n${tsStr}` : tsStr;
+                    }
+                }
+            } else if (regexPatterns && regexPatterns.realtimeTimestampSuffix) {
+                content = content.replace(regexPatterns.realtimeTimestampSuffix, '').trimEnd();
+            }
+        }
+
         let attachmentInfo = '';
         if (Array.isArray(msg.attachments) && msg.attachments.length > 0) {
             const fileNames = msg.attachments.map(att => att.name || '未命名附件').join(', ');
@@ -237,7 +323,7 @@ function formatBranchMessagesToText(messages, formatType, includeThink, convTitl
 
         output += [
             `--------------------------------------------------------------------------------`,
-            `【#${floor} 楼】 ${roleName}   |   时间: ${msgTime}`,
+            `【#${floor} 楼】 ${roleName}   |   时间: ${floorTimeStr}`,
             `--------------------------------------------------------------------------------`,
             content.trim() ? content : '（空内容）',
             attachmentInfo,
@@ -258,7 +344,7 @@ function formatBranchMessagesToText(messages, formatType, includeThink, convTitl
  * @param {{ start: number, end: number, isCustom: boolean }} range - 楼层切片范围
  * @returns {string} 组合后的 Markdown 文本内容
  */
-function formatBranchMessagesToMarkdown(messages, formatType, includeThink, convTitle, branchIndex, range) {
+export function formatBranchMessagesToMarkdown(messages, formatType, includeThink, convTitle, branchIndex, range, convSource = null) {
     const indexedMessages = [];
     messages.forEach((msg, idx) => {
         if (!msg) return;
@@ -285,6 +371,33 @@ function formatBranchMessagesToMarkdown(messages, formatType, includeThink, conv
     const rangeDesc = range.isCustom ? `第 ${range.start} ~ ${range.end} 楼` : `第 1 ~ ${messages.length} 楼 (全部)`;
     const { textDesc: wbDesc } = getEffectiveWorldBookInfo(currentExportConvId);
 
+    // 提取实时模式与历法时间配置（支持显式传入 convSource 或自动兜底取当前导出源会话）
+    const targetConvId = currentExportConvId || state.currentConversationId;
+    const effectiveConv = convSource || currentExportConvData || (targetConvId && state.conversations && state.conversations[targetConvId]);
+    let rtDesc = '';
+    let rtPromptText = '';
+    let rtConfig = null;
+    if (effectiveConv && effectiveConv.realtimeMode) {
+        const parsedRt = normalizeRealtimeConfig(effectiveConv.realtimeMode);
+        if (parsedRt.enabled) {
+            rtConfig = parsedRt;
+            const modeDesc = rtConfig.dateMode === 'custom'
+                ? `自定义历法 (${rtConfig.customYear}年${rtConfig.customMonth}月${rtConfig.customDay}日${rtConfig.linkDateChange ? '，随现实推进' : '，固定'}${rtConfig.baseRealDate ? `，基准:${rtConfig.baseRealDate}` : ''})`
+                : '跟随现实系统时间';
+            const granularityDesc = [
+                rtConfig.timeGranularity?.hour ? '时' : '',
+                rtConfig.timeGranularity?.minute ? '分' : '',
+                rtConfig.timeGranularity?.second ? '秒' : ''
+            ].filter(Boolean).join('/');
+            const appendDesc = rtConfig.appendAllUser !== false ? '每条用户消息' : '仅最新一条';
+            const promptStateDesc = rtConfig.promptEnabled !== false ? '已启用' : '已关闭';
+            rtDesc = `已启用 [基准: ${modeDesc} | 粒度: ${granularityDesc || '时/分'} | 包含星期: ${rtConfig.includeWeekday ? '是' : '否'} | 注入策略: ${appendDesc} | 提示词注入: ${promptStateDesc}]`;
+            if (rtConfig.promptEnabled !== false && rtConfig.prompt) {
+                rtPromptText = rtConfig.prompt.trim();
+            }
+        }
+    }
+
     let output = [
         `# ${convTitle || '未命名会话'}`,
         ``,
@@ -292,15 +405,30 @@ function formatBranchMessagesToMarkdown(messages, formatType, includeThink, conv
         `> **导出分支**：分支 ${branchIndex + 1}  `,
         `> **楼层范围**：${rangeDesc}（共 ${indexedMessages.length} 条记录）  `,
         `> **生效备忘**：${wbDesc}  `,
+        rtDesc ? `> **实时模式**：${rtDesc}  ` : null,
+        rtPromptText ? `> **实时提示词**：\n> \`\`\`\n> ${rtPromptText.replace(/\n/g, '\n> ')}\n> \`\`\`  ` : null,
         `> **导出时间**：${exportTimeStr}  `,
         ``,
         `---`,
         ``
-    ].join('\n');
+    ].filter(Boolean).join('\n');
 
     if (indexedMessages.length === 0) {
         output += `\n*（在第 ${range.start} ~ ${range.end} 楼范围内未找到符合【${formatNameMap[formatType]}】条件的消息记录）*\n`;
         return output;
+    }
+
+    // 统计需要注入时间戳的用户消息楼层集合（保持与实际发给 AI 时的时序规则 100% 相同）
+    const targetUserFloors = new Set();
+    if (rtConfig) {
+        const userItems = indexedMessages.filter(item => item.msg && item.msg.role === 'user');
+        if (userItems.length > 0) {
+            if (rtConfig.appendAllUser !== false) {
+                userItems.forEach(item => targetUserFloors.add(item.floor));
+            } else {
+                targetUserFloors.add(userItems[userItems.length - 1].floor);
+            }
+        }
     }
 
     indexedMessages.forEach(({ msg, floor }) => {
@@ -314,6 +442,23 @@ function formatBranchMessagesToMarkdown(messages, formatType, includeThink, conv
         }
 
         const msgTime = formatReadableTime(msg.timestamp);
+        let floorTimeStr = msgTime;
+
+        // 如果开启实时模式且为自定义历法，楼层头部呈现虚拟历法时间与现实时间双重对照
+        if (rtConfig) {
+            let msgDate = new Date();
+            if (msg.timestamp) {
+                const parsedD = new Date(msg.timestamp);
+                if (!isNaN(parsedD.getTime())) {
+                    msgDate = parsedD;
+                }
+            }
+            if (rtConfig.dateMode === 'custom') {
+                const vDate = calculateVirtualDate(rtConfig, msgDate);
+                const vTimeStr = formatVirtualTimestamp(vDate, rtConfig).replace(/^--/, '');
+                floorTimeStr = `虚拟时间: ${vTimeStr} (现实: ${msgTime})`;
+            }
+        }
 
         let content = '';
         if (msg.role === 'assistant') {
@@ -332,6 +477,31 @@ function formatBranchMessagesToMarkdown(messages, formatType, includeThink, conv
             content = typeof rawContent === 'string' ? rawContent.trim() : JSON.stringify(rawContent, null, 2);
         }
 
+        // 真实注入跟随用户发言的时间戳变量（确保导出记录与实际发送给大模型上下文完全保真）
+        if (msg.role === 'user' && rtConfig) {
+            if (targetUserFloors.has(floor)) {
+                let msgDate = new Date();
+                if (msg.timestamp) {
+                    const parsedD = new Date(msg.timestamp);
+                    if (!isNaN(parsedD.getTime())) {
+                        msgDate = parsedD;
+                    }
+                }
+                const vDate = calculateVirtualDate(rtConfig, msgDate);
+                const tsStr = formatVirtualTimestamp(vDate, rtConfig);
+                if (tsStr) {
+                    if (regexPatterns && regexPatterns.realtimeTimestampSuffix) {
+                        content = content.replace(regexPatterns.realtimeTimestampSuffix, '').trimEnd();
+                    }
+                    if (!content.includes(tsStr.trim())) {
+                        content = content ? `${content}\n\n${tsStr}` : tsStr;
+                    }
+                }
+            } else if (regexPatterns && regexPatterns.realtimeTimestampSuffix) {
+                content = content.replace(regexPatterns.realtimeTimestampSuffix, '').trimEnd();
+            }
+        }
+
         let attachmentBlock = '';
         if (Array.isArray(msg.attachments) && msg.attachments.length > 0) {
             const fileNames = msg.attachments.map(att => `\`${att.name || '未命名附件'}\``).join(', ');
@@ -339,7 +509,7 @@ function formatBranchMessagesToMarkdown(messages, formatType, includeThink, conv
         }
 
         output += [
-            `### #${floor} 楼 ${roleTitle} \`${msgTime}\``,
+            `### #${floor} 楼 ${roleTitle} \`${floorTimeStr}\``,
             ``,
             content.trim() ? content : '*（空内容）*',
             attachmentBlock,
@@ -481,8 +651,8 @@ export async function openExportConvModal(convId) {
         }
     }
 
-    if (!conversation) {
-        notify.error('会话不存在或已被删除');
+    if (!conversation || conversation.isDeleted) {
+        notify.error('该会话不存在或已移入回收站');
         return;
     }
 
@@ -646,7 +816,7 @@ export async function executeExportConversation() {
         return;
     }
 
-    const conversation = currentExportConvData;
+    const conversation = (currentExportConvId && state.conversations[currentExportConvId]) || currentExportConvData;
     const selectedRadio = document.querySelector('input[name="export-conv-format"]:checked');
     const format = selectedRadio ? selectedRadio.value : 'ai_txt';
     const branchIndex = dom.exportConvBranchSelect ? parseInt(dom.exportConvBranchSelect.value, 10) : 0;
@@ -663,34 +833,15 @@ export async function executeExportConversation() {
 
     try {
         if (format === 'json') {
-            // === 导出 JSON 格式（全量数据 + 关联备忘录 + 隐藏总结） ===
-            const convToExport = JSON.parse(JSON.stringify(conversation));
+            // === 导出 JSON 格式（统一调用 Smart Bundle 核心组装器 buildSingleConversationData） ===
+            // — 为什么这么写 —
+            // 遵循 AGENTS.md 模块化架构铁律，杜绝与 sync-bundle.js 重复编写会话打包组装逻辑，
+            // 确保单会话导出的 JSON 拥有与云同步 100% 对齐的完整元数据（包含 12 项实时模式变量、关联备忘录、隐藏总结与会话正则）。
+            const convToExport = await buildSingleConversationData(conversation.id);
+            if (!convToExport) {
+                throw new Error('组装会话数据失败');
+            }
             convToExport.version = '2.0';
-            convToExport.exportedAt = new Date().toISOString();
-
-            // 附带当前会话关联生效的局部备忘录
-            const { relatedEntries } = getEffectiveWorldBookInfo(conversation.id);
-            if (relatedEntries.length > 0) {
-                convToExport.relatedWorldBook = relatedEntries;
-            }
-
-            // 附带当前会话隐藏总结配置
-            if (state.hideSummary && state.hideSummary[conversation.id]) {
-                convToExport.hideSummary = state.hideSummary[conversation.id];
-            }
-
-            // 附带当前会话专属正则规则
-            const sessionRegex = [];
-            if (state.regexRules && typeof state.regexRules === 'object') {
-                Object.values(state.regexRules).forEach(rule => {
-                    if (rule && rule.scope === 'session' && Array.isArray(rule.sessionIds) && rule.sessionIds.map(String).includes(String(conversation.id))) {
-                        sessionRegex.push(JSON.parse(JSON.stringify(rule)));
-                    }
-                });
-            }
-            if (sessionRegex.length > 0) {
-                convToExport.sessionRegexRules = sessionRegex;
-            }
 
             const jsonString = JSON.stringify(convToExport, null, 2);
             const fileName = `${sanitizedTitle}-${dateStr}_${timeStr}.json`;
@@ -722,7 +873,8 @@ export async function executeExportConversation() {
                     includeThink,
                     conversation.title,
                     branchIndex,
-                    range
+                    range,
+                    conversation
                 );
                 downloadBlob(mdContent, fileName, 'text/markdown;charset=utf-8');
             } else {
@@ -732,7 +884,8 @@ export async function executeExportConversation() {
                     includeThink,
                     conversation.title,
                     branchIndex,
-                    range
+                    range,
+                    conversation
                 );
                 downloadBlob(textContent, fileName, 'text/plain;charset=utf-8');
             }

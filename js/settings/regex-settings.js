@@ -11,6 +11,7 @@ import {
 } from '../modals.js?v=temp';
 import { parseRegex } from '../regex-engine.js?v=temp';
 import { renderChatMessages } from '../renderer.js?v=temp';
+import { updateSessionTokenBadge } from '../ui-updater.js?v=temp';
 import { DraggableList } from '../draggable-list.js?v=temp';
 import { initRegexExamplesModal } from '../modals/regex-examples-modal.js?v=temp';
 
@@ -110,6 +111,7 @@ export function setupRegexEvents() {
                 
                 saveToLocalStorage();
                 renderRegexRulesList();
+                updateSessionTokenBadge();
             }
         });
     }
@@ -208,6 +210,7 @@ function saveRegexRule() {
     renderRegexRulesList();
     resetRegexForm();
     if (enabled) renderChatMessages();
+    updateSessionTokenBadge();
 }
 
 let currentTargetRuleForCopy = null;
@@ -226,6 +229,7 @@ function handleRegexListActions(e) {
             saveToLocalStorage();
             renderRegexRulesList();
             renderChatMessages();
+            updateSessionTokenBadge();
         }
         return;
     }
@@ -263,6 +267,7 @@ function handleRegexListActions(e) {
                 delete state.regexRules[id];
                 saveToLocalStorage();
                 renderRegexRulesList();
+                updateSessionTokenBadge();
             }
         } else if (button.classList.contains('regex-copy-btn')) {
             if (Date.now() - lastRegexCopyTime < 500) return;

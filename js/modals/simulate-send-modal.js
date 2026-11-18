@@ -100,6 +100,10 @@ export function buildSimulatedPayload() {
         if (msg.name) cleanMsg.name = msg.name;
         if (msg.tool_calls) cleanMsg.tool_calls = msg.tool_calls;
         if (msg.tool_call_id) cleanMsg.tool_call_id = msg.tool_call_id;
+        if (msg.regexModified) {
+            cleanMsg.regexModified = true;
+            cleanMsg.beforeRegexContent = msg.beforeRegexContent;
+        }
         return cleanMsg;
     });
 
@@ -133,8 +137,11 @@ export function buildSimulatedPayload() {
         if (msg.role === 'system') {
             systemCount++;
             roleClass = 'role-system';
+            const rtPrompt = (conv && conv.realtimeMode && conv.realtimeMode.prompt) || '';
             if (textContent.includes('长期记忆总结') || textContent.includes('长期记忆摘要集') || textContent.includes('长期记忆结构化表格')) {
                 sourceTag = '长期记忆注入';
+            } else if (textContent.includes('【异地实时聊天规范】') || (rtPrompt && textContent.includes(rtPrompt.trim()))) {
+                sourceTag = '实时模式规范';
             } else if (state.appSettings && state.appSettings.mergeWorldBook && textContent.includes('---')) {
                 sourceTag = '合并系统上下文 (人设/备忘录/总结)';
             } else if (state.currentPersona && textContent.includes(state.currentPersona.prompt || '___')) {
@@ -146,14 +153,22 @@ export function buildSimulatedPayload() {
             userCount++;
             roleClass = 'role-user';
             if (hasDraft && index === rawMessages.length - 1) {
-                sourceTag = '当前输入草稿 (待发)';
+                sourceTag = '用户草稿 (待发)';
             } else {
                 sourceTag = `用户消息 (第 ${index + 1} 项)`;
             }
         } else if (msg.role === 'assistant') {
             assistantCount++;
             roleClass = 'role-assistant';
-            sourceTag = `AI 历史回复 (第 ${index + 1} 项)`;
+            sourceTag = `AI 回复 (第 ${index + 1} 项)`;
+        }
+
+        let regexDiffTokens = 0;
+        let regexDiffChars = 0;
+        if (msg.regexModified && msg.beforeRegexContent) {
+            const rawTokens = countTokens(msg.beforeRegexContent);
+            regexDiffTokens = Math.max(0, rawTokens - msgTokens);
+            regexDiffChars = Math.max(0, msg.beforeRegexContent.length - textContent.length);
         }
 
         return {
@@ -164,8 +179,20 @@ export function buildSimulatedPayload() {
             content: textContent,
             tokens: msgTokens,
             chars: textContent.length,
+            regexModified: !!msg.regexModified,
+            regexDiffTokens,
+            regexDiffChars,
             rawObject: msg
         };
+    });
+
+    let totalRegexExcludedTokens = 0;
+    let totalRegexExcludedChars = 0;
+    analyzedMessages.forEach(m => {
+        if (m.regexModified) {
+            totalRegexExcludedTokens += m.regexDiffTokens;
+            totalRegexExcludedChars += m.regexDiffChars;
+        }
     });
 
     const activeApi = (conv && conv.apiEndpointId ? (state.apiEndpoints?.[conv.apiEndpointId] || window.API_PRESETS?.[conv.apiEndpointId]) : null)
@@ -184,6 +211,8 @@ export function buildSimulatedPayload() {
     return {
         totalTokens: totalEstimatedTokens,
         totalMessages: rawMessages.length,
+        totalRegexExcludedTokens,
+        totalRegexExcludedChars,
         systemCount,
         userCount,
         assistantCount,
@@ -210,6 +239,21 @@ export function renderSimulateSendModal() {
     }
     if (dom.simTargetModel) dom.simTargetModel.textContent = data.targetModel;
 
+    // 仪表盘正则过滤削减指标
+    const simRegexStatItem = document.getElementById('sim-regex-stat-item');
+    const simRegexTokens = document.getElementById('sim-regex-tokens');
+    const simRegexChars = document.getElementById('sim-regex-chars');
+
+    if (simRegexStatItem && simRegexTokens && simRegexChars) {
+        if (data.totalRegexExcludedTokens > 0) {
+            simRegexTokens.textContent = `-${data.totalRegexExcludedTokens.toLocaleString()}`;
+            simRegexChars.textContent = `(-${data.totalRegexExcludedChars.toLocaleString()} 字)`;
+            simRegexStatItem.style.display = 'inline-flex';
+        } else {
+            simRegexStatItem.style.display = 'none';
+        }
+    }
+
     // 消息数量限制红字提示
     if (dom.simLimitNotice) {
         if (data.messageLimit > 0) {
@@ -229,18 +273,28 @@ export function renderSimulateSendModal() {
         } else {
             data.analyzedMessages.forEach((item) => {
                 const card = document.createElement('div');
-                card.className = `sim-card ${item.roleClass}`;
+                // — 为什么这么写 —
+                // 默认折叠所有卡片，保持结构流预览界面清爽紧凑，用户可按需单条展开或点击右上角全部展开
+                card.className = `sim-card ${item.roleClass} collapsed`;
 
+                const regexBadgeHtml = item.regexModified
+                    ? `<span class="sim-card-regex-badge" title="该条消息正文已应用请求时正则过滤，剔除了部分内容 (削减 ${item.regexDiffTokens} Tokens / ${item.regexDiffChars} 字符)"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -1px; margin-right: 2px;"><circle cx="6" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><line x1="20" y1="4" x2="8.12" y2="15.88"></line><line x1="14.47" y1="14.48" x2="20" y2="20"></line><line x1="8.12" y1="8.12" x2="12" y2="12"></line></svg>正则过滤 (-${item.regexDiffTokens} Tokens)</span>`
+                    : '';
+
+                // — 为什么这么写 —
+                // 响应大爷要求：将前两列合并为单一一体化标签（用户消息 / AI 回复 / 系统设定），省去重复徽章占位
                 card.innerHTML = `
                     <div class="sim-card-header">
                         <div class="sim-card-header-left">
-                            <span class="sim-card-role-badge">${item.role}</span>
-                            <span class="sim-card-source-tag">${escapeHtml(item.sourceTag)}</span>
+                            <span class="sim-card-unified-badge role-${item.role}">${escapeHtml(item.sourceTag)}</span>
+                            ${regexBadgeHtml}
                         </div>
                         <div class="sim-card-header-right">
                             <span class="sim-card-tokens">${item.tokens.toLocaleString()} Tokens / ${item.chars.toLocaleString()} 字</span>
-                            <button type="button" class="sim-card-copy-btn" title="复制本条消息内容">复制</button>
-                            <span class="sim-card-toggle-icon">▼</span>
+                            <button type="button" class="sim-card-copy-btn" title="复制本条消息内容" aria-label="复制">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg>
+                            </button>
+                            <span class="sim-card-toggle-icon"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
                         </div>
                     </div>
                     <div class="sim-card-body">${escapeHtml(item.content)}</div>
@@ -337,9 +391,18 @@ export function closeSimulateSendModal() {
  * 初始化模拟发送弹窗事件
  */
 export function initSimulateSendModal() {
-    // 打开模拟发送
-    if (dom.simulateSendBtn) {
-        dom.simulateSendBtn.addEventListener('click', openSimulateSendModal);
+    // — 为什么这么写 —
+    // 1. 点击 Token 徽章弹出全景【模拟发送与提示词预览】，承接全量上下文、正则削减透视与 JSON 请求载荷
+    if (dom.sessionTokenBadge) {
+        dom.sessionTokenBadge.addEventListener('click', openSimulateSendModal);
+    }
+
+    // 2. 正则表达式快捷按钮：一键直达【设置 -> 正则表达式】页签
+    const regexBtn = dom.quickRegexBtn || document.getElementById('quick-regex-btn') || dom.simulateSendBtn;
+    if (regexBtn) {
+        regexBtn.addEventListener('click', () => {
+            import('./settings-modal.js?v=temp').then(m => m.openSettingsModal('regex-settings'));
+        });
     }
 
     // 关闭模拟发送
@@ -378,6 +441,25 @@ export function initSimulateSendModal() {
         dom.simCollapseAllBtn.addEventListener('click', () => {
             const cards = dom.simCardsContainer?.querySelectorAll('.sim-card');
             cards?.forEach(card => card.classList.add('collapsed'));
+        });
+    }
+
+    // 概览仪表盘收起/展开控制
+    const statsBar = document.getElementById('simulate-send-stats-bar');
+    const collapseBtn = document.getElementById('sim-stats-collapse-btn');
+    const collapseText = document.getElementById('sim-stats-collapse-text');
+    if (statsBar && collapseBtn) {
+        const isCollapsed = localStorage.getItem('ruthless_simulate_stats_collapsed') === 'true';
+        if (isCollapsed) {
+            statsBar.classList.add('collapsed');
+            if (collapseText) collapseText.textContent = '展开';
+        }
+        collapseBtn.addEventListener('click', () => {
+            const nowCollapsed = statsBar.classList.toggle('collapsed');
+            localStorage.setItem('ruthless_simulate_stats_collapsed', nowCollapsed ? 'true' : 'false');
+            if (collapseText) {
+                collapseText.textContent = nowCollapsed ? '展开' : '收起';
+            }
         });
     }
 

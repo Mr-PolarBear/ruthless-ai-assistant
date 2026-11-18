@@ -206,6 +206,49 @@ function copyPlainText(message) {
     });
 }
 
+/**
+ * 确保消息底部的操作按钮容器（收起 + 回本条顶部）存在
+ * @param {HTMLElement} messageBubble 
+ * @returns {HTMLElement} actionsContainer
+ */
+export function ensureMessageBottomActions(messageBubble) {
+    let actionsContainer = messageBubble.querySelector('.message-bottom-actions');
+    if (!actionsContainer) {
+        actionsContainer = document.createElement('div');
+        actionsContainer.className = 'message-bottom-actions';
+        actionsContainer.innerHTML = `
+            <button class="toggle-collapse-btn"><span>收起</span></button>
+            <button class="scroll-to-msg-top-btn" title="滚动到该消息开头" style="display: none;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -1px; margin-right: 2px;">
+                    <line x1="12" y1="19" x2="12" y2="5"></line>
+                    <polyline points="5 12 12 5 19 12"></polyline>
+                </svg>
+                <span>回本条顶部</span>
+            </button>
+        `;
+        const footerEl = messageBubble.querySelector('.message-footer');
+        if (footerEl) {
+            footerEl.insertAdjacentElement('afterend', actionsContainer);
+        } else {
+            messageBubble.appendChild(actionsContainer);
+        }
+    }
+    return actionsContainer;
+}
+
+/**
+ * 移除消息底部的操作按钮容器
+ * @param {HTMLElement} messageBubble 
+ */
+export function removeMessageBottomActions(messageBubble) {
+    const actionsContainer = messageBubble.querySelector('.message-bottom-actions');
+    if (actionsContainer) actionsContainer.remove();
+    const oldBtn = messageBubble.querySelector('.toggle-collapse-btn');
+    if (oldBtn) oldBtn.remove();
+    const oldTopBtn = messageBubble.querySelector('.scroll-to-msg-top-btn');
+    if (oldTopBtn) oldTopBtn.remove();
+}
+
 export function updateToggleButtonState(messageBubble, forceUpdate = false) {
     const contentEl = messageBubble.querySelector('.message-content');
     const toggleBtn = messageBubble.querySelector('.toggle-collapse-btn');
@@ -220,8 +263,13 @@ export function updateToggleButtonState(messageBubble, forceUpdate = false) {
         const expectedText = isExpanded ? '收起' : '显示更多';
         if (forceUpdate || spanEl.textContent !== expectedText) {
             spanEl.textContent = expectedText;
-            // console.log(`乌鸦：更新按钮状态 - 展开: ${isExpanded}, 按钮文字: ${expectedText}`);
         }
+    }
+
+    // 选项 A：仅在长消息展开（显示“收起”）时展示“回本条顶部”按钮
+    const scrollTopBtn = messageBubble.querySelector('.scroll-to-msg-top-btn');
+    if (scrollTopBtn) {
+        scrollTopBtn.style.display = isExpanded ? 'inline-flex' : 'none';
     }
 }
 
@@ -259,7 +307,7 @@ export function updateSingleMessageCollapseState(messageBubble, shouldBeCollapse
 
     // 如果不应该折叠（比如太短或设置关闭），则移除按钮并展开所有内容
     if (!autoCollapse || !isLong) {
-        if (oldBtn) oldBtn.remove();
+        removeMessageBottomActions(messageBubble);
         contentEl.classList.remove('collapsible');
         contentEl.classList.add('expanded');
         // 展开所有相关容器（直接复用变量）
@@ -271,18 +319,7 @@ export function updateSingleMessageCollapseState(messageBubble, shouldBeCollapse
     // --- 如果需要折叠 ---
 
     // 1. 确保按钮存在
-    if (!oldBtn) {
-        const btn = document.createElement('button');
-        btn.className = 'toggle-collapse-btn';
-        btn.innerHTML = `<span></span>`; // 内容由 updateToggleButtonState 填充
-        const footerEl = messageBubble.querySelector('.message-footer');
-        if (footerEl) {
-            footerEl.insertAdjacentElement('afterend', btn);
-        } else {
-            messageBubble.appendChild(btn);
-        }
-        oldBtn = btn; // 更新引用
-    }
+    ensureMessageBottomActions(messageBubble);
 
     // 2. 根据命令应用CSS类
     if (shouldBeCollapsed) {
@@ -711,7 +748,6 @@ export function addCollapseButtonDuringStreaming(contentEl) {
     if (existingBtn) {
         // 乌鸦：如果按钮已存在，只更新状态，不重新创建
         updateToggleButtonState(messageBubble, false);
-        // console.log('乌鸦：折叠按钮已存在，仅更新状态');
         return;
     }
 
@@ -728,28 +764,14 @@ export function addCollapseButtonDuringStreaming(contentEl) {
     const isLong = totalHeight > 250;
 
     if (isLong) {
-        // 乌鸦：核心逻辑：创建并设置按钮，但不绑定事件，事件由events.js统一托管
-        const btn = document.createElement('button');
-        btn.className = 'toggle-collapse-btn';
-
-        // 乌鸦：默认设置为展开状态，只显示按钮
+        // 默认设置为展开状态，并创建底部配套按钮组
         contentEl.classList.add('expanded');
         contentEl.classList.remove('collapsible');
-        // 乌鸦：统一按钮结构，只保留文字，避免对齐和图标问题
-        btn.innerHTML = `<span></span>`;
 
-        // 将按钮插入到合适的位置
-        const footerEl = messageBubble.querySelector('.message-footer');
-        if (footerEl) {
-            footerEl.insertAdjacentElement('afterend', btn);
-        } else {
-            messageBubble.appendChild(btn);
-        }
-
-        // 乌鸦：按钮创建后，立即调用统一的状态更新函数
+        ensureMessageBottomActions(messageBubble);
         updateToggleButtonState(messageBubble, true);
 
-        console.log('乌鸦：流式输出过程中添加折叠按钮');
+        console.log('乌鸦：流式输出过程中添加折叠与回本条顶部按钮组');
     }
 }
 
@@ -793,27 +815,12 @@ export function smartCollapseStateCheck(contentEl) {
 
     if (!isLong) {
         // 消息变短了，移除按钮并展开
-        if (existingBtn) {
-            existingBtn.remove();
-        }
+        removeMessageBottomActions(messageBubble);
         mainContentEl.classList.remove('collapsible');
         mainContentEl.classList.add('expanded');
     } else {
-        // 消息够长，需要确保按钮存在
-        let btn = existingBtn;
-        if (!btn) {
-            btn = document.createElement('button');
-            btn.className = 'toggle-collapse-btn';
-            btn.innerHTML = `<span></span>`; // 创建一个空壳按钮
-
-            const footerEl = messageBubble.querySelector('.message-footer');
-            if (footerEl) {
-                footerEl.insertAdjacentElement('afterend', btn);
-            } else {
-                messageBubble.appendChild(btn);
-            }
-        }
-        // 乌鸦：无论按钮是旧是新，都调用统一的函数来更新其状态
+        // 消息够长，确保操作栏存在
+        ensureMessageBottomActions(messageBubble);
         updateToggleButtonState(messageBubble, true);
     }
 }

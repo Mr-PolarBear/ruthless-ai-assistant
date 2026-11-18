@@ -201,18 +201,13 @@ export function updateReasoningContainer(messageBubble, reasoningParts, isStream
         }
     }
 
-    // 更新内容主体
+    // 更新内容主体（DOM 节点复用与增量更新，避免清空重建销毁用户正在触控的 DOM 节点）
     const bodyEl = container.querySelector('.reasoning-body');
     if (bodyEl) {
-        // 清空旧内容
-        bodyEl.innerHTML = '';
+        const existingParts = bodyEl.querySelectorAll('.reasoning-part');
 
-        // 渲染每个思考段落
+        // 渲染或增量更新每个思考段落
         reasoningParts.forEach((part, index) => {
-            const partEl = document.createElement('div');
-            partEl.className = 'reasoning-part';
-            partEl.dataset.index = index + 1;  // 序号从1开始
-
             // 思考内容（保留换行，转义HTML特殊字符）
             const contentText = part.content
                 .replace(/&/g, '&amp;')
@@ -223,13 +218,40 @@ export function updateReasoningContainer(messageBubble, reasoningParts, isStream
             // 来源标注
             const sourceLabel = SOURCE_LABELS[part.source] || '未知来源';
 
-            partEl.innerHTML = `
-                <div class="reasoning-part-content">${contentText}</div>
-                <span class="reasoning-part-source">${sourceLabel}</span>
-            `;
-
-            bodyEl.appendChild(partEl);
+            let partEl = existingParts[index];
+            if (partEl) {
+                // — 为什么这么写 —
+                // 1. 复用已有 DOM 节点，坚决不能执行 bodyEl.innerHTML = ''。
+                // 2. 否则移动端用户手指按在思考内容上滑动查看前文时，指尖下的节点被瞬间销毁，
+                //    会导致浏览器 touch 手势序列中断并被后续流式数据强行拉回底部。
+                if (partEl.dataset.index !== String(index + 1)) {
+                    partEl.dataset.index = index + 1;
+                }
+                const contentEl = partEl.querySelector('.reasoning-part-content');
+                if (contentEl && contentEl.innerHTML !== contentText) {
+                    contentEl.innerHTML = contentText;
+                }
+                const sourceEl = partEl.querySelector('.reasoning-part-source');
+                if (sourceEl && sourceEl.textContent !== sourceLabel) {
+                    sourceEl.textContent = sourceLabel;
+                }
+            } else {
+                // 仅当段落数量增加时才创建并追加新段落节点
+                partEl = document.createElement('div');
+                partEl.className = 'reasoning-part';
+                partEl.dataset.index = index + 1;
+                partEl.innerHTML = `
+                    <div class="reasoning-part-content">${contentText}</div>
+                    <span class="reasoning-part-source">${sourceLabel}</span>
+                `;
+                bodyEl.appendChild(partEl);
+            }
         });
+
+        // 多余段落移除（防御性清理）
+        for (let i = reasoningParts.length; i < existingParts.length; i++) {
+            existingParts[i].remove();
+        }
     }
 
     // 乌鸦：流式输出时统一由 smartScrollToBottom 内部决策，不再外部双重门控

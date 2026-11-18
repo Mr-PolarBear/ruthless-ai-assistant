@@ -1,0 +1,29 @@
+{
+  "listen": "127.0.0.1:8443",
+  "tls": {
+    "enabled": false,
+    "certFile": "",
+    "keyFile": ""
+  },
+  "dataDir": "./data",
+  "allowedOrigins": [
+    "*"
+  ],
+  "rateLimit": {
+    "requestsPerMinute": 60,
+    "cooldownSeconds": 60
+  },
+  "maxSnapshotBytes": 52428800,
+  "maxTotalStorageBytes": 1073741824,
+  "defaultQuotaBytes": 209715200,
+  "maxSnapshotsPerUser": 200,
+  "serverSecretFile": "./data/server.secret",
+  "aiRelay": {
+    "enabled": false,
+    "defaultUpstream": "https://api.openai.com/v1",
+    "maxTasks": 500,
+    "ttlHours": 24,
+    "forceNonStream": true,
+    "timeoutMinutes": 30
+  }
+}
